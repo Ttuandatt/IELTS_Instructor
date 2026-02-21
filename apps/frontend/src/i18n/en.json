@@ -5,7 +5,12 @@
     "reading": "Reading",
     "writing": "Writing",
     "settings": "Settings",
-    "admin": "Admin"
+    "admin": "Admin",
+    "passages": "Passages",
+    "prompts": "Prompts",
+    "users": "Users",
+    "learners": "Learners",
+    "submissions": "Submissions"
   },
   "auth": {
     "login": "Login",
@@ -38,7 +43,14 @@
     "back": "Back",
     "next": "Next",
     "previous": "Previous",
-    "no_data": "No data yet"
+    "no_data": "No data yet",
+    "actions": "Actions",
+    "status": "Status",
+    "level": "Level",
+    "date": "Date",
+    "view": "View",
+    "total": "Total",
+    "confirm_delete": "Are you sure you want to delete?"
   },
   "reading": {
     "title": "Reading Practice",
@@ -49,7 +61,9 @@
     "score": "Score",
     "time_spent": "Time Spent",
     "correct": "Correct",
-    "incorrect": "Incorrect"
+    "incorrect": "Incorrect",
+    "submit_answers": "Submit Answers",
+    "no_passages": "No passages available yet"
   },
   "writing": {
     "title": "Writing Practice",
@@ -61,7 +75,9 @@
     "scoring": "Scoring in progress...",
     "feedback": "Feedback",
     "strengths": "Strengths",
-    "improvements": "Areas for Improvement"
+    "improvements": "Areas for Improvement",
+    "no_prompts": "No prompts available yet",
+    "write_here": "Write your essay here..."
   },
   "dashboard": {
     "title": "Dashboard",
@@ -70,5 +86,45 @@
     "recent_activity": "Recent Activity",
     "avg_score": "Average Score",
     "total_attempts": "Total Attempts"
+  },
+  "admin": {
+    "title": "Admin Panel",
+    "system_stats": "System Statistics",
+    "total_users": "Total Users",
+    "total_learners": "Total Learners",
+    "total_instructors": "Total Instructors",
+    "total_admins": "Total Admins",
+    "total_passages": "Total Passages",
+    "total_prompts": "Total Prompts",
+    "published": "Published",
+    "draft": "Draft",
+    "manage_passages": "Manage Passages",
+    "manage_prompts": "Manage Prompts",
+    "manage_users": "Manage Users",
+    "create_passage": "Create Passage",
+    "create_prompt": "Create Prompt",
+    "edit_passage": "Edit Passage",
+    "edit_prompt": "Edit Prompt",
+    "passage_title": "Title",
+    "passage_body": "Content",
+    "prompt_text": "Prompt Text",
+    "task_type": "Task Type",
+    "topic_tags": "Topic Tags",
+    "user_role": "Role",
+    "change_role": "Change Role"
+  },
+  "instructor": {
+    "title": "Instructor Panel",
+    "my_learners": "My Learners",
+    "all_submissions": "All Submissions",
+    "writing_submissions": "Writing Submissions",
+    "reading_submissions": "Reading Submissions",
+    "pending_review": "Pending Review",
+    "reviewed": "Reviewed",
+    "learner_name": "Learner",
+    "submission_date": "Submitted",
+    "score": "Score",
+    "prompt_title": "Prompt",
+    "passage_title": "Passage"
   }
 }

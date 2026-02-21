@@ -9,11 +9,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ─── Enums ───────────────────────────────────────────
+
 enum UserRole {
   learner
   instructor
   admin
 }
+
+enum CefrLevel {
+  A2
+  B1
+  B2
+  C1
+}
+
+enum ContentStatus {
+  draft
+  published
+}
+
+enum QuestionType {
+  mcq
+  short
+}
+
+enum TaskType {
+  task1
+  task2
+}
+
+enum ModelTier {
+  cheap
+  premium
+}
+
+enum ProcessingStatus {
+  pending
+  done
+  failed
+}
+
+// ─── Users ───────────────────────────────────────────
 
 model User {
   id            String   @id @default(uuid())
@@ -26,7 +63,127 @@ model User {
   created_at    DateTime @default(now()) @db.Timestamptz()
   updated_at    DateTime @updatedAt @db.Timestamptz()
 
+  // Relations
+  passages_created     Passage[]           @relation("PassageCreator")
+  prompts_created      Prompt[]            @relation("PromptCreator")
+  reading_submissions  ReadingSubmission[]
+  writing_submissions  WritingSubmission[]
+
   @@index([email])
   @@index([role])
   @@map("users")
+}
+
+// ─── Content ─────────────────────────────────────────
+
+model Passage {
+  id         String        @id @default(uuid())
+  title      String        @db.VarChar(200)
+  body       String        @db.Text
+  level      CefrLevel
+  topic_tags String[]      @default([])
+  status     ContentStatus @default(draft)
+  created_by String
+  created_at DateTime      @default(now()) @db.Timestamptz()
+  updated_at DateTime      @updatedAt @db.Timestamptz()
+
+  // Relations
+  creator    User       @relation("PassageCreator", fields: [created_by], references: [id])
+  questions  Question[]
+  submissions ReadingSubmission[]
+
+  @@index([level])
+  @@index([status])
+  @@index([created_at(sort: Desc)])
+  @@map("passages")
+}
+
+model Question {
+  id          String       @id @default(uuid())
+  passage_id  String
+  type        QuestionType
+  prompt      String       @db.Text
+  options     Json?        // MCQ: ["A. ...", "B. ...", "C. ...", "D. ..."]
+  answer_key  Json         // MCQ: "B" | Short: ["keyword1", "keyword2"]
+  explanation String?      @db.Text
+  order_index Int          @default(0)
+
+  // Relations
+  passage Passage @relation(fields: [passage_id], references: [id], onDelete: Cascade)
+
+  @@index([passage_id])
+  @@index([passage_id, order_index])
+  @@map("questions")
+}
+
+model Prompt {
+  id          String        @id @default(uuid())
+  task_type   TaskType
+  title       String        @db.VarChar(200)
+  prompt_text String        @db.Text
+  level       CefrLevel
+  topic_tags  String[]      @default([])
+  status      ContentStatus @default(draft)
+  min_words   Int           @default(250)
+  created_by  String
+  created_at  DateTime      @default(now()) @db.Timestamptz()
+  updated_at  DateTime      @updatedAt @db.Timestamptz()
+
+  // Relations
+  creator     User                @relation("PromptCreator", fields: [created_by], references: [id])
+  submissions WritingSubmission[]
+
+  @@index([task_type])
+  @@index([level])
+  @@index([status])
+  @@map("prompts")
+}
+
+// ─── Submissions ─────────────────────────────────────
+
+model ReadingSubmission {
+  id              String   @id @default(uuid())
+  user_id         String
+  passage_id      String
+  answers         Json     // [{question_id, value}]
+  score_pct       Float    // 0–100
+  correct_count   Int
+  total_questions Int
+  duration_sec    Int?
+  timed_out       Boolean  @default(false)
+  completed_at    DateTime @default(now()) @db.Timestamptz()
+
+  // Relations
+  user    User    @relation(fields: [user_id], references: [id])
+  passage Passage @relation(fields: [passage_id], references: [id])
+
+  @@index([user_id, completed_at(sort: Desc)])
+  @@index([passage_id])
+  @@map("submissions_reading")
+}
+
+model WritingSubmission {
+  id                String           @id @default(uuid())
+  user_id           String
+  prompt_id         String
+  content           String           @db.Text
+  word_count        Int
+  scores            Json?            // {TR, CC, LR, GRA, overall} — null when pending
+  feedback          Json?            // {summary, strengths[], improvements[]}
+  model_tier        ModelTier        @default(cheap)
+  model_name        String?          @db.VarChar(50)
+  turnaround_ms     Int?
+  processing_status ProcessingStatus @default(pending)
+  error_message     String?          @db.Text
+  created_at        DateTime         @default(now()) @db.Timestamptz()
+  scored_at         DateTime?        @db.Timestamptz()
+
+  // Relations
+  user   User   @relation(fields: [user_id], references: [id])
+  prompt Prompt @relation(fields: [prompt_id], references: [id])
+
+  @@index([user_id, created_at(sort: Desc)])
+  @@index([prompt_id])
+  @@index([processing_status])
+  @@map("submissions_writing")
 }

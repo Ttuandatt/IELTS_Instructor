@@ -5,7 +5,12 @@
     "reading": "Luyện đọc",
     "writing": "Luyện viết",
     "settings": "Cài đặt",
-    "admin": "Quản trị"
+    "admin": "Quản trị",
+    "passages": "Bài đọc",
+    "prompts": "Đề bài",
+    "users": "Người dùng",
+    "learners": "Người học",
+    "submissions": "Bài nộp"
   },
   "auth": {
     "login": "Đăng nhập",
@@ -38,7 +43,14 @@
     "back": "Quay lại",
     "next": "Tiếp",
     "previous": "Trước",
-    "no_data": "Chưa có dữ liệu"
+    "no_data": "Chưa có dữ liệu",
+    "actions": "Thao tác",
+    "status": "Trạng thái",
+    "level": "Cấp độ",
+    "date": "Ngày",
+    "view": "Xem",
+    "total": "Tổng",
+    "confirm_delete": "Bạn có chắc muốn xóa?"
   },
   "reading": {
     "title": "Luyện đọc",
@@ -49,7 +61,9 @@
     "score": "Điểm",
     "time_spent": "Thời gian",
     "correct": "Đúng",
-    "incorrect": "Sai"
+    "incorrect": "Sai",
+    "submit_answers": "Nộp bài",
+    "no_passages": "Chưa có bài đọc nào"
   },
   "writing": {
     "title": "Luyện viết",
@@ -61,7 +75,9 @@
     "scoring": "Đang chấm điểm...",
     "feedback": "Nhận xét",
     "strengths": "Điểm mạnh",
-    "improvements": "Cần cải thiện"
+    "improvements": "Cần cải thiện",
+    "no_prompts": "Chưa có đề bài nào",
+    "write_here": "Viết bài luận của bạn tại đây..."
   },
   "dashboard": {
     "title": "Tổng quan",
@@ -70,5 +86,45 @@
     "recent_activity": "Hoạt động gần đây",
     "avg_score": "Điểm trung bình",
     "total_attempts": "Tổng số lần làm"
+  },
+  "admin": {
+    "title": "Quản trị",
+    "system_stats": "Thống kê hệ thống",
+    "total_users": "Tổng người dùng",
+    "total_learners": "Người học",
+    "total_instructors": "Giảng viên",
+    "total_admins": "Quản trị viên",
+    "total_passages": "Tổng bài đọc",
+    "total_prompts": "Tổng đề bài",
+    "published": "Đã xuất bản",
+    "draft": "Bản nháp",
+    "manage_passages": "Quản lý bài đọc",
+    "manage_prompts": "Quản lý đề bài",
+    "manage_users": "Quản lý người dùng",
+    "create_passage": "Tạo bài đọc",
+    "create_prompt": "Tạo đề bài",
+    "edit_passage": "Sửa bài đọc",
+    "edit_prompt": "Sửa đề bài",
+    "passage_title": "Tiêu đề",
+    "passage_body": "Nội dung",
+    "prompt_text": "Nội dung đề bài",
+    "task_type": "Loại bài",
+    "topic_tags": "Chủ đề",
+    "user_role": "Vai trò",
+    "change_role": "Đổi vai trò"
+  },
+  "instructor": {
+    "title": "Giảng viên",
+    "my_learners": "Người học của tôi",
+    "all_submissions": "Tất cả bài nộp",
+    "writing_submissions": "Bài viết đã nộp",
+    "reading_submissions": "Bài đọc đã nộp",
+    "pending_review": "Chờ chấm",
+    "reviewed": "Đã chấm",
+    "learner_name": "Người học",
+    "submission_date": "Ngày nộp",
+    "score": "Điểm",
+    "prompt_title": "Đề bài",
+    "passage_title": "Bài đọc"
   }
 }
