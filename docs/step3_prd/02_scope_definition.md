@@ -64,7 +64,7 @@ Xác định rõ ràng ranh giới phạm vi của MVP (Phase 1) để tránh sc
 
 | Tính năng | Mô tả chi tiết | Ưu tiên | Liên kết FR |
 |-----------|----------------|---------|-------------|
-| Register | Email + password; chọn role (learner mặc định); chọn language/theme | P0 | FR-009 |
+| Register | Email + password; chọn role (learner / instructor / admin, mặc định learner); chọn language/theme | P0 | FR-009 |
 | Login | Email + password → JWT access + refresh token | P0 | FR-009 |
 | Refresh Token | Auto-refresh khi access token hết hạn | P0 | FR-009 |
 | Profile | GET/UPDATE display_name, language (vi/en), theme (dark/light) | P0 | FR-009 |

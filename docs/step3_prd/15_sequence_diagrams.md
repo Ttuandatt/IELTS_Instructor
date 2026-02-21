@@ -17,14 +17,14 @@ sequenceDiagram
     participant BE as ⚙️ Backend
     participant DB as 🗄️ PostgreSQL
 
-    U->>FE: Fill email, password, name
+    U->>FE: Fill email, password, name, role
     FE->>FE: Client-side validation
-    FE->>BE: POST /auth/register {email, password, display_name}
-    BE->>BE: Validate input (email format, password policy)
+    FE->>BE: POST /auth/register {email, password, display_name, role}
+    BE->>BE: Validate input (email format, password policy, role enum)
     BE->>DB: SELECT user WHERE email = ?
     DB-->>BE: null (no duplicate)
-    BE->>BE: Hash password (bcrypt, rounds=10)
-    BE->>DB: INSERT INTO users (email, password_hash, role='learner', ...)
+    BE->>BE: Hash password (bcrypt, rounds=12)
+    BE->>DB: INSERT INTO users (email, password_hash, role=chosen_role, ...)
     DB-->>BE: User row created
     BE->>BE: Generate JWT access + refresh tokens
     BE-->>FE: 201 {access_token, refresh_token, user}

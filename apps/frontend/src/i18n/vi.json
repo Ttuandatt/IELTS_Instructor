@@ -17,7 +17,11 @@
     "display_name": "Tên hiển thị",
     "forgot_password": "Quên mật khẩu?",
     "no_account": "Chưa có tài khoản?",
-    "has_account": "Đã có tài khoản?"
+    "has_account": "Đã có tài khoản?",
+    "role": "Vai trò",
+    "role_learner": "Người học",
+    "role_instructor": "Giảng viên",
+    "role_admin": "Quản trị viên"
   },
   "common": {
     "loading": "Đang tải...",

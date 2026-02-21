@@ -13,6 +13,7 @@ export default function RegisterPage() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [role, setRole] = useState('learner');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +28,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register(email, password, displayName);
+      await register(email, password, displayName, role);
     } catch (err: any) {
       setError(err.response?.data?.message || t.common.error);
     } finally {
@@ -58,6 +59,19 @@ export default function RegisterPage() {
               maxLength={100}
               autoFocus
             />
+          </div>
+
+          <div className="form-group">
+            <label className="form-label">{t.auth.role}</label>
+            <select
+              className="form-input"
+              value={role}
+              onChange={(e) => setRole(e.target.value)}
+            >
+              <option value="learner">{t.auth.role_learner}</option>
+              <option value="instructor">{t.auth.role_instructor}</option>
+              <option value="admin">{t.auth.role_admin}</option>
+            </select>
           </div>
 
           <div className="form-group">

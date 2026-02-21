@@ -31,7 +31,7 @@
 Hệ thống cho phép người dùng mới đăng ký tài khoản bằng email và password. Sau khi đăng ký thành công, user nhận JWT tokens và được redirect vào hệ thống.
 
 **Business Rules:**
-- Default role = `learner` (BR-101)
+- User chọn role khi đăng ký: `learner` | `instructor` | `admin`; default = `learner` (BR-101)
 - Password phải ≥ 8 ký tự, chứa ít nhất 1 uppercase, 1 number, 1 special char (BR-102)
 - Email phải unique trên toàn hệ thống (BR-103)
 
@@ -40,7 +40,7 @@ Hệ thống cho phép người dùng mới đăng ký tài khoản bằng email
 - Kết nối network khả dụng.
 
 **Post-conditions:**
-- Record mới trong bảng `users` với role=learner.
+- Record mới trong bảng `users` với role do user chọn (default: learner).
 - JWT access token + refresh token được trả về.
 - User session bắt đầu.
 
@@ -51,6 +51,7 @@ Hệ thống cho phép người dùng mới đăng ký tài khoản bằng email
 | email | string | ✅ | Email format; unique |
 | password | string | ✅ | Min 8 chars, 1 upper, 1 num, 1 special |
 | display_name | string | ❌ | Max 50 chars; default = email prefix |
+| role | enum | ❌ | `learner` \| `instructor` \| `admin`; default `learner` |
 | language | enum | ❌ | `vi` \| `en`; default `vi` |
 | theme | enum | ❌ | `dark` \| `light`; default `light` |
 

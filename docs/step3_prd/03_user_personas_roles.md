@@ -94,9 +94,9 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 
 | Role | Mô tả | Tạo bởi | Mặc định khi register |
 |------|--------|---------|----------------------|
-| `learner` | Người học; truy cập practice modules, dashboard, profile | Self-register | ✅ Có |
-| `instructor` | Giảng viên; xem submissions (MVP-lite); future: review/override | Admin assign | ❌ Không |
-| `admin` | Quản trị; full CRUD content, import, publish, manage users | System seed / super admin | ❌ Không |
+| `learner` | Người học; truy cập practice modules, dashboard, profile | Self-register | ✅ Có (default) |
+| `instructor` | Giảng viên; xem submissions (MVP-lite); future: review/override | Self-register (chọn role) | ❌ Không |
+| `admin` | Quản trị; full CRUD content, import, publish, manage users | Self-register (chọn role) / System seed | ❌ Không |
 
 ---
 
@@ -105,7 +105,7 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 | Hành động | `learner` | `instructor` | `admin` |
 |-----------|:---------:|:------------:|:-------:|
 | **Auth** | | | |
-| Register (self) | ✅ | ❌ (admin assign) | ❌ (seeded) |
+| Register (self, chọn role) | ✅ | ✅ | ✅ |
 | Login / Refresh / Logout | ✅ | ✅ | ✅ |
 | View & update own profile | ✅ | ✅ | ✅ |
 | **Reading** | | | |
@@ -135,22 +135,24 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 
 ## 5. Luồng đăng ký & phân quyền
 
-### 5.1 Learner Registration Flow
+### 5.1 User Registration Flow (chọn role)
 
 ```
-[User] → POST /auth/register {email, password, role:"learner"}
-       → Server tạo account, role=learner
+[User] → Chọn role (learner / instructor / admin) trên form đăng ký
+       → POST /auth/register {email, password, display_name, role}
+       → Server validate role ∈ [learner, instructor, admin]
+       → Tạo account với role được chọn (default: learner)
        → Trả JWT access + refresh token
        → Redirect to Dashboard
 ```
 
-### 5.2 Instructor / Admin Assignment
+### 5.2 Admin Role Management (bổ sung)
 
 ```
 [Admin] → GET /admin/users → Tìm user
         → PATCH /admin/users/{id}/role {role:"instructor"}
         → User account cập nhật role
-        → Instructor có thể truy cập submissions view
+        → Áp dụng cho trường hợp cần thay đổi role sau đăng ký
 ```
 
 ### 5.3 Token Lifecycle

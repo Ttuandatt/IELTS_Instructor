@@ -8,7 +8,7 @@ import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { User } from '../shared/entities';
+import { User, UserRole } from '../shared/entities';
 import { RegisterDto, LoginDto, UpdateProfileDto } from './dto';
 
 interface TokenPayload {
@@ -47,6 +47,7 @@ export class AuthService {
       email: dto.email.toLowerCase(),
       password_hash,
       display_name: dto.display_name,
+      role: dto.role || UserRole.LEARNER,
       language: dto.language || 'vi',
       theme: dto.theme || 'light',
     });

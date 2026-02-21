@@ -17,7 +17,11 @@
     "display_name": "Display Name",
     "forgot_password": "Forgot password?",
     "no_account": "Don't have an account?",
-    "has_account": "Already have an account?"
+    "has_account": "Already have an account?",
+    "role": "Role",
+    "role_learner": "Learner",
+    "role_instructor": "Instructor",
+    "role_admin": "Admin"
   },
   "common": {
     "loading": "Loading...",
