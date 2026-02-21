@@ -1,7 +1,697 @@
 {
   "info": {
-    "name": "IELTS Helper API Collection (MVP sketch)",
-    "version": "0.1"
+    "name": "IELTS Helper API Collection",
+    "version": "1.0",
+    "description": "Full API collection for IELTS Helper MVP. Compatible with Thunder Client & Postman.",
+    "schema": "https://www.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "items": []
+  "variable": [
+    { "key": "baseUrl", "value": "http://localhost:3001/api" },
+    { "key": "accessToken", "value": "" },
+    { "key": "refreshToken", "value": "" },
+    { "key": "userId", "value": "" },
+    { "key": "passageId", "value": "" },
+    { "key": "questionId", "value": "" },
+    { "key": "promptId", "value": "" },
+    { "key": "readingSubmissionId", "value": "" },
+    { "key": "writingSubmissionId", "value": "" },
+    { "key": "sourceId", "value": "" }
+  ],
+  "item": [
+    {
+      "name": "00 — Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/health",
+            "description": "Check API, DB, and Redis status"
+          }
+        }
+      ]
+    },
+    {
+      "name": "01 — Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"learner@example.com\",\n  \"password\": \"Test1234!\",\n  \"display_name\": \"Test Learner\",\n  \"language\": \"vi\",\n  \"theme\": \"light\"\n}"
+            },
+            "description": "FR-101 — Register new user. Save access_token & refresh_token from response."
+          }
+        },
+        {
+          "name": "Register (duplicate — expect 409)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/register",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"learner@example.com\",\n  \"password\": \"Test1234!\",\n  \"display_name\": \"Duplicate\"\n}"
+            },
+            "description": "Expect 409 Conflict — duplicate email"
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"learner@example.com\",\n  \"password\": \"Test1234!\"\n}"
+            },
+            "description": "FR-102 — Login. Save tokens from response."
+          }
+        },
+        {
+          "name": "Login (bad password — expect 401)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"learner@example.com\",\n  \"password\": \"WrongPassword\"\n}"
+            },
+            "description": "Expect 401 Unauthorized"
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/refresh",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh_token\": \"{{refreshToken}}\"\n}"
+            },
+            "description": "FR-103 — Refresh access token. Save new tokens."
+          }
+        },
+        {
+          "name": "Login as Admin",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/auth/login",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@ieltshelper.local\",\n  \"password\": \"admin-password-from-env\"\n}"
+            },
+            "description": "Login as seeded admin user. Replace password with actual value. Save tokens."
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 — Profile",
+      "item": [
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-104 — Get current user profile"
+          }
+        },
+        {
+          "name": "Update Profile",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/me",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"display_name\": \"Updated Name\",\n  \"language\": \"en\",\n  \"theme\": \"dark\"\n}"
+            },
+            "description": "FR-104 — Update display name, language, theme"
+          }
+        },
+        {
+          "name": "Access without token (expect 401)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me",
+            "description": "No Authorization header — expect 401"
+          }
+        }
+      ]
+    },
+    {
+      "name": "03 — Reading",
+      "item": [
+        {
+          "name": "List Passages",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reading/passages?page=1&limit=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-201 — List published passages (paginated)"
+          }
+        },
+        {
+          "name": "List Passages (filter by level)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reading/passages?level=B2&page=1&limit=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-201 — Filter passages by CEFR level"
+          }
+        },
+        {
+          "name": "List Passages (filter by topic)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reading/passages?topic=environment&page=1&limit=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-201 — Filter passages by topic"
+          }
+        },
+        {
+          "name": "Get Passage Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reading/passages/{{passageId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-202 — Get passage with questions (no answer_key exposed)"
+          }
+        },
+        {
+          "name": "Submit Reading Answers",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/reading/passages/{{passageId}}/submit",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    { \"question_id\": \"q-001\", \"value\": \"B\" },\n    { \"question_id\": \"q-002\", \"value\": \"carbon dioxide\" },\n    { \"question_id\": \"q-003\", \"value\": \"A\" },\n    { \"question_id\": \"q-004\", \"value\": \"C\" },\n    { \"question_id\": \"q-005\", \"value\": \"TRUE\" },\n    { \"question_id\": \"q-006\", \"value\": \"FALSE\" },\n    { \"question_id\": \"q-007\", \"value\": \"NOT GIVEN\" },\n    { \"question_id\": \"q-008\", \"value\": \"A\" },\n    { \"question_id\": \"q-009\", \"value\": \"solar panels\" },\n    { \"question_id\": \"q-010\", \"value\": \"B\" },\n    { \"question_id\": \"q-011\", \"value\": \"D\" }\n  ],\n  \"timed_out\": false,\n  \"duration_sec\": 1080\n}"
+            },
+            "description": "FR-203 — Submit answers. Must answer ≥80% questions (RD-001). Returns graded results."
+          }
+        },
+        {
+          "name": "Submit Reading (too few answers — expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/reading/passages/{{passageId}}/submit",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    { \"question_id\": \"q-001\", \"value\": \"B\" }\n  ],\n  \"timed_out\": false,\n  \"duration_sec\": 300\n}"
+            },
+            "description": "Only 1 answer for 13 questions → below 80% threshold → expect 400"
+          }
+        },
+        {
+          "name": "Submit Reading (timed out — bypass threshold)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/reading/passages/{{passageId}}/submit",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    { \"question_id\": \"q-001\", \"value\": \"B\" }\n  ],\n  \"timed_out\": true,\n  \"duration_sec\": 3600\n}"
+            },
+            "description": "timed_out=true bypasses 80% threshold (RD-001)"
+          }
+        },
+        {
+          "name": "Reading History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/reading/history?page=1&limit=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-204 — List reading submission history"
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 — Writing",
+      "item": [
+        {
+          "name": "List Prompts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/writing/prompts?page=1&limit=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-301 — List published writing prompts"
+          }
+        },
+        {
+          "name": "List Prompts (filter Task 2 + B2)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/writing/prompts?task_type=2&level=B2&page=1&limit=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-301 — Filter by task type and level"
+          }
+        },
+        {
+          "name": "Submit Essay (cheap tier)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/writing/prompts/{{promptId}}/submit",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"In recent years, the debate over renewable energy has intensified significantly. Many argue that governments should invest more heavily in clean energy sources such as solar and wind power. This essay will discuss the advantages and disadvantages of increased renewable energy investment.\\n\\nOn the one hand, renewable energy offers numerous environmental benefits. Solar and wind power produce no direct carbon emissions, which helps combat climate change. Furthermore, these sources are virtually inexhaustible, unlike fossil fuels which are finite resources. Countries that invest in renewables also reduce their dependence on imported oil and gas, improving energy security.\\n\\nOn the other hand, the transition to renewable energy faces several challenges. The initial cost of building solar farms and wind turbines is substantial. Additionally, renewable sources are intermittent — solar panels only generate electricity during daylight hours, and wind turbines require consistent wind. This creates reliability concerns for power grids.\\n\\nIn conclusion, while renewable energy presents some practical challenges, its long-term benefits for the environment and energy independence make it a worthwhile investment. Governments should continue to support the transition while developing better energy storage solutions to address intermittency issues.\",\n  \"model_tier\": \"cheap\"\n}"
+            },
+            "description": "FR-302 — Submit essay for scoring. Returns 202 with submission_id. Poll GET /submissions/:id for results."
+          }
+        },
+        {
+          "name": "Submit Essay (empty — expect 400)",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/writing/prompts/{{promptId}}/submit",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"\",\n  \"model_tier\": \"cheap\"\n}"
+            },
+            "description": "Empty content — expect 400 Bad Request"
+          }
+        },
+        {
+          "name": "Get Writing Submission (poll)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/writing/submissions/{{writingSubmissionId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-303 — Poll submission status. Returns pending/done/failed."
+          }
+        },
+        {
+          "name": "Writing History",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/writing/history?page=1&limit=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-304 — List writing submission history"
+          }
+        },
+        {
+          "name": "Writing History (filter Task 2)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/writing/history?task_type=2&page=1&limit=10",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-304 — Filter history by task type"
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 — Dashboard",
+      "item": [
+        {
+          "name": "Get Progress",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/progress",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-401 — Reading + writing stats + recent submissions"
+          }
+        },
+        {
+          "name": "Get Trends (4 weeks)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/progress/trends?period=4w",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-402 — Weekly aggregated trends"
+          }
+        },
+        {
+          "name": "Get Trends (3 months)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/me/progress/trends?period=3m",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "FR-402 — Monthly aggregated trends"
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 — Admin: Passages",
+      "item": [
+        {
+          "name": "List All Passages (incl. drafts)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/passages?page=1&limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Admin only — includes draft passages"
+          }
+        },
+        {
+          "name": "Create Passage",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/passages",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"The Impact of Social Media on Society\",\n  \"body\": \"Social media platforms have fundamentally transformed how people communicate, share information, and interact with one another...\",\n  \"level\": \"B2\",\n  \"topic_tags\": [\"technology\", \"society\"]\n}"
+            },
+            "description": "Create new passage (status=draft). Save passageId from response."
+          }
+        },
+        {
+          "name": "Get Passage Detail (admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/passages/{{passageId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Get passage with questions, sources, and answer_keys"
+          }
+        },
+        {
+          "name": "Update Passage",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/passages/{{passageId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"The Impact of Social Media on Modern Society\",\n  \"level\": \"C1\"\n}"
+            },
+            "description": "Partial update passage"
+          }
+        },
+        {
+          "name": "Delete Passage",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/passages/{{passageId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Delete passage + cascade delete questions"
+          }
+        },
+        {
+          "name": "Add Question to Passage",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/passages/{{passageId}}/questions",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"mcq\",\n  \"prompt\": \"What is the main argument of paragraph 2?\",\n  \"options\": [\"A. Social media is harmful\", \"B. Social media connects people\", \"C. Social media is declining\", \"D. Social media is expensive\"],\n  \"answer_key\": \"B\",\n  \"explanation\": \"Paragraph 2 focuses on how social media enables connections across distances.\",\n  \"order_index\": 0\n}"
+            },
+            "description": "Add MCQ question. Save questionId."
+          }
+        },
+        {
+          "name": "Add Short Answer Question",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/passages/{{passageId}}/questions",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"short\",\n  \"prompt\": \"Name ONE negative effect of social media mentioned in the passage.\",\n  \"options\": null,\n  \"answer_key\": [\"cyberbullying\", \"addiction\", \"misinformation\"],\n  \"explanation\": \"The passage mentions cyberbullying, addiction, and spread of misinformation as negative effects.\",\n  \"order_index\": 1\n}"
+            },
+            "description": "Add short-answer question with multiple accepted answers"
+          }
+        },
+        {
+          "name": "Update Question",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/questions/{{questionId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"prompt\": \"Updated question text?\",\n  \"answer_key\": \"C\"\n}"
+            },
+            "description": "Update question fields"
+          }
+        },
+        {
+          "name": "Delete Question",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/questions/{{questionId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Delete a question"
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 — Admin: Prompts",
+      "item": [
+        {
+          "name": "List All Prompts",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/prompts?page=1&limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Admin only — includes draft prompts"
+          }
+        },
+        {
+          "name": "Create Prompt",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/prompts",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Advantages of Renewable Energy\",\n  \"task_type\": 2,\n  \"level\": \"B2\",\n  \"instruction\": \"Write about the following topic:\\n\\nSome people believe that governments should invest more in renewable energy sources. Others argue that conventional energy sources are still necessary.\\n\\nDiscuss both views and give your own opinion.\\n\\nGive reasons for your answer and include any relevant examples from your own knowledge or experience.\\n\\nWrite at least 250 words.\",\n  \"min_words\": 250,\n  \"topic_tags\": [\"energy\", \"environment\", \"government\"]\n}"
+            },
+            "description": "Create new writing prompt (status=draft). Save promptId."
+          }
+        },
+        {
+          "name": "Get Prompt Detail (admin)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/prompts/{{promptId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Get prompt detail with sources"
+          }
+        },
+        {
+          "name": "Update Prompt",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/prompts/{{promptId}}",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Renewable Energy Investment — Discussion Essay\",\n  \"min_words\": 250\n}"
+            },
+            "description": "Partial update prompt"
+          }
+        },
+        {
+          "name": "Delete Prompt",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/prompts/{{promptId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Delete a prompt"
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 — Admin: Publish",
+      "item": [
+        {
+          "name": "Publish Passage",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/content/passages/{{passageId}}/publish",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Set passage status to published (ADM-001)"
+          }
+        },
+        {
+          "name": "Unpublish Passage",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/content/passages/{{passageId}}/unpublish",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Set passage status back to draft"
+          }
+        },
+        {
+          "name": "Publish Prompt",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/content/prompts/{{promptId}}/publish",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Set prompt status to published"
+          }
+        },
+        {
+          "name": "Unpublish Prompt",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/content/prompts/{{promptId}}/unpublish",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Set prompt status back to draft"
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 — Admin: Import & Sources",
+      "item": [
+        {
+          "name": "Import Source from NotebookLM",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/sources/import",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://notebooklm.google.com/notebook/2009469b-462e-4014-87f5-46f5842fb6db\",\n  \"source_type\": \"notebooklm\",\n  \"title\": \"Climate & Environment Notes\"\n}"
+            },
+            "description": "FR-601 — Import source and extract snippets"
+          }
+        },
+        {
+          "name": "List Sources",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/sources?page=1&limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "List all imported sources"
+          }
+        },
+        {
+          "name": "Get Source Detail",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/sources/{{sourceId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Get source with associated snippets"
+          }
+        },
+        {
+          "name": "Attach Source to Passage",
+          "request": {
+            "method": "POST",
+            "url": "{{baseUrl}}/admin/content/passages/{{passageId}}/sources",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"source_id\": \"{{sourceId}}\",\n  \"snippet_ids\": []\n}"
+            },
+            "description": "Attach source/snippets to a passage"
+          }
+        },
+        {
+          "name": "Detach Source from Passage",
+          "request": {
+            "method": "DELETE",
+            "url": "{{baseUrl}}/admin/content/passages/{{passageId}}/sources/{{sourceId}}",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Remove source link from passage"
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 — Admin: Users",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/users?page=1&limit=20",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "List all users (admin only)"
+          }
+        },
+        {
+          "name": "Change User Role",
+          "request": {
+            "method": "PATCH",
+            "url": "{{baseUrl}}/admin/users/{{userId}}/role",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{accessToken}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"role\": \"instructor\"\n}"
+            },
+            "description": "Change user role (learner/instructor/admin)"
+          }
+        },
+        {
+          "name": "Access admin as learner (expect 403)",
+          "request": {
+            "method": "GET",
+            "url": "{{baseUrl}}/admin/passages",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "description": "Use learner token — expect 403 Forbidden"
+          }
+        }
+      ]
+    }
+  ]
 }
