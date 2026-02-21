@@ -42,10 +42,11 @@
 
 | Command | Description |
 |---------|-------------|
-| `npm run migration:generate -- -n CreateUsers` | Generate new migration |
-| `npm run migration:run` | Run pending migrations |
-| `npm run migration:revert` | Revert last migration |
-| `npm run migration:show` | Show migration status |
+| `npx prisma migrate dev --name CreateUsers` | Create new migration (dev) |
+| `npx prisma migrate deploy` | Run pending migrations (prod) |
+| `npx prisma migrate status` | Show migration status |
+| `npx prisma migrate reset` | Reset database and re-apply migrations |
+| `npx prisma studio` | Open Prisma Studio (DB browser) |
 | `npm run seed` | Run seed script (admin user + sample data) |
 
 ### Worker Commands
@@ -111,7 +112,7 @@ docker exec -it ielts-postgres psql -U postgres -d ielts_helper -c "SELECT count
 | `ielts-be` | `cd apps/backend && npm run start:dev` |
 | `ielts-fe` | `cd apps/frontend && npm run dev` |
 | `ielts-worker` | `cd apps/backend && npm run worker:dev` |
-| `ielts-reset` | `docker compose down -v && docker compose up -d && cd apps/backend && npm run migration:run && npm run seed` |
+| `ielts-reset` | `docker compose down -v && docker compose up -d && cd apps/backend && npx prisma migrate deploy && npm run seed` |
 
 ---
 

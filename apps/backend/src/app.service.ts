@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common';
-import { DataSource } from 'typeorm';
 import Redis from 'ioredis';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from './prisma';
 
 @Injectable()
 export class AppService {
   private redis: Redis;
 
   constructor(
-    private readonly dataSource: DataSource,
+    private readonly prisma: PrismaService,
     private readonly configService: ConfigService,
   ) {
     this.redis = new Redis(this.configService.get<string>('REDIS_URL') || 'redis://localhost:6379');
@@ -20,7 +20,7 @@ export class AppService {
 
     // Check Postgres
     try {
-      await this.dataSource.query('SELECT 1');
+      await this.prisma.$queryRaw`SELECT 1`;
       dbOk = true;
     } catch {
       dbOk = false;

@@ -3,12 +3,11 @@ import {
   ConflictException,
   UnauthorizedException,
 } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcrypt';
-import { User, UserRole } from '../shared/entities';
+import { User, UserRole } from '@prisma/client';
+import { PrismaService } from '../prisma';
 import { RegisterDto, LoginDto, UpdateProfileDto } from './dto';
 
 interface TokenPayload {
@@ -25,8 +24,7 @@ interface AuthTokens {
 @Injectable()
 export class AuthService {
   constructor(
-    @InjectRepository(User)
-    private readonly userRepo: Repository<User>,
+    private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
   ) {}
@@ -34,7 +32,7 @@ export class AuthService {
   /* ───────── Register ───────── */
   async register(dto: RegisterDto) {
     // Check duplicate email
-    const exists = await this.userRepo.findOne({
+    const exists = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
     });
     if (exists) {
@@ -43,27 +41,28 @@ export class AuthService {
 
     const password_hash = await bcrypt.hash(dto.password, 12);
 
-    const user = this.userRepo.create({
-      email: dto.email.toLowerCase(),
-      password_hash,
-      display_name: dto.display_name,
-      role: dto.role || UserRole.LEARNER,
-      language: dto.language || 'vi',
-      theme: dto.theme || 'light',
+    const user = await this.prisma.user.create({
+      data: {
+        email: dto.email.toLowerCase(),
+        password_hash,
+        display_name: dto.display_name,
+        role: dto.role || UserRole.learner,
+        language: dto.language || 'vi',
+        theme: dto.theme || 'light',
+      },
     });
 
-    const saved = await this.userRepo.save(user);
-    const tokens = await this.generateTokens(saved);
+    const tokens = await this.generateTokens(user);
 
     return {
-      user: this.sanitize(saved),
+      user: this.sanitize(user),
       ...tokens,
     };
   }
 
   /* ───────── Login ───────── */
   async login(dto: LoginDto) {
-    const user = await this.userRepo.findOne({
+    const user = await this.prisma.user.findUnique({
       where: { email: dto.email.toLowerCase() },
     });
 
@@ -91,7 +90,7 @@ export class AuthService {
         secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
       });
 
-      const user = await this.userRepo.findOne({
+      const user = await this.prisma.user.findUnique({
         where: { id: payload.sub },
       });
 
@@ -112,7 +111,7 @@ export class AuthService {
 
   /* ───────── Profile ───────── */
   async getProfile(userId: string) {
-    const user = await this.userRepo.findOne({ where: { id: userId } });
+    const user = await this.prisma.user.findUnique({ where: { id: userId } });
     if (!user) {
       throw new UnauthorizedException('User not found');
     }
@@ -120,9 +119,11 @@ export class AuthService {
   }
 
   async updateProfile(userId: string, dto: UpdateProfileDto) {
-    await this.userRepo.update(userId, dto);
-    const user = await this.userRepo.findOne({ where: { id: userId } });
-    return this.sanitize(user!);
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: dto,
+    });
+    return this.sanitize(user);
   }
 
   /* ───────── Helpers ───────── */

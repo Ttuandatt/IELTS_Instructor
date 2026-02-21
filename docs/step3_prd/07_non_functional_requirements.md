@@ -120,7 +120,7 @@
 | Transport | HTTPS (enforced in production; Dev Tunnels provide HTTPS) |
 | Sensitive data | Passwords bcrypt-hashed; no plaintext in logs |
 | Input validation | Whitelist validation on all inputs (class-validator in NestJS) |
-| SQL injection | Parameterized queries via TypeORM/Prisma |
+| SQL injection | Parameterized queries via Prisma |
 | XSS | Sanitize imported content; React auto-escapes output |
 | CORS | Whitelist frontend origin only |
 

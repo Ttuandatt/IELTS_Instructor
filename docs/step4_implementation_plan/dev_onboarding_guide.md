@@ -82,8 +82,7 @@ docker compose ps
 cd apps/backend
 
 # Run migrations
-npm run migration:run
-# or: npx prisma migrate dev
+npx prisma migrate deploy
 
 # Seed initial data (admin user + sample content)
 npm run seed
@@ -150,10 +149,10 @@ curl http://localhost:3001/api/health
 | Run backend tests | `cd apps/backend && npm test` |
 | Run frontend tests | `cd apps/frontend && npm test` |
 | Run linting | `npm run lint` |
-| Create migration | `cd apps/backend && npm run migration:generate -- -n MigrationName` |
-| Run migrations | `cd apps/backend && npm run migration:run` |
-| Revert migration | `cd apps/backend && npm run migration:revert` |
-| Reset database | `docker compose down -v && docker compose up -d && npm run migration:run && npm run seed` |
+| Create migration | `cd apps/backend && npx prisma migrate dev --name MigrationName` |
+| Run migrations | `cd apps/backend && npx prisma migrate deploy` |
+| Reset database | `cd apps/backend && npx prisma migrate reset && npm run seed` |
+| Open Prisma Studio | `cd apps/backend && npx prisma studio` |
 | View queue dashboard | Navigate to `http://localhost:3001/admin/queues` |
 | View logs | Check terminal output (structured JSON via Pino) |
 
@@ -169,7 +168,7 @@ curl http://localhost:3001/api/health
 | "CORS error" | Check backend CORS config matches frontend URL. |
 | "LLM API error" | Check API key in `.env`. Verify quota/billing. |
 | Port already in use | Kill process: `npx kill-port 3000` or `npx kill-port 3001` |
-| Migration error | Check ORM entity definitions match migration. Try `npm run migration:revert` then re-run. |
+| Migration error | Check Prisma schema matches migration. Try `npx prisma migrate reset` then re-run. |
 
 ---
 

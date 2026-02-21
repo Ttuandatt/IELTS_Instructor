@@ -7,7 +7,7 @@ Practice IELTS Reading & Writing with AI-powered feedback.
 | Layer | Tech |
 |-------|------|
 | Frontend | Next.js 14, React 18, TypeScript, Tailwind CSS |
-| Backend | NestJS 10, TypeScript, TypeORM |
+| Backend | NestJS 10, TypeScript, Prisma |
 | Database | PostgreSQL 15 |
 | Cache/Queue | Redis 7, BullMQ |
 | AI Scoring | OpenAI / Google Gemini (hybrid rule + LLM) |

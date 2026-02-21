@@ -1,0 +1,32 @@
+// IELTS Helper — Prisma Schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  learner
+  instructor
+  admin
+}
+
+model User {
+  id            String   @id @default(uuid())
+  email         String   @unique @db.VarChar(255)
+  password_hash String   @db.VarChar(255)
+  display_name  String   @db.VarChar(100)
+  role          UserRole @default(learner)
+  language      String   @default("vi") @db.VarChar(5)
+  theme         String   @default("light") @db.VarChar(10)
+  created_at    DateTime @default(now()) @db.Timestamptz()
+  updated_at    DateTime @updatedAt @db.Timestamptz()
+
+  @@index([email])
+  @@index([role])
+  @@map("users")
+}

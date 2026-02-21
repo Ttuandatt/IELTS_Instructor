@@ -18,7 +18,7 @@
 | Frontend i18n | next-intl or react-i18next | latest | vi / en |
 | Frontend styling | Tailwind CSS | 3.x | Dark/light via CSS variables |
 | Backend | NestJS | 10.x | TypeScript strict, modular architecture |
-| Backend ORM | TypeORM or Prisma | latest | Migrations, UUID support |
+| Backend ORM | Prisma | 6.x | Migrations, UUID support |
 | Database | PostgreSQL | 15+ | JSONB, GIN indexes, gen_random_uuid() |
 | Cache/Queue | Redis | 7+ | Used for cache, rate-limiting, BullMQ |
 | Job Queue | BullMQ | 5.x | Redis-backed; async writing scoring |
@@ -107,7 +107,7 @@
 | **Timestamps** | All tables include `created_at TIMESTAMPTZ`; mutable tables include `updated_at` |
 | **JSONB validation** | Application-level validation; no DB-level JSON Schema |
 | **Indexes** | Explicitly defined per entity (see PRD-08); GIN for arrays |
-| **Migrations** | TypeORM/Prisma migrations; sequential, never edited after merge |
+| **Migrations** | Prisma migrations; sequential, never edited after merge |
 | **Connections** | Pool size: 5 (dev), 20 (prod) |
 | **Naming** | snake_case for tables and columns |
 | **Cascade** | `ON DELETE CASCADE` for questions (parent: passages), snippets (parent: sources) |

@@ -31,7 +31,7 @@
 | T0-02 | Initialize Next.js 14 with App Router + TypeScript strict | `apps/frontend/` |
 | T0-03 | Initialize NestJS 10 with TypeScript strict | `apps/backend/` |
 | T0-04 | Create `docker-compose.yml` for Postgres 15 + Redis 7 | Docker config |
-| T0-05 | Configure TypeORM/Prisma with PostgreSQL connection | ORM setup |
+| T0-05 | Configure Prisma with PostgreSQL connection | ORM setup |
 | T0-06 | Configure BullMQ with Redis connection | Queue setup |
 | T0-07 | Set up ESLint + Prettier (shared config) | Lint config |
 | T0-08 | Set up Husky + lint-staged | Git hooks |
@@ -245,11 +245,10 @@ ielts-helper/
 │       │   ├── admin/           # Admin module
 │       │   ├── import/          # Import module
 │       │   ├── shared/          # Shared utilities
-│       │   │   ├── entities/    # TypeORM entities
 │       │   │   ├── middleware/  # Logger, rate-limit
 │       │   │   ├── pipes/       # Validation pipes
 │       │   │   └── config/      # ConfigModule setup
-│       │   ├── migrations/      # Database migrations
+│       │   ├── prisma/          # PrismaService + PrismaModule
 │       │   ├── seeds/           # Seed scripts
 │       │   ├── app.module.ts
 │       │   └── main.ts

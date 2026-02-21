@@ -225,7 +225,7 @@ graph TB
     end
 
     subgraph "Shared"
-        DB_Module[DatabaseModule - TypeORM/Prisma]
+        DB_Module[DatabaseModule - Prisma]
         Redis_Module[RedisModule]
         Config_Module[ConfigModule - env vars]
         Logger_Module[LoggerModule - Pino]

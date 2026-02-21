@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule, ConfigService } from '@nestjs/config';
-import { TypeOrmModule } from '@nestjs/typeorm';
+import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+import { PrismaModule } from './prisma';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
@@ -13,19 +13,8 @@ import { AuthModule } from './auth/auth.module';
       envFilePath: '.env',
     }),
 
-    // Database
-    TypeOrmModule.forRootAsync({
-      imports: [ConfigModule],
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        type: 'postgres',
-        url: config.get<string>('DATABASE_URL'),
-        entities: [__dirname + '/**/*.entity{.ts,.js}'],
-        migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        synchronize: false,
-        logging: config.get('NODE_ENV') !== 'production',
-      }),
-    }),
+    // Database (Prisma)
+    PrismaModule,
 
     // Auth
     AuthModule,
