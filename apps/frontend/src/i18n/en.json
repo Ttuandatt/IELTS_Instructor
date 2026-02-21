@@ -1,0 +1,70 @@
+{
+  "app_name": "IELTS Helper",
+  "nav": {
+    "dashboard": "Dashboard",
+    "reading": "Reading",
+    "writing": "Writing",
+    "settings": "Settings",
+    "admin": "Admin"
+  },
+  "auth": {
+    "login": "Login",
+    "register": "Register",
+    "logout": "Logout",
+    "email": "Email",
+    "password": "Password",
+    "confirm_password": "Confirm Password",
+    "display_name": "Display Name",
+    "forgot_password": "Forgot password?",
+    "no_account": "Don't have an account?",
+    "has_account": "Already have an account?"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Retry",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "search": "Search",
+    "filter": "Filter",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "no_data": "No data yet"
+  },
+  "reading": {
+    "title": "Reading Practice",
+    "passages": "Passages",
+    "history": "History",
+    "start_practice": "Start Practice",
+    "questions": "questions",
+    "score": "Score",
+    "time_spent": "Time Spent",
+    "correct": "Correct",
+    "incorrect": "Incorrect"
+  },
+  "writing": {
+    "title": "Writing Practice",
+    "prompts": "Prompts",
+    "history": "History",
+    "word_count": "Word Count",
+    "min_words": "Minimum",
+    "submit_essay": "Submit Essay",
+    "scoring": "Scoring in progress...",
+    "feedback": "Feedback",
+    "strengths": "Strengths",
+    "improvements": "Areas for Improvement"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "reading_progress": "Reading Progress",
+    "writing_progress": "Writing Progress",
+    "recent_activity": "Recent Activity",
+    "avg_score": "Average Score",
+    "total_attempts": "Total Attempts"
+  }
+}

@@ -1,0 +1,70 @@
+{
+  "app_name": "IELTS Helper",
+  "nav": {
+    "dashboard": "Tổng quan",
+    "reading": "Luyện đọc",
+    "writing": "Luyện viết",
+    "settings": "Cài đặt",
+    "admin": "Quản trị"
+  },
+  "auth": {
+    "login": "Đăng nhập",
+    "register": "Đăng ký",
+    "logout": "Đăng xuất",
+    "email": "Email",
+    "password": "Mật khẩu",
+    "confirm_password": "Xác nhận mật khẩu",
+    "display_name": "Tên hiển thị",
+    "forgot_password": "Quên mật khẩu?",
+    "no_account": "Chưa có tài khoản?",
+    "has_account": "Đã có tài khoản?"
+  },
+  "common": {
+    "loading": "Đang tải...",
+    "error": "Có lỗi xảy ra",
+    "retry": "Thử lại",
+    "save": "Lưu",
+    "cancel": "Hủy",
+    "delete": "Xóa",
+    "edit": "Sửa",
+    "create": "Tạo mới",
+    "search": "Tìm kiếm",
+    "filter": "Lọc",
+    "submit": "Nộp bài",
+    "back": "Quay lại",
+    "next": "Tiếp",
+    "previous": "Trước",
+    "no_data": "Chưa có dữ liệu"
+  },
+  "reading": {
+    "title": "Luyện đọc",
+    "passages": "Bài đọc",
+    "history": "Lịch sử làm bài",
+    "start_practice": "Bắt đầu luyện tập",
+    "questions": "câu hỏi",
+    "score": "Điểm",
+    "time_spent": "Thời gian",
+    "correct": "Đúng",
+    "incorrect": "Sai"
+  },
+  "writing": {
+    "title": "Luyện viết",
+    "prompts": "Đề bài",
+    "history": "Lịch sử bài viết",
+    "word_count": "Số từ",
+    "min_words": "Tối thiểu",
+    "submit_essay": "Nộp bài viết",
+    "scoring": "Đang chấm điểm...",
+    "feedback": "Nhận xét",
+    "strengths": "Điểm mạnh",
+    "improvements": "Cần cải thiện"
+  },
+  "dashboard": {
+    "title": "Tổng quan",
+    "reading_progress": "Tiến độ đọc",
+    "writing_progress": "Tiến độ viết",
+    "recent_activity": "Hoạt động gần đây",
+    "avg_score": "Điểm trung bình",
+    "total_attempts": "Tổng số lần làm"
+  }
+}
