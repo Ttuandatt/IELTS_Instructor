@@ -33,6 +33,11 @@
 | S19 | Admin Import | `/admin/sources/import` (modal) | Required | Admin | Import from NotebookLM |
 | S20 | Admin Users | `/admin/users` | Required | Admin | User management table |
 | S21 | 404 | `/404` | Public | All | Not found message with navigation |
+| S22 | Mode Selector | `/reading/:id` (modal) | Required | Learner | Choose Practice or Simulation mode before starting |
+| S23 | Instructor Review | `/instructor/writing/:subId` | Required | Instructor | View essay + AI score, add comment, override score |
+| S24 | Reading Explanation | `/reading/:id/result/:subId` | Required | Learner | Per-question explanation after submit (enhanced S06) |
+
+> **Ref:** Screens S22, S24 inspired by [ieltsonlinetests.com](https://ieltsonlinetests.com/) Practice/Simulation mode and question explanations.
 
 ---
 
@@ -201,6 +206,47 @@ After scoring:
 └──────────────────────────────────────┘
 ```
 
+### S22 — Mode Selector (Modal)
+> Inspired by ieltsonlinetests.com's Practice/Simulation mode selection.
+```
+┌──────────────────────────────────────┐
+│  📖 Choose Your Mode                 │
+├──────────────────────────────────────┤
+│                                      │
+│  ┌────────────────┐  ┌─────────────┐│
+│  │ 📝 Practice    │  │ 🎯 Simulate ││
+│  │                │  │             ││
+│  │ • No timer     │  │ • 60 min    ││
+│  │ • Choose parts │  │ • Full test ││
+│  │ • Pause/resume │  │ • Auto-sub  ││
+│  │                │  │             ││
+│  │ [Start ▶]      │  │ [Start ▶]   ││
+│  └────────────────┘  └─────────────┘│
+│                                      │
+│         [✕ Cancel]                   │
+└──────────────────────────────────────┘
+```
+
+### S23 — Instructor Writing Review
+```
+┌──────────────────────────────────────┐
+│  📋 Writing Review — [Student Name]  │
+├──────────────┬───────────────────────┤
+│ AI Score     │  Essay Content        │
+│ Overall: 6.0 │  "In recent years..." │
+│ TR  6.0      │                       │
+│ CC  6.0      │  267 words            │
+│ LR  6.5      │                       │
+│ GRA 6.0      │                       │
+├──────────────┤                       │
+│ Override:    │                       │
+│ [___] / 9.0  │                       │
+│ Comment:     │                       │
+│ [__________] │                       │
+│ [Save ✓]     │                       │
+└──────────────┴───────────────────────┘
+```
+
 ---
 
 ## 4. Navigation Map
@@ -209,15 +255,17 @@ After scoring:
 [Login] ──→ [Register]
     │
     ▼
-[Dashboard] ──→ [Reading Catalog] ──→ [Reading Practice] ──→ [Reading Results]
-    │                                                            │
-    │                                                            └──→ [Reading History]
+[Dashboard] ──→ [Reading Catalog] ──→ [Mode Selector (S22)] ──→ [Reading Practice] ──→ [Reading Results + Explanations (S24)]
+    │                                                                                          │
+    │                                                                                          └──→ [Reading History]
     │
     ├──→ [Writing Catalog] ──→ [Writing Editor] ──→ [Scoring...] ──→ [Feedback]
     │                                                                    │
     │                                                                    └──→ [Writing History]
     │
     ├──→ [Settings]
+    │
+    ├──→ [Instructor Review (S23)] ──→ [Learner List]
     │
     └──→ [Admin Passages] ──→ [Passage Form]
          [Admin Prompts] ──→ [Prompt Form]

@@ -5,35 +5,49 @@ import { usePathname } from 'next/navigation';
 import { useI18n } from '@/providers/I18nProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { clsx } from 'clsx';
+import {
+  LayoutDashboard,
+  BookOpen,
+  PenLine,
+  School,
+  Settings,
+  Users,
+  FileText,
+  ClipboardList,
+  type LucideIcon,
+  GraduationCap,
+} from 'lucide-react';
 
-type NavKey = 'dashboard' | 'reading' | 'writing' | 'settings' | 'admin' | 'passages' | 'prompts' | 'users' | 'learners' | 'submissions';
+type NavKey = 'dashboard' | 'reading' | 'writing' | 'settings' | 'admin' | 'passages' | 'prompts' | 'users' | 'learners' | 'submissions' | 'classrooms';
 
 interface NavItem {
   href: string;
-  icon: string;
+  Icon: LucideIcon;
   labelKey: NavKey;
 }
 
 const LEARNER_NAV: NavItem[] = [
-  { href: '/dashboard', icon: '📊', labelKey: 'dashboard' },
-  { href: '/reading', icon: '📖', labelKey: 'reading' },
-  { href: '/writing', icon: '✍️', labelKey: 'writing' },
-  { href: '/settings', icon: '⚙️', labelKey: 'settings' },
+  { href: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
+  { href: '/reading', Icon: BookOpen, labelKey: 'reading' },
+  { href: '/writing', Icon: PenLine, labelKey: 'writing' },
+  { href: '/classrooms', Icon: School, labelKey: 'classrooms' },
+  { href: '/settings', Icon: Settings, labelKey: 'settings' },
 ];
 
 const INSTRUCTOR_NAV: NavItem[] = [
-  { href: '/dashboard', icon: '📊', labelKey: 'dashboard' },
-  { href: '/instructor/learners', icon: '👥', labelKey: 'learners' },
-  { href: '/instructor/submissions', icon: '📝', labelKey: 'submissions' },
-  { href: '/settings', icon: '⚙️', labelKey: 'settings' },
+  { href: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
+  { href: '/classrooms', Icon: School, labelKey: 'classrooms' },
+  { href: '/instructor/learners', Icon: Users, labelKey: 'learners' },
+  { href: '/instructor/submissions', Icon: ClipboardList, labelKey: 'submissions' },
+  { href: '/settings', Icon: Settings, labelKey: 'settings' },
 ];
 
 const ADMIN_NAV: NavItem[] = [
-  { href: '/dashboard', icon: '📊', labelKey: 'dashboard' },
-  { href: '/admin/passages', icon: '📖', labelKey: 'passages' },
-  { href: '/admin/prompts', icon: '✍️', labelKey: 'prompts' },
-  { href: '/admin/users', icon: '👥', labelKey: 'users' },
-  { href: '/settings', icon: '⚙️', labelKey: 'settings' },
+  { href: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
+  { href: '/admin/passages', Icon: BookOpen, labelKey: 'passages' },
+  { href: '/admin/prompts', Icon: FileText, labelKey: 'prompts' },
+  { href: '/admin/users', Icon: Users, labelKey: 'users' },
+  { href: '/settings', Icon: Settings, labelKey: 'settings' },
 ];
 
 function getNavItems(role?: string): NavItem[] {
@@ -55,7 +69,7 @@ export function Sidebar() {
     <aside className="sidebar">
       <div className="sidebar-logo">
         <Link href="/dashboard" className="sidebar-logo-link">
-          <span className="sidebar-logo-icon">🎓</span>
+          <GraduationCap size={28} strokeWidth={2.5} />
           <span className="sidebar-logo-text">{t.app_name}</span>
         </Link>
       </div>
@@ -70,7 +84,7 @@ export function Sidebar() {
               href={item.href}
               className={clsx('sidebar-link', isActive && 'sidebar-link--active')}
             >
-              <span className="sidebar-link-icon">{item.icon}</span>
+              <item.Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
               <span className="sidebar-link-label">{t.nav[item.labelKey]}</span>
             </Link>
           );

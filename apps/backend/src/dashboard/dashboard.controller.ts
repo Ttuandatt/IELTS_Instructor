@@ -5,10 +5,15 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 @Controller('dashboard')
 @UseGuards(JwtAuthGuard)
 export class DashboardController {
-  constructor(private readonly dashboardService: DashboardService) {}
+  constructor(private readonly dashboardService: DashboardService) { }
 
   @Get('stats')
   getStats(@Request() req: any) {
     return this.dashboardService.getLearnerStats(req.user.sub);
+  }
+
+  @Get('instructor-stats')
+  getInstructorStats(@Request() req: any) {
+    return this.dashboardService.getInstructorStats(req.user.sub);
   }
 }

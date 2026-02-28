@@ -10,7 +10,8 @@
     "prompts": "Prompts",
     "users": "Users",
     "learners": "Learners",
-    "submissions": "Submissions"
+    "submissions": "Submissions",
+    "classrooms": "Classrooms"
   },
   "auth": {
     "login": "Login",

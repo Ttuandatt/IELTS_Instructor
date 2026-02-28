@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma';
 
 @Injectable()
 export class DashboardService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   async getLearnerStats(userId: string) {
     const [readingSubs, writingSubs] = await Promise.all([
@@ -55,6 +55,56 @@ export class DashboardService {
       writing: { total: writingTotal, avg_score: writingAvg },
       total_attempts: readingTotal + writingTotal,
       recent_activity: recent,
+    };
+  }
+  async getInstructorStats(userId: string) {
+    const [classrooms, pendingWriting, pendingReading] = await Promise.all([
+      this.prisma.classroom.findMany({
+        where: { owner_id: userId },
+        include: { _count: { select: { members: true } } },
+      }),
+      this.prisma.writingSubmission.count({
+        where: {
+          processing_status: 'done',
+          // Subs by students in instructor's classrooms
+          user: {
+            classroom_memberships: {
+              some: {
+                classroom: { owner_id: userId },
+                role: 'student',
+              },
+            },
+          },
+        },
+      }),
+      this.prisma.readingSubmission.count({
+        where: {
+          user: {
+            classroom_memberships: {
+              some: {
+                classroom: { owner_id: userId },
+                role: 'student',
+              },
+            },
+          },
+        },
+      }),
+    ]);
+
+    const totalClassrooms = classrooms.length;
+    const totalStudents = classrooms.reduce((sum, c) => sum + Math.max(0, c._count.members - 1), 0); // -1 to exclude teacher
+
+    return {
+      total_classrooms: totalClassrooms,
+      total_students: totalStudents,
+      pending_writing_reviews: pendingWriting,
+      pending_reading_reviews: pendingReading,
+      classrooms: classrooms.map(c => ({
+        id: c.id,
+        name: c.name,
+        status: c.status,
+        members_count: c._count.members,
+      })),
     };
   }
 }

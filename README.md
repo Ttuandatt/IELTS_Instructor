@@ -225,10 +225,12 @@ npm run dev                     # → http://localhost:3000
 - [x] Sprint 0: Scaffolding (monorepo, Docker, Prisma, auth)
 - [x] Sprint 1: Auth + App Shell (login, register, role picker, sidebar)
 - [x] Sprint 2: Role-based features (DB schema, RBAC, full CRUD, 19 frontend routes)
-- [ ] Sprint 3: AI Writing Scoring (OpenAI/Gemini integration, scoring pipeline)
-- [ ] Sprint 4: Reading enhancements (timer, explanation per question, analytics)
+- [ ] Sprint 3: AI Writing Scoring (BullMQ pipeline, LLM integration, 4-criteria TR/CC/LR/GRA feedback UI)
+- [ ] Sprint 4: Reading enhancements (timer chuẩn IELTS, Practice/Simulation modes, explanation per question)
 - [ ] Sprint 5: Instructor review workflow (comment, override AI score, notifications)
-- [ ] Sprint 6: Performance & polish (caching, pagination optimization, responsive refinement)
+- [ ] Sprint 6: Performance & polish (caching, pagination, social proof stats, responsive refinement)
+
+> **📌 Reference site:** [ieltsonlinetests.com](https://ieltsonlinetests.com/) — Phân tích chi tiết tại [`docs/ielts_online_tests_analysis.md`](docs/ielts_online_tests_analysis.md)
 
 ---
 

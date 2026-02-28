@@ -41,12 +41,15 @@ Mỗi User Story theo format:
 | Epic | Mô tả | Số Stories | Tổng SP |
 |------|--------|-----------|---------|
 | E1: Authentication & Profile | Đăng ký, đăng nhập, quản lý profile | 5 | 14 |
-| E2: Reading Practice | Luyện đọc IELTS với auto-grade | 6 | 21 |
-| E3: Writing Practice | Luyện viết với AI scoring | 7 | 31 |
+| E2: Reading Practice | Luyện đọc IELTS với auto-grade | 7 | 24 |
+| E3: Writing Practice | Luyện viết với AI scoring | 8 | 34 |
 | E4: Dashboard | Theo dõi tiến bộ | 3 | 8 |
 | E5: Admin CMS | Quản lý nội dung | 6 | 21 |
 | E6: Admin NotebookLM Import | Import nguồn từ NotebookLM | 3 | 10 |
-| **Tổng** | | **30** | **105** |
+| E7: Instructor Review | Instructor review & override Writing | 2 | 8 |
+| E8: Classroom Management | Lớp học, quản lý thành viên, Topics, Lessons | 10 | 37 |
+| E8 Extended: Classroom Enhancements | Video Embed, Announcements, Duplicate, Progress, Dashboard | 7 | 24 |
+| **Tổng** | | **44** | **156** |
 
 ---
 
@@ -274,6 +277,28 @@ Mỗi User Story theo format:
 
 ---
 
+### US-207: Chọn chế độ luyện tập (IOT-inspired)
+
+| Field | Value |
+|-------|-------|
+| **As a** | Learner |
+| **I want to** | Chọn giữa Practice mode và Simulation mode trước khi bắt đầu |
+| **So that** | Tôi có thể luyện tập thoải mái hoặc mô phỏng thi thật |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **Acceptance Criteria** | See [AC-207](06_acceptance_criteria.md#ac-207) |
+| **FR Ref** | FR-205, RD-005, RD-006 |
+| **BR Ref** | RD-005, RD-006 |
+
+**Chi tiết:**
+- Khi click vào passage, hiển thị Mode Selector modal (S22).
+- **Practice mode:** không timer, có thể chọn phần, pause/resume.
+- **Simulation mode:** 60 phút standard IELTS timer, full test, auto-submit khi hết giờ, không pause.
+- Lưu `test_mode` ('practice' / 'simulation') vào `submissions_reading`.
+- Inspired by ieltsonlinetests.com Practice/Simulation mode selection.
+
+---
+
 ## 5. Epic 3: Writing Practice
 
 ### US-301: Duyệt danh sách prompts
@@ -420,6 +445,26 @@ Mỗi User Story theo format:
 - Filter: by prompt, by task_type, by date range.
 - Click → xem submission detail + scores + feedback.
 - Items có `processing_status = "pending"` hiển thị icon loading + auto-refresh.
+
+---
+
+### US-308: Xem gợi ý cải thiện chi tiết (IOT-inspired)
+
+| Field | Value |
+|-------|-------|
+| **As a** | Learner |
+| **I want to** | Xem suggestions cụ thể kèm improvement plan |
+| **So that** | Tôi biết rõ cần làm gì để tăng band score |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **Acceptance Criteria** | See [AC-308](06_acceptance_criteria.md#ac-308) |
+| **FR Ref** | FR-302, FR-303, WR-007 |
+
+**Chi tiết:**
+- Feedback panel mở rộng với section "Suggestions" — gợi ý hành động cụ thể.
+- LLM prompt yêu cầu thêm `suggestions` field trong JSON output.
+- Schema validation (WR-007): feedback JSON phải có `{summary, strengths[], improvements[], suggestions}`.
+- Inspired by ieltsonlinetests.com's detailed improvement suggestions.
 
 ---
 
@@ -670,16 +715,318 @@ Mỗi User Story theo format:
 
 ---
 
+## 9. Epic 7: Instructor Review (Sprint 5) — IOT-inspired
+
+### US-701: Review Writing submission
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Xem writing submission của learner kèm AI scores |
+| **So that** | Tôi đánh giá chất lượng AI scoring và hỗ trợ learner |
+| **Priority** | P0 |
+| **Story Points** | 5 |
+| **Acceptance Criteria** | See [AC-701](06_acceptance_criteria.md#ac-701) |
+| **FR Ref** | FR-701 |
+| **BR Ref** | WR-006 |
+
+**Chi tiết:**
+- Trang Instructor Review (S23): split view essay content + AI scores.
+- List view: danh sách submissions chưa review, sorted by date.
+- Detail view: essay full text, 4 score bars (TR/CC/LR/GRA + overall).
+- Read-only mode cho essay và AI scores.
+
+---
+
+### US-702: Override AI score và thêm comment
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Override AI score và thêm nhận xét cá nhân |
+| **So that** | Learner nhận feedback kết hợp AI + instructor |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **Acceptance Criteria** | See [AC-702](06_acceptance_criteria.md#ac-702) |
+| **FR Ref** | FR-702, WR-006 |
+
+**Chi tiết:**
+- Override score input: number 0–9 (0.5 increments); optional.
+- Comment textarea: instructor's qualitative feedback.
+- Save → `PATCH /instructor/writing-submissions/:id/review`.
+- AI score gốc vẫn hiển thị cùng override → learner thấy cả hai.
+- Lưu: `instructor_comment`, `instructor_override_score`, `reviewed_by`, `reviewed_at`.
+
+---
+
+## 8.5 Epic 8: Classroom Management
+
+### US-801: Tạo lớp học
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Tạo lớp học mới với tên, mô tả, ảnh bìa |
+| **So that** | Tôi có không gian quản lý học sinh và nội dung giảng dạy |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-701 |
+
+**Chi tiết:**
+- Form tạo lớp: name (bắt buộc), description, cover_image_url.
+- Hệ thống tự sinh `invite_code` (8-char alphanumeric, unique).
+- Sau khi tạo → redirect đến Classroom Detail.
+
+---
+
+### US-802: Thêm học sinh vào lớp (manually)
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Thêm học sinh vào lớp bằng cách nhập email |
+| **So that** | Tôi có thể chủ động quản lý thành viên lớp |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-702 |
+
+**Chi tiết:**
+- Nhập email → lookup user trong hệ thống → nếu tồn tại → add vào classroom_members (role: student).
+- Nếu email không tồn tại → hiển thị lỗi "User not found".
+- Nếu đã là thành viên → hiển thị lỗi "Already a member".
+
+---
+
+### US-803: Tạo invite link + QR code
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Tạo invite link và QR code cho lớp học |
+| **So that** | Học sinh có thể tự tham gia lớp mà không cần thêm manually |
+| **Priority** | P0 |
+| **Story Points** | 5 |
+| **FR Ref** | FR-703 |
+
+**Chi tiết:**
+- GET invite → trả về `invite_url` (format: `{FRONTEND_URL}/classrooms/join/{invite_code}`) + QR code base64.
+- Nút "Copy Link" và hiển thị QR code trong modal.
+- Có thể regenerate invite_code (thay đổi code cũ, link cũ hết hạn).
+
+---
+
+### US-804: Tham gia lớp qua invite
+
+| Field | Value |
+|-------|-------|
+| **As a** | Learner |
+| **I want to** | Tham gia lớp học bằng invite link hoặc QR code |
+| **So that** | Tôi có thể truy cập nội dung mà giáo viên đã chuẩn bị |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-703, FR-702 |
+
+**Chi tiết:**
+- Quét QR hoặc mở link → landing page hiển thị tên lớp + nút "Tham gia".
+- Nếu chưa login → redirect to login → quay lại join.
+- Nếu lớp đầy (max_members) → hiển thị lỗi.
+- Nếu đã join → hiển thị "Bạn đã là thành viên".
+
+---
+
+### US-805: Xóa / kick học sinh
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Xóa học sinh khỏi lớp |
+| **So that** | Tôi quản lý được thành viên lớp đúng cách |
+| **Priority** | P1 |
+| **Story Points** | 2 |
+| **FR Ref** | FR-702 |
+
+---
+
+### US-806: CRUD Topics
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Tạo, sửa, xóa, sắp xếp các chủ đề (Topics) trong lớp |
+| **So that** | Nội dung học được tổ chức rõ ràng theo chủ đề |
+| **Priority** | P0 |
+| **Story Points** | 5 |
+| **FR Ref** | FR-704 |
+
+**Chi tiết:**
+- Tạo Topic: title (bắt buộc), description, order_index, status (draft/published).
+- Sắp xếp bằng drag-and-drop hoặc API reorder.
+- Xóa Topic → cascade xóa tất cả Lessons bên trong.
+- Student chỉ thấy Topics có status = 'published'.
+
+---
+
+### US-807: CRUD Lessons
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Tạo, sửa, xóa, sắp xếp bài học (Lessons) trong chủ đề |
+| **So that** | Mỗi chủ đề có các bài học cụ thể cho học sinh |
+| **Priority** | P0 |
+| **Story Points** | 5 |
+| **FR Ref** | FR-705 |
+
+**Chi tiết:**
+- Lesson types: text (Markdown/Rich text), video (URL), passage (link đến Passage), prompt (link đến Prompt).
+- Instructor chọn content_type → nếu passage/prompt → chọn từ danh sách Passages/Prompts có sẵn.
+- Sắp xếp bằng API reorder.
+
+---
+
+### US-808: Liên kết Lesson với Passage/Prompt
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Liên kết một Lesson với Passage hoặc Prompt có sẵn trong hệ thống |
+| **So that** | Học sinh có thể luyện tập Reading/Writing ngay trong bài học |
+| **Priority** | P1 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-705 |
+
+---
+
+### US-809: Xem lớp + Topics + Lessons (Learner)
+
+| Field | Value |
+|-------|-------|
+| **As a** | Learner |
+| **I want to** | Xem danh sách lớp đã tham gia và nội dung Topics/Lessons |
+| **So that** | Tôi có thể học theo lộ trình giáo viên đã chuẩn bị |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-701 |
+
+---
+
+### US-810: Xem thành viên lớp
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Xem danh sách thành viên trong lớp |
+| **So that** | Tôi nắm được ai đang học trong lớp mình |
+| **Priority** | P1 |
+| **Story Points** | 5 |
+| **FR Ref** | FR-702 |
+
+---
+
+### US-811: Toggle publish/draft cho Topics và Lessons
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Bật/tắt trạng thái publish/draft cho Topics và Lessons |
+| **So that** | Tôi kiểm soát được nội dung nào hiển thị cho học viên |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-706 |
+
+---
+
+### US-812: Nhúng video YouTube/Vimeo trong bài học
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Tạo bài học dạng video bằng cách dán URL YouTube/Vimeo |
+| **So that** | Học viên xem video trực tiếp trong giao diện lớp học |
+| **Priority** | P1 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-707 |
+
+---
+
+### US-813: Chọn Passage/Prompt từ thư viện khi tạo lesson
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Chọn Passage/Prompt từ dropdown thư viện khi tạo lesson |
+| **So that** | Tôi liên kết nội dung luyện tập có sẵn mà không cần nhập UUID thủ công |
+| **Priority** | P1 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-708 |
+
+---
+
+### US-814: Gửi thông báo cho lớp học
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Gửi thông báo cho tất cả thành viên trong lớp |
+| **So that** | Học viên nhận được thông tin cập nhật, deadline, tài liệu mới |
+| **Priority** | P1 |
+| **Story Points** | 5 |
+| **FR Ref** | FR-709 |
+
+---
+
+### US-815: Nhân bản Topic hoặc Lesson
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Nhân bản (duplicate) một Topic kèm tất cả Lessons hoặc một Lesson riêng lẻ |
+| **So that** | Tôi tái sử dụng nội dung đã soạn mà không phải tạo lại từ đầu |
+| **Priority** | P1 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-710 |
+
+---
+
+### US-816: Xem tiến độ học viên trong lớp
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Xem bảng tổng hợp tiến độ của tất cả học viên: số bài đã làm, điểm trung bình, hoạt động gần nhất |
+| **So that** | Tôi đánh giá được mức độ tham gia và hiệu quả học tập |
+| **Priority** | P1 |
+| **Story Points** | 5 |
+| **FR Ref** | FR-711 |
+
+---
+
+### US-817: Xem thống kê instructor trên Dashboard
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Xem tổng số lớp, tổng học viên, số bài chờ review ngay trên Dashboard |
+| **So that** | Tôi có cái nhìn tổng quan nhanh về hoạt động giảng dạy |
+| **Priority** | P1 |
+| **Story Points** | 2 |
+| **FR Ref** | FR-712 |
+
+---
+
 ## 9. Tổng kết Sprint Planning
 
 | Sprint | Epics | Stories | Story Points |
 |--------|-------|---------|-------------|
 | Sprint 1 (M1) | E1 (Auth) | US-101..105 | 14 |
-| Sprint 2 (M2) | E2 (Reading) | US-201..206 | 21 |
-| Sprint 3 (M3) | E3 (Writing) | US-301..307 | 31 |
+| Sprint 2 (M2) | E2 (Reading) | US-201..207 | 24 |
+| Sprint 3 (M3) | E3 (Writing) | US-301..308 | 34 |
 | Sprint 4 (M4+M5) | E4 (Dashboard) + E5 (Admin) | US-401..403 + US-501..506 | 29 |
-| Sprint 5 (M5+M6) | E6 (Import) + Polish | US-601..603 + bug fixes | 10+ |
-| **Tổng** | **6 Epics** | **30 Stories** | **105 SP** |
+| Sprint 5 (M5+M6) | E6 (Import) + E7 (Instructor) | US-601..603 + US-701..702 | 18 |
+| Sprint 6 | E8 (Classroom) | US-801..810 | 37 |
+| Sprint 7 | E8 Extended (Video, Announcements, Progress) | US-811..817 | 24 |
+| Sprint 8 | Polish + Bug fixes | — | TBD |
+| **Tổng** | **8 Epics** | **51 Stories** | **180 SP** |
 
 ---
 

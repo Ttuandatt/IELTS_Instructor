@@ -100,6 +100,7 @@
 | total_questions | int | Yes | — | # total |
 | duration_sec | int | No | null | Time spent |
 | timed_out | boolean | Yes | false | Timer expired |
+| test_mode | enum | Yes | 'practice' | practice \| simulation |
 | completed_at | timestamp | Auto | now() | — |
 
 ### submissions_writing
@@ -120,6 +121,10 @@
 | error_message | string | No | null | Error detail if failed |
 | created_at | timestamp | Auto | now() | — |
 | scored_at | timestamp | No | null | When scoring completed |
+| instructor_comment | text | No | null | Instructor review comment |
+| instructor_override_score | decimal | No | null | Instructor override (0–9) |
+| reviewed_by | UUID | No | null | FK → users (instructor) |
+| reviewed_at | timestamp | No | null | When instructor reviewed |
 
 ---
 
@@ -134,6 +139,7 @@
 | content_status | draft, published | passages, prompts |
 | model_tier | cheap, premium | submissions_writing |
 | processing_status | pending, done, failed | submissions_writing |
+| test_mode | practice, simulation | submissions_reading |
 | language | vi, en | users |
 | theme | dark, light | users |
 

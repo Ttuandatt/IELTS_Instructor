@@ -118,6 +118,7 @@
 | Empty State | No data (illustration + message + CTA) |
 | Confirm Dialog | Destructive actions (delete, log out) |
 | Modal | Import from NotebookLM, create content |
+| Mode Selector | Practice vs Simulation mode modal (S22) |
 
 ### 2.5 Navigation
 
@@ -165,7 +166,18 @@ IELTS Helper
 │   ├── /admin/sources .............. Imported sources
 │   │   └── /admin/sources/import ... Import from NotebookLM
 │   ├── /admin/users ................ User management
-│   └── /admin/stats ................ Usage statistics
+│   ├── /admin/stats ................ Usage statistics
+├── 👨‍🏫 /instructor ................... Instructor panel (instructor role)
+│   ├── /instructor/writing-submissions  Learner submission list
+│   └── /instructor/writing-submissions/:id  Review + override
+├── 🏫 /classrooms .................... Classroom management
+│   ├── /classrooms ................... My classrooms (owned + joined)
+│   ├── /classrooms/new ............... Create new classroom
+│   ├── /classrooms/:id ............... Classroom detail (Tabs: Syllabus | Announcements + Lesson Viewer)
+│   ├── /classrooms/:id/edit .......... Edit classroom settings
+│   ├── /classrooms/:id/members ....... Members management + invite modal
+│   ├── /classrooms/:id/progress ...... Student progress tracking (instructor)
+│   └── /classrooms/join/:code ........ Join classroom (invite landing page)
 └── 🚫 /404 ......................... Not found page
 ```
 
@@ -199,10 +211,11 @@ IELTS Helper
 
 | Element | Spec |
 |---------|------|
-| Layout | Grid of cards (3 per row desktop, 1 mobile) |
-| Card | Title, level badge (color-coded), topic tags, question count, source icon |
-| Filters bar | Level dropdown, topic search, sort dropdown (newest/popular) |
-| Pagination | Bottom of page; numbered or infinite scroll |
+| Layout | Stacked sections grouped by Collection (e.g. "IELTS Mock Test 2025"). Inside each group: Grid of cards (3 per row desktop, 1 mobile) |
+| Card | Title (e.g. "January Practice Test 1"), level badge, topic tags, question count, source icon |
+| Filters bar | Collection dropdown, Level dropdown, topic search, sort dropdown |
+| Social proof | Submission count badge per card: "✅ X lượt thi" (IOT-inspired) |
+| Pagination | Infinite scroll or pagination at bottom |
 
 ### 4.4 Reading Practice (passage detail)
 
@@ -215,6 +228,15 @@ IELTS Helper
 | Progress | "8/13 answered" badge; turns green when ≥80% |
 | Submit button | Bottom-right; disabled until ≥80% answered; loading state on click |
 | Timer warning | Background pulse red animation when < 3 min |
+
+### 4.4b Mode Selector Modal (IOT-inspired)
+
+| Element | Spec |
+|---------|------|
+| Layout | Centered modal (max-width 500px); two cards side by side |
+| Practice card | Icon 📝, title "Practice", bullets: no timer, choose parts, pause/resume, Start button |
+| Simulation card | Icon 🎯, title "Simulation", bullets: 60 min timer, full test, auto-submit, Start button |
+| Cancel | "✕ Cancel" link below cards |
 
 ### 4.5 Reading Results
 
@@ -256,6 +278,16 @@ IELTS Helper
 | Improvements | Orange/red checklist items with suggestions |
 | Metadata | Model used, turnaround time, word count |
 | Actions | "Write Again" button, "View History" link |
+
+### 4.8b Instructor Review Page (Sprint 5)
+
+| Element | Spec |
+|---------|------|
+| Layout | Split view: AI scores + override panel (left 35%), Essay content (right 65%) |
+| AI Scores | 4 score bars (TR/CC/LR/GRA) + overall; read-only |
+| Override panel | Number input (0–9) for override score; textarea for instructor comment |
+| Actions | "Save Review" button; "Back to list" link |
+| History | Show original AI score preserved even after override |
 
 ### 4.9 Admin — Content List
 
@@ -342,6 +374,109 @@ IELTS Helper
 | Dashboard | Skeleton cards | "Welcome!" + practice CTAs | Toast |
 | Admin Lists | Skeleton table rows | "No content yet" + create CTA | Toast + retry |
 | Import Modal | Button spinner | N/A | Inline error in modal |
+| My Classrooms | Skeleton grid (4 cards) | "No classrooms yet" + create CTA | Toast + retry |
+| Classroom Detail | Skeleton sidebar + main | N/A (404 redirect) | 404 page |
+| Members List | Skeleton table rows | "No members yet" | Toast |
+| Join Classroom | Button spinner | N/A | Inline error (full/invalid code) |
+
+---
+
+## 9. Classroom Screens
+
+### S30 — My Classrooms (`/classrooms`)
+
+| Element | Spec |
+|---------|------|
+| Layout | Grid 3 columns (responsive) |
+| Card | Cover image (150px) + name + member count + role badge ("Owner" / "Student") |
+| Actions (Owner) | Edit, Archive |
+| Actions (All) | Click → Classroom Detail |
+| FAB | "+ Tạo lớp mới" (only instructor/admin) |
+| Empty state | "Bạn chưa có lớp nào. Tạo lớp mới hoặc tham gia lớp qua mã mời." |
+
+### S31 — Create / Edit Classroom (`/classrooms/new`, `/classrooms/:id/edit`)
+
+| Element | Spec |
+|---------|------|
+| Form fields | name (required), description (textarea), cover_image_url, max_members |
+| Buttons | Save (primary), Cancel (secondary) |
+| Redirect | On success → `/classrooms/:id` |
+
+### S32 — Classroom Detail (`/classrooms/:id`)
+
+| Element | Spec |
+|---------|------|
+| Header | Classroom name + description + member count + status badge |
+| Sidebar | Topics list (accordion/collapsible) with + button to create Topic |
+| Main panel | Selected Topic's Lessons list |
+| Owner bar | "Invite" (modal), "Members" (link), "Edit" (link), "Archive" (button) |
+| Lesson card | Title + content_type badge + status indicator + link to view |
+
+### S33 — Invite Modal
+
+| Element | Spec |
+|---------|------|
+| QR Code | Generated from invite_url, 200x200px |
+| Invite link | Text field with "Copy" button |
+| Invite code | Display the 8-char code |
+| Regenerate button | "Tạo mã mới" with confirm dialog |
+
+### S34 — Members List (`/classrooms/:id/members`)
+
+| Element | Spec |
+|---------|------|
+| Table columns | Avatar, Display Name, Email, Role (teacher/student), Joined Date, Actions |
+| Actions (Owner) | Remove button (with confirm) |
+| Add member | Text input (email) + "Thêm" button |
+
+### S35 — Join Classroom (`/classrooms/join/:code`)
+
+| Element | Spec |
+|---------|------|
+| Layout | Centered card |
+| Content | Classroom name, description, member count, "Tham gia" button |
+| Auth guard | If not logged in → redirect to login → return |
+| Error states | "Lớp đã đầy", "Mã không hợp lệ", "Bạn đã là thành viên" |
+
+### S36 — Lesson View (within Classroom Detail)
+
+| Element | Spec |
+|---------|------|
+| Layout | Embedded in right panel of Classroom Detail page (not a separate route) |
+| Smart Renderer | Tự động hiển thị nội dung theo `content_type`: |
+| — `text` | Rendered HTML/Markdown với prose styling |
+| — `video` | YouTube/Vimeo iframe embed (auto-detect URL) |
+| — `passage`/`prompt` | Launch card với gradient colors, icon, nút "Start Reading" hoặc "Start Writing" |
+| Status badge | Published (green) / Draft (yellow) trong header |
+| Teacher actions | Edit button, Toggle status (Publish/Draft) |
+
+### S37 — Student Progress (`/classrooms/:id/progress`)
+
+| Element | Spec |
+|---------|------|
+| Layout | Full page, table layout |
+| Header | Classroom name + "Student Progress" title |
+| Table columns | Student name, email, joined date, reading count, reading avg, writing count, writing avg, recent activity |
+| Empty state | "Chưa có học viên nào trong lớp." |
+| Access | Instructor only |
+
+### S38 — Announcements Tab (within Classroom Detail sidebar)
+
+| Element | Spec |
+|---------|------|
+| Layout | Tab "Announcements" bên cạnh tab "Syllabus" trong sidebar |
+| List | Chat-style cards (orange accent) với author name, timestamp |
+| Compose | Textarea + Send button (instructor only); Cmd+Enter shortcut |
+| Delete | Hover → trash icon (instructor only), confirm dialog |
+| Empty state | Megaphone icon + "No announcements yet." |
+
+### S39 — Instructor Dashboard (enhanced)
+
+| Element | Spec |
+|---------|------|
+| Stats cards | Total Classrooms, Total Students, Pending Reviews (3 stat cards) |
+| Quick actions | "Create Classroom" shortcut card, "View Classrooms" link |
+| Data source | `GET /dashboard/instructor-stats` |
 
 ---
 

@@ -11,15 +11,19 @@
 
 ## 1. Sprint Overview
 
-| Sprint | Duration | Focus | Deliverables |
-|--------|----------|-------|-------------|
-| **Sprint 0** | 3 days | Project setup, infra, tooling | Monorepo, Docker Compose, CI, env config |
-| **Sprint 1** | 1 week | Auth + App Shell | Registration, login, JWT, RBAC, layout, theme, i18n |
-| **Sprint 2** | 1.5 weeks | Reading Module | Passages CRUD (admin), catalog, practice, auto-grading, results, history |
-| **Sprint 3** | 2 weeks | Writing Module | Prompts CRUD (admin), editor, async scoring pipeline, feedback UI |
-| **Sprint 4** | 1 week | Dashboard + Admin + Polish | Progress API, trend chart, import, user mgmt, bug fixes |
+| Sprint | Duration | Focus | Deliverables | Status |
+|--------|----------|-------|-------------|--------|
+| **Sprint 0** | 3 days | Project setup, infra, tooling | Monorepo, Docker Compose, CI, env config | ✅ Done |
+| **Sprint 1** | 1 week | Auth + App Shell | Registration, login, JWT, RBAC, layout, theme, i18n | ✅ Done |
+| **Sprint 2** | 1.5 weeks | Reading + Writing + Admin Foundation | DB schema, RBAC, full CRUD, 19 frontend routes | ✅ Done |
+| **Sprint 3** | 2 weeks | AI Writing Scoring | BullMQ pipeline, LLM integration, 4-criteria feedback UI | ⬜ Next |
+| **Sprint 4** | 1 week | Reading Enhancements | Timer, Practice/Simulation modes, explanations, analytics | ⬜ |
+| **Sprint 5** | 1 week | Instructor + Dashboard | Instructor review, override AI, dashboard stats, trends | ⬜ |
+| **Sprint 6** | 1 week | Admin Import + Polish | Import, user mgmt, social proof, bug fixes, responsive | ⬜ |
 
-**Total estimated: ~6 weeks**
+**Total estimated: ~8 weeks** (Sprint 0–2 done, ~5 weeks remaining)
+
+> **Reference site:** [ieltsonlinetests.com analysis](../docs/ielts_online_tests_analysis.md)
 
 ---
 
@@ -136,42 +140,90 @@
 | T3-14 | Implement Writing catalog page | S08 | `/writing` page |
 | T3-15 | Implement Writing editor page (split view, word count) | S09 | `/writing/:id` page |
 | T3-16 | Implement scoring progress page (polling, progress bar) | S10 | Loading state |
-| T3-17 | Implement Writing feedback page (score bars, feedback panel) | S11 | `/writing/submissions/:id` |
+| T3-17 | Implement Writing feedback page (4-criteria score bars, feedback panel, improvement plan) | S11 | `/writing/submissions/:id` |
 | T3-18 | Implement Writing history page | S12 | `/writing/history` |
-| T3-19 | Create ScoreBar component (0–9 color-coded fill) | — | ScoreBar |
+| T3-19 | Create ScoreBar component (0–9 color-coded fill, TR/CC/LR/GRA labels) | — | ScoreBar |
 | T3-20 | Create WordCounter component (live count, green/red) | — | WordCounter |
 | T3-21 | Admin: Prompt list + form pages | S16, S17 | Admin prompts pages |
+| T3-22 | Create FeedbackPanel component (strengths, improvements, suggestions) | — | FeedbackPanel |
 
-**Definition of Done:** Learner submits essay → scores returned async → feedback displayed. Rate limiting works. Admin can CRUD prompts. Publishing works.
+**Definition of Done:** Learner submits essay → scores returned async with 4 IELTS criteria → feedback displayed with improvement plan. Rate limiting works. Admin can CRUD prompts. Publishing works.
 
 ---
 
-## 6. Sprint 4 — Dashboard + Admin + Polish (1 week)
+## 6. Sprint 4 — Reading Enhancements (1 week)
+
+> Inspired by ieltsonlinetests.com: Practice/Simulation modes, timer, explanations
 
 ### Backend Tasks
 
 | Task | Description | FR/BR Ref | Output |
 |------|-------------|-----------|--------|
-| T4-01 | Implement progress endpoint (reading + writing stats) | FR-401 | ProgressService |
-| T4-02 | Implement trends endpoint (weekly aggregation) | FR-402 | Trends handler |
-| T4-03 | Create `sources`, `snippets`, `content_versions`, `rate_limits` migrations | — | Migrations |
-| T4-04 | Implement Import module (fetch, sanitize, cache, save) | FR-601, SY-001..003 | ImportService |
-| T4-05 | Implement Sources CRUD + snippet attach | FR-602 | Source handlers |
-| T4-06 | Implement User management endpoint | FR-603 | Admin user handler |
-| T4-07 | Set up BullBoard at `/admin/queues` | — | Queue dashboard |
+| T4-01 | Add `test_mode` field to ReadingSubmission (practice/simulation) | — | Migration |
+| T4-02 | Implement timer validation (reject late submissions in simulation mode) | RD-001 | Validation logic |
+| T4-03 | Add explanation field population in grading response | FR-203 | Enhanced grading |
+| T4-04 | Add test stats endpoint (submission count per passage/prompt) | — | Stats handler |
 
 ### Frontend Tasks
 
 | Task | Description | Screen Ref | Output |
 |------|-------------|-----------|--------|
-| T4-08 | Implement Dashboard page (stat cards, recent list) | S03 | `/dashboard` page |
-| T4-09 | Implement trend chart (line chart, period selector) | S03 | Chart component |
-| T4-10 | Admin: Sources list + import modal | S18, S19 | Admin sources pages |
-| T4-11 | Admin: User management page | S20 | `/admin/users` page |
-| T4-12 | Implement empty states for all pages | — | EmptyState components |
-| T4-13 | Implement toast notification system | — | Toast provider |
-| T4-14 | Cross-browser testing + responsive fixes | — | Bug fixes |
-| T4-15 | 404 page | S21 | `/404` page |
+| T4-05 | Implement Mode Selection modal (Practice vs Simulation) | — | ModeSelector modal |
+| T4-06 | Implement Timer component (countdown, warning at 5 min, auto-submit) | S05 | Timer component |
+| T4-07 | Implement Question Explanation display (post-submit) | S06 | Explanation panel |
+| T4-08 | Add test stats on cards ("X lượt thi") | S04 | Social proof badges |
+| T4-09 | Enhanced filter UI (tabs by level, chips by skill) | S04 | Filter components |
+
+**Definition of Done:** User can choose Practice/Simulation mode. Timer works in Simulation. Explanations shown after submit. Stats displayed on cards.
+
+---
+
+## 7. Sprint 5 — Instructor + Dashboard (1 week)
+
+### Backend Tasks
+
+| Task | Description | FR/BR Ref | Output |
+|------|-------------|-----------|--------|
+| T5-01 | Implement progress endpoint (reading + writing stats) | FR-401 | ProgressService |
+| T5-02 | Implement trends endpoint (weekly aggregation) | FR-402 | Trends handler |
+| T5-03 | Add instructor comment/override fields to WritingSubmission | — | Migration |
+| T5-04 | Implement instructor review endpoints (comment, override score) | — | Instructor handlers |
+
+### Frontend Tasks
+
+| Task | Description | Screen Ref | Output |
+|------|-------------|-----------|--------|
+| T5-05 | Implement Dashboard page (stat cards, recent list) | S03 | `/dashboard` page |
+| T5-06 | Implement trend chart (line chart, period selector) | S03 | Chart component |
+| T5-07 | Instructor: Writing review page (view essay, AI score, add comment, override) | — | Review page |
+| T5-08 | Instructor: Learner list with submission stats | — | Learner list page |
+
+**Definition of Done:** Dashboard shows real data with trends. Instructor can review submissions, comment, and override AI scores.
+
+---
+
+## 8. Sprint 6 — Admin Import + Polish (1 week)
+
+### Backend Tasks
+
+| Task | Description | FR/BR Ref | Output |
+|------|-------------|-----------|--------|
+| T6-01 | Create `sources`, `snippets`, `content_versions`, `rate_limits` migrations | — | Migrations |
+| T6-02 | Implement Import module (fetch, sanitize, cache, save) | FR-601, SY-001..003 | ImportService |
+| T6-03 | Implement Sources CRUD + snippet attach | FR-602 | Source handlers |
+| T6-04 | Implement User management endpoint | FR-603 | Admin user handler |
+| T6-05 | Set up BullBoard at `/admin/queues` | — | Queue dashboard |
+
+### Frontend Tasks
+
+| Task | Description | Screen Ref | Output |
+|------|-------------|-----------|--------|
+| T6-06 | Admin: Sources list + import modal | S18, S19 | Admin sources pages |
+| T6-07 | Admin: User management page | S20 | `/admin/users` page |
+| T6-08 | Implement empty states for all pages | — | EmptyState components |
+| T6-09 | Implement toast notification system | — | Toast provider |
+| T6-10 | Cross-browser testing + responsive fixes | — | Bug fixes |
+| T6-11 | 404 page | S21 | `/404` page |
 
 **Definition of Done:** Dashboard shows real data. Import works. All admin features complete. No critical bugs.
 
@@ -299,7 +351,10 @@ ielts-helper/
 
 | Date | Area | Change | Reason |
 |------|------|--------|--------|
-| — | — | — | To be filled during/after build |
+| 2026-02-22 | Sprint plan | Expanded from 4 to 6 sprints, added IOT-inspired features | Reference site analysis (ieltsonlinetests.com) |
+| 2026-02-22 | Sprint 3 | Added 4-criteria feedback UI, FeedbackPanel, improvement plan | Align with IELTS official scoring format |
+| 2026-02-22 | Sprint 4 | New: Practice/Simulation modes, Timer, Explanations, Stats | IOT Pattern: mode selection + social proof |
+| 2026-02-22 | Sprint 5–6 | Split old Sprint 4 into Instructor+Dashboard (S5) and Admin+Polish (S6) | Better scope management |
 
 ---
 

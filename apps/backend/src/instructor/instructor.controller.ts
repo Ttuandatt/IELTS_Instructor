@@ -1,5 +1,5 @@
 import {
-  Controller, Get, Param, Query, UseGuards,
+  Controller, Get, Patch, Param, Query, Body, UseGuards, Req,
 } from '@nestjs/common';
 import { InstructorService } from './instructor.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
@@ -10,7 +10,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('instructor' as any, 'admin' as any)
 export class InstructorController {
-  constructor(private readonly instructorService: InstructorService) {}
+  constructor(private readonly instructorService: InstructorService) { }
 
   @Get('stats')
   getStats() {
@@ -40,6 +40,15 @@ export class InstructorController {
   @Get('writing-submissions/:id')
   getWritingSubmission(@Param('id') id: string) {
     return this.instructorService.getWritingSubmission(id);
+  }
+
+  @Patch('writing-submissions/:id/review')
+  reviewWritingSubmission(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() body: { instructor_override_score?: number; instructor_comment?: string },
+  ) {
+    return this.instructorService.reviewWritingSubmission(id, req.user.sub, body);
   }
 
   @Get('reading-submissions')

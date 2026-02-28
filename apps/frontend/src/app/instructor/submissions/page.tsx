@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { useI18n } from '@/providers/I18nProvider';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
+import Link from 'next/link';
+import { PenLine, BookOpen, ExternalLink } from 'lucide-react';
 
 export default function InstructorSubmissionsPage() {
   const { t } = useI18n();
@@ -31,10 +33,10 @@ export default function InstructorSubmissionsPage() {
 
       <div className="tab-bar">
         <button className={`tab-btn ${tab === 'writing' ? 'tab-btn--active' : ''}`} onClick={() => { setTab('writing'); setPage(1); }}>
-          ✍️ {t.instructor.writing_submissions}
+          <PenLine size={16} /> {t.instructor.writing_submissions}
         </button>
         <button className={`tab-btn ${tab === 'reading' ? 'tab-btn--active' : ''}`} onClick={() => { setTab('reading'); setPage(1); }}>
-          📖 {t.instructor.reading_submissions}
+          <BookOpen size={16} /> {t.instructor.reading_submissions}
         </button>
       </div>
 
@@ -52,7 +54,9 @@ export default function InstructorSubmissionsPage() {
                   <th>{t.instructor.prompt_title}</th>
                   <th>{t.writing.word_count}</th>
                   <th>{t.common.status}</th>
+                  <th>Review</th>
                   <th>{t.instructor.submission_date}</th>
+                  <th></th>
                 </tr>
               </thead>
               <tbody>
@@ -62,7 +66,22 @@ export default function InstructorSubmissionsPage() {
                     <td>{s.prompt?.title ?? '—'}</td>
                     <td>{s.word_count}</td>
                     <td><span className={`badge badge-${s.processing_status}`}>{s.processing_status}</span></td>
+                    <td>
+                      {s.reviewed_at
+                        ? <span className="badge badge-done">Reviewed</span>
+                        : <span className="badge badge-pending">Pending</span>
+                      }
+                    </td>
                     <td>{new Date(s.created_at).toLocaleDateString()}</td>
+                    <td>
+                      <Link href={`/instructor/submissions/${s.id}`} style={{
+                        display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                        color: 'var(--color-primary)', textDecoration: 'none',
+                        fontSize: '0.8rem', fontWeight: 600,
+                      }}>
+                        View <ExternalLink size={12} />
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>

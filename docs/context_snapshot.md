@@ -1,4 +1,4 @@
-# Context Snapshot — 2026-02-21 (updated)
+# Context Snapshot — 2026-02-22 (updated)
 
 > Dùng cho AI agent / developer khi bắt đầu session mới. Đọc file này trước để nắm toàn bộ context.
 
@@ -67,6 +67,23 @@ Essay submit (POST 202)
 - Temperature: 0.1–0.3
 - Timeout: 60–90s per job
 - Fallback: if primary LLM fails, try fallback provider
+
+---
+
+## 4.5 Reference Site — ieltsonlinetests.com
+
+> Phân tích chi tiết → [ielts_online_tests_analysis.md](../docs/ielts_online_tests_analysis.md)
+
+| Feature từ IOT | Áp dụng cho IELTS Instructor | Priority |
+|----------------|------------------------------|----------|
+| **Practice Mode vs Simulation Mode** | Modal chọn mode trước test: tự do hoặc giả lập thi thật (timer chuẩn) | Sprint 3–4 |
+| **AI Scoring 4 tiêu chí** (TR/CC/LR/GRA) | Scoring pipeline + score bars + personalized feedback | Sprint 3 |
+| **Exam Library tabs & filters** | Filter by skill/level, tabs UI, số lượt thi social proof | Sprint 4+ |
+| **6-Step Learning Path** | Guided onboarding: placement → practice → AI test → full services | Phase 2 |
+| **Question explanations** | Hiển thị explanation per question sau nộp bài Reading | Sprint 4 |
+| **Timer chuẩn IELTS** | Countdown 60 min Reading, 60 min Writing, timed_out flag | Sprint 4 |
+
+**Lợi thế cạnh tranh:** Feedback 5 phút (vs 30 phút IOT), Instructor review/override AI, CEFR-based content, self-hosted.
 
 ---
 
@@ -178,21 +195,27 @@ Full specs → [09_api_specifications.md](step3_prd/09_api_specifications.md) + 
 
 ## 10. Implementation Sprints Summary
 
-| Sprint | Duration | Focus |
-|--------|----------|-------|
-| **Sprint 0** | 3 days | Monorepo, Docker, tooling, health endpoint |
-| **Sprint 1** | 1 week | Auth (JWT+RBAC), app shell, theme, i18n |
-| **Sprint 2** | 1.5 weeks | Reading module (catalog, practice, grading, history, admin CRUD) |
-| **Sprint 3** | 2 weeks | Writing module (editor, BullMQ scoring, LLM integration, feedback UI) |
-| **Sprint 4** | 1 week | Dashboard, admin import, user mgmt, polish |
+| Sprint | Duration | Focus | Status |
+|--------|----------|-------|--------|
+| **Sprint 0** | 3 days | Monorepo, Docker, tooling, health endpoint | ✅ Done |
+| **Sprint 1** | 1 week | Auth (JWT+RBAC), app shell, theme, i18n | ✅ Done |
+| **Sprint 2** | 1.5 weeks | Role-based features (DB schema, RBAC, full CRUD, 19 frontend routes) | ✅ Done |
+| **Sprint 3** | 2 weeks | AI Writing Scoring (BullMQ pipeline, LLM integration, 4-criteria feedback UI) | ⬜ Next |
+| **Sprint 4** | 1 week | Reading enhancements (timer, Practice/Simulation modes, explanations, analytics) | ⬜ |
+| **Sprint 5** | 1 week | Instructor review workflow (comment, override AI score, notifications) | ⬜ |
+| **Sprint 6** | 1 week | Performance & polish (caching, pagination, responsive, social proof stats) | ⬜ |
 
-**Total: ~6 weeks**
+**Total: ~8 weeks** (Sprint 0–2 done, ~5 weeks remaining)
 
 ---
 
 ## 11. Next Steps
 
-- [ ] **Update `api_collection.json`** — Sync with expanded API specs
-- [ ] **Step 5 — Sprint 0:** Init monorepo, Docker Compose, NestJS + Next.js, ESLint/Prettier, health endpoint
-- [ ] **Step 5 — Sprint 1–4:** Build full MVP following implementation_plan.md
+- [x] ~~Update `api_collection.json`~~
+- [x] ~~Step 5 — Sprint 0–2~~ *(monorepo, auth, RBAC, CRUD, 19 routes done)*
+- [ ] **Phân tích reference site** — ieltsonlinetests.com → xong, kết quả tại `ielts_online_tests_analysis.md`
+- [ ] **Step 5 — Sprint 3:** AI Writing Scoring pipeline (Producer → Worker → Rule Engine → LLM → Feedback)
+- [ ] **Step 5 — Sprint 4:** Timer, Practice/Simulation mode, question explanations
+- [ ] **Step 5 — Sprint 5:** Instructor review + override workflow
+- [ ] **Step 5 — Sprint 6:** Polish, social proof, analytics
 - [ ] **Step 6 — Quality Gate:** Run test suite, verify acceptance criteria

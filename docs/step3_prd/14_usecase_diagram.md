@@ -80,6 +80,15 @@ graph TB
         UC51[UC-51: Retry Failed Scoring]
     end
 
+    subgraph "UC — Classroom Management"
+        UC60[UC-60: Create Classroom]
+        UC61[UC-61: Manage Members]
+        UC62[UC-62: Generate Invite Link/QR]
+        UC63[UC-63: Join Classroom]
+        UC64[UC-64: Manage Topics]
+        UC65[UC-65: Manage Lessons]
+    end
+
     %% Learner connections
     L --> UC01
     L --> UC02
@@ -97,12 +106,18 @@ graph TB
     L --> UC24
     L --> UC30
     L --> UC31
+    L --> UC63
 
     %% Instructor connections
     I --> UC02
     I --> UC10
     I --> UC20
     I --> UC23
+    I --> UC60
+    I --> UC61
+    I --> UC62
+    I --> UC64
+    I --> UC65
 
     %% Admin connections
     A --> UC02
@@ -224,6 +239,71 @@ graph TB
 | **Business Rules** | SY-001, SY-002, SY-003, ADM-002 |
 | **FR Ref** | FR-601 |
 
+### UC-60: Create Classroom
+
+| Attribute | Detail |
+|-----------|--------|
+| **Actor** | Instructor |
+| **Precondition** | User has role=instructor or admin |
+| **Flow** | 1. Instructor clicks "Tạo lớp mới". 2. Fills name, description. 3. System auto-generates invite_code. 4. System creates classroom with owner_id. |
+| **Postcondition** | Classroom created; instructor auto-added as teacher member |
+| **Business Rules** | CR-001, CR-003 |
+| **FR Ref** | FR-701 |
+
+### UC-61: Manage Members
+
+| Attribute | Detail |
+|-----------|--------|
+| **Actor** | Instructor (owner) |
+| **Precondition** | Classroom exists; user is owner |
+| **Flow** | 1. Instructor enters student email. 2. System looks up user. 3. If found and not already member, add as student. 4. Owner can also remove members. |
+| **Postcondition** | Member added/removed |
+| **Business Rules** | CR-002, CR-004, CR-005 |
+| **FR Ref** | FR-702 |
+
+### UC-62: Generate Invite Link/QR
+
+| Attribute | Detail |
+|-----------|--------|
+| **Actor** | Instructor (owner) |
+| **Precondition** | Classroom exists |
+| **Flow** | 1. Owner clicks "Invite". 2. System generates QR code from invite_url. 3. Owner can copy link or show QR. 4. Optional: regenerate code. |
+| **Postcondition** | Invite link/QR available |
+| **FR Ref** | FR-703 |
+
+### UC-63: Join Classroom
+
+| Attribute | Detail |
+|-----------|--------|
+| **Actor** | Learner |
+| **Precondition** | User authenticated; has valid invite link/code |
+| **Flow** | 1. User opens invite link or enters code. 2. System shows classroom info. 3. User clicks "Tham gia". 4. System adds user as student. |
+| **Postcondition** | User is member of classroom |
+| **Business Rules** | CR-004, CR-005 |
+| **FR Ref** | FR-703 |
+
+### UC-64: Manage Topics
+
+| Attribute | Detail |
+|-----------|--------|
+| **Actor** | Instructor (owner) |
+| **Precondition** | Classroom exists; user is owner |
+| **Flow** | 1. Owner creates/edits/deletes/reorders topics. 2. Sets status (draft/published). 3. Students only see published topics. |
+| **Postcondition** | Topic CRUD complete |
+| **Business Rules** | CR-006, CR-007 |
+| **FR Ref** | FR-704 |
+
+### UC-65: Manage Lessons
+
+| Attribute | Detail |
+|-----------|--------|
+| **Actor** | Instructor (owner) |
+| **Precondition** | Topic exists; user is classroom owner |
+| **Flow** | 1. Owner creates/edits/deletes/reorders lessons within a topic. 2. Optionally links to existing Passage/Prompt. 3. Sets status (draft/published). |
+| **Postcondition** | Lesson CRUD complete |
+| **Business Rules** | CR-006, CR-007 |
+| **FR Ref** | FR-705 |
+
 ---
 
 ## 4. Use Case — Story — FR Traceability
@@ -255,6 +335,12 @@ graph TB
 | UC-46 | US-603 | FR-603 |
 | UC-50 | — (system) | FR-302, FR-303 |
 | UC-51 | — (system) | FR-302 |
+| UC-60 | US-801 | FR-701 |
+| UC-61 | US-802, US-805, US-810 | FR-702 |
+| UC-62 | US-803 | FR-703 |
+| UC-63 | US-804 | FR-703 |
+| UC-64 | US-806 | FR-704 |
+| UC-65 | US-807, US-808 | FR-705 |
 
 ---
 

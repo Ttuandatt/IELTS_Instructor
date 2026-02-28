@@ -316,6 +316,48 @@ Feature: Retry Reading Passage
 
 ---
 
+### AC-207: Chọn chế độ luyện tập (IOT-inspired)
+
+```gherkin
+Feature: Reading Mode Selection
+  Ref: US-207, FR-205, RD-005, RD-006
+
+  Scenario: Mode selector modal appears
+    Given I am a logged-in learner
+    When I click on a passage card from the catalog
+    Then a Mode Selector modal appears
+    And I see two options: "Practice" and "Simulation"
+
+  Scenario: Practice mode selected
+    Given the Mode Selector modal is shown
+    When I click "Practice"
+    Then the passage opens without a timer
+    And I can pause and resume freely
+    And the submission records test_mode = "practice"
+
+  Scenario: Simulation mode selected
+    Given the Mode Selector modal is shown
+    When I click "Simulation"
+    Then the passage opens with a 60-minute countdown timer
+    And there is no pause button
+    And the submission records test_mode = "simulation"
+
+  Scenario: Simulation mode auto-submit on timer expiry
+    Given I am in Simulation mode
+    When the 60-minute timer reaches 00:00
+    Then all answered questions are auto-submitted
+    And timed_out = true and test_mode = "simulation"
+    And I see my results with "(Timed out)" indicator
+
+  Scenario: Cancel mode selection
+    Given the Mode Selector modal is shown
+    When I click "Cancel"
+    Then the modal closes
+    And I remain on the catalog page
+```
+
+---
+
 ## 4. Writing Practice
 
 ### AC-301: Duyệt prompts
@@ -473,6 +515,33 @@ Feature: Writing History
     Given I have a pending submission
     Then it appears in history with loading icon
     And auto-refreshes until done/failed
+```
+
+---
+
+### AC-308: Gợi ý cải thiện chi tiết (IOT-inspired)
+
+```gherkin
+Feature: Enhanced Writing Feedback with Suggestions
+  Ref: US-308, FR-302, FR-303, WR-007
+
+  Scenario: Suggestions section shown in feedback
+    Given my essay scoring is done
+    When I view the feedback panel
+    Then I see summary, strengths, improvements, AND suggestions sections
+    And suggestions contain actionable improvement advice
+
+  Scenario: Feedback schema validated on backend
+    Given LLM returns a response without "suggestions" field
+    When the BullMQ worker validates the JSON schema
+    Then validation fails
+    And the worker retries with explicit schema prompt
+    And the retry includes all required fields: TR, CC, LR, GRA, overall, summary, strengths[], improvements[], suggestions
+
+  Scenario: Valid feedback stored
+    Given LLM returns valid feedback with all fields
+    Then suggestions are persisted in the feedback JSONB
+    And learner sees the suggestions on the feedback detail page
 ```
 
 ---
@@ -640,6 +709,67 @@ Feature: Source Attachment
     Given a passage was created from NotebookLM import
     When I try to publish without any attached source
     Then I see warning "Content from NotebookLM must have at least one source attached"
+```
+
+---
+
+## 8. Instructor Review (Sprint 5) — IOT-inspired
+
+### AC-701: Review Writing submission
+
+```gherkin
+Feature: Instructor Review Submissions
+  Ref: US-701, FR-701, WR-006
+
+  Scenario: View submission list
+    Given I am logged in as instructor
+    When I navigate to Instructor Review page
+    Then I see a paginated list of learner writing submissions
+    And each entry shows learner name, prompt title, overall score, review status, date
+
+  Scenario: Filter unreviewed submissions
+    Given I am on the Instructor Review page
+    When I filter by "Unreviewed"
+    Then only submissions without instructor review are shown
+
+  Scenario: View submission detail
+    Given I click on a submission
+    Then I see split view: AI scores panel (left) and essay content (right)
+    And AI scores show TR, CC, LR, GRA, overall as score bars
+    And the essay text is displayed in read-only mode
+```
+
+---
+
+### AC-702: Override AI score và thêm comment
+
+```gherkin
+Feature: Instructor Score Override
+  Ref: US-702, FR-702, WR-006
+
+  Scenario: Add instructor comment
+    Given I am viewing a submission detail as instructor
+    When I type "Good structure but vocabulary needs improvement" in the comment field
+    And click "Save Review"
+    Then instructor_comment is saved
+    And reviewed_by and reviewed_at are populated
+
+  Scenario: Override AI score
+    Given AI scored the essay with overall = 5.5
+    When I enter instructor_override_score = 6.0
+    And click "Save Review"
+    Then both scores are stored: AI overall = 5.5, instructor override = 6.0
+    And the learner sees both scores on their feedback page
+
+  Scenario: Override without comment
+    Given I only enter an override score without comment
+    When I click "Save Review"
+    Then the override is saved with empty instructor_comment
+
+  Scenario: Non-instructor access denied
+    Given I am logged in as learner
+    When I try to access /instructor/writing-submissions
+    Then I receive 403 Forbidden
 ```
 
 ---

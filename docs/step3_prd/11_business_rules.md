@@ -71,6 +71,33 @@
 
 ---
 
+### RD-005 — Mode Selection Required (IOT-inspired)
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | RD-005 |
+| **Title** | Mode selection required before starting a Reading test |
+| **Description** | Before starting a Reading passage, learner must choose between **Practice mode** (no timer, choose parts, pause/resume) and **Simulation mode** (60 min standard timer, full test, no pause, auto-submit on expiry). The selected mode is stored as `test_mode` in the submission record. |
+| **Enforcement Point** | Frontend: Mode Selector modal (S22). Backend: `test_mode` field in `submissions_reading`. |
+| **FR Ref** | FR-203 |
+| **Test Scenario** | Click passage card → Mode Selector modal appears → choose Practice → no timer → `test_mode='practice'`. Choose Simulation → 60 min timer starts → `test_mode='simulation'`. |
+
+---
+
+### RD-006 — Simulation Mode Timer Rules
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | RD-006 |
+| **Title** | Simulation mode enforces IELTS-standard timer |
+| **Description** | In Simulation mode: 60-minute countdown for Reading, no pause allowed, auto-submit on timer expiry, late submissions rejected (backend validates `duration_sec ≤ timer_duration + grace_period`). |
+| **Grace Period** | 5 seconds (account for network latency) |
+| **Enforcement Point** | Frontend: Timer component with no pause button in Simulation. Backend: reject if `test_mode='simulation' AND duration_sec > 3605`. |
+| **FR Ref** | FR-203, RD-003 |
+| **Test Scenario** | Simulation mode → 60 min timer starts → timer reaches 0 → auto-submit → timed_out=true, test_mode=simulation |
+
+---
+
 ## 2. Writing Domain (WR)
 
 ### WR-001 — Word Count Warning
@@ -151,6 +178,34 @@
 | **Enforcement Point** | Worker: record all fields after scoring completes |
 | **FR Ref** | FR-303 |
 | **Test Scenario** | After scoring → verify all metadata fields populated; verify `turnaround_ms = scored_at - created_at` (in ms) |
+
+---
+
+### WR-006 — Instructor Score Override
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | WR-006 |
+| **Title** | Instructor can override AI score and add comment |
+| **Description** | Instructor can review any learner's writing submission, add a comment, and optionally override the AI-generated score with a manual score (0–9 in 0.5 increments). The original AI score is **preserved** alongside the override. |
+| **Fields** | `instructor_comment` (text), `instructor_override_score` (decimal 0–9), `reviewed_by` (FK users), `reviewed_at` (timestamp) |
+| **Enforcement Point** | `PATCH /instructor/writing-submissions/:id/review` — instructor role required |
+| **FR Ref** | Sprint 5 |
+| **Test Scenario** | Instructor sets override_score=7.0, comment="Well structured" → submission updated → both AI scores and override visible |
+
+---
+
+### WR-007 — Feedback Schema Validation (IOT-inspired)
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | WR-007 |
+| **Title** | LLM feedback must conform to required schema |
+| **Description** | LLM response must include: TR, CC, LR, GRA scores (each 0–9, 0.5 increments), overall score, summary text, strengths array, improvements array, and suggestions text. Response is validated against JSON schema; if invalid, retry once with schema-only prompt. |
+| **Required Shape** | `{TR, CC, LR, GRA, overall, summary, strengths[], improvements[], suggestions}` |
+| **Enforcement Point** | BullMQ worker: JSON schema validation after LLM response |
+| **FR Ref** | FR-302, FR-303 |
+| **Test Scenario** | LLM returns missing `suggestions` field → validation fails → retry with explicit schema → valid response stored |
 
 ---
 
@@ -237,21 +292,176 @@
 
 ---
 
+## 4.5 Classroom Domain (CR)
+
+### CR-001 — Only Instructor/Admin Can Create Classroom
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-001 |
+| **Title** | Chỉ instructor hoặc admin mới tạo được classroom |
+| **Description** | User với role `learner` không được phép tạo classroom. Backend guard kiểm tra role trước khi thực thi. |
+| **Enforcement Point** | `POST /classrooms` — role guard |
+| **Error Response** | `403 Forbidden` |
+| **FR Ref** | FR-701 |
+
+---
+
+### CR-002 — Owner-only Management
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-002 |
+| **Title** | Chỉ owner (người tạo) mới sửa/xóa/quản lý classroom |
+| **Description** | `classrooms.owner_id` xác định instructor sở hữu lớp. Chỉ owner hoặc admin mới được PATCH/DELETE classroom, CRUD topics/lessons, và add/remove members. |
+| **Enforcement Point** | Middleware ownership check trên mọi mutation endpoint |
+| **FR Ref** | FR-701, FR-702, FR-704, FR-705 |
+
+---
+
+### CR-003 — Unique Invite Code
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-003 |
+| **Title** | invite_code phải unique, 8 ký tự alphanumeric |
+| **Description** | Khi tạo classroom, hệ thống tự sinh invite_code ngẫu nhiên (8-char, A-Z0-9). Nếu trùng → retry. Có thể regenerate để vô hiệu hóa code cũ. |
+| **Enforcement Point** | Backend: classroom creation service + regenerate endpoint |
+| **FR Ref** | FR-701, FR-703 |
+
+---
+
+### CR-004 — Max Members Limit
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-004 |
+| **Title** | Giới hạn số thành viên trong classroom |
+| **Description** | Mỗi classroom có `max_members` (default 50). Khi join hoặc add member, nếu `current_count >= max_members` → reject. |
+| **Enforcement Point** | `POST /classrooms/:id/members`, `POST /classrooms/join` |
+| **Error Response** | `403 Forbidden` — "Classroom is full" |
+| **FR Ref** | FR-702, FR-703 |
+
+---
+
+### CR-005 — No Duplicate Membership
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-005 |
+| **Title** | Learner không thể join lớp 2 lần |
+| **Description** | UNIQUE constraint trên `(classroom_id, user_id)` trong `classroom_members`. Nếu đã là member → reject. |
+| **Enforcement Point** | Database constraint + application check |
+| **Error Response** | `409 Conflict` — "Already a member" |
+| **FR Ref** | FR-702, FR-703 |
+
+---
+
+### CR-006 — Owner-only CRUD for Topics/Lessons
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-006 |
+| **Title** | Chỉ classroom owner được CRUD topics/lessons trong lớp đó |
+| **Description** | Trước khi thực hiện mutation trên topic/lesson, hệ thống kiểm tra topic.classroom.owner_id === currentUser.id (hoặc user là admin). |
+| **Enforcement Point** | Backend middleware: resolve classroom from topic/lesson → check ownership |
+| **FR Ref** | FR-704, FR-705 |
+
+---
+
+### CR-008 — Announcement Ownership
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-008 |
+| **Title** | Chỉ classroom owner mới tạo/xóa announcements |
+| **Description** | Chỉ classroom owner (instructor) hoặc admin mới có quyền tạo và xóa thông báo. Tất cả members (kể cả student) đều được xem danh sách thông báo. |
+| **Enforcement Point** | Backend: checkOwnership trước khi create/delete |
+| **FR Ref** | FR-709 |
+
+---
+
+### CR-009 — Duplicate Creates Draft Copy
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-009 |
+| **Title** | Bản sao luôn có status draft và title gắn thêm "(Copy)" |
+| **Description** | Khi duplicate topic hoặc lesson, bản sao mới luôn có `status='draft'` và `title` gốc + " (Copy)". Duplicate topic sẽ cascade duplicate toàn bộ lessons bên trong. |
+| **Enforcement Point** | Backend: ClassroomService.duplicateTopic / duplicateLesson |
+| **FR Ref** | FR-710 |
+
+---
+
+### CR-010 — Progress Tracking Access Control
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-010 |
+| **Title** | Chỉ classroom owner xem được student progress |
+| **Description** | Endpoint `/classrooms/:id/progress` chỉ trả dữ liệu cho classroom owner hoặc admin. Student không có quyền truy cập. |
+| **Enforcement Point** | Backend: checkOwnership guard |
+| **FR Ref** | FR-711 |
+
+---
+
+### CR-011 — Video Embed Security
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-011 |
+| **Title** | Video embed chỉ hỗ trợ YouTube và Vimeo |
+| **Description** | Frontend chỉ render iframe embed cho URLs từ YouTube (`youtube.com`, `youtu.be`) và Vimeo (`vimeo.com`). Tất cả URL khác hiển thị thông báo "URL không hợp lệ" để tránh XSS/injection. |
+| **Enforcement Point** | Frontend: regex validation trước khi render iframe |
+| **FR Ref** | FR-707 |
+
+---
+
+### CR-012 — Instructor Stats Scope
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-012 |
+| **Title** | Instructor stats chỉ tính từ classrooms mà instructor sở hữu |
+| **Description** | Endpoint `/dashboard/instructor-stats` chỉ tính classrooms có `owner_id = req.user.sub`. `total_students` = distinct students across owned classrooms. `pending_writing_reviews` = writing submissions chưa có instructor_override_score. |
+| **Enforcement Point** | Backend: DashboardService.getInstructorStats |
+| **FR Ref** | FR-712 |
+
+---
+
 ## 5. Rule Enforcement Map
 
 | API Endpoint | Rules Enforced |
 |-------------|----------------|
 | `POST /auth/register` | Email uniqueness, password complexity |
 | `POST /auth/login` | Credential validation, rate-limit per IP |
-| `POST /reading/passages/:id/submit` | RD-001, RD-002, RD-003 |
+| `POST /reading/passages/:id/submit` | RD-001, RD-002, RD-003, RD-005, RD-006 |
 | `GET /reading/passages` | ADM-001 (filter published only) |
-| `POST /writing/prompts/:id/submit` | WR-001, WR-002, WR-003, WR-004 |
+| `POST /writing/prompts/:id/submit` | WR-001, WR-002, WR-003, WR-004, WR-007 |
 | `GET /writing/prompts` | ADM-001 (filter published only) |
+| `PATCH /instructor/writing-submissions/:id/review` | WR-006 |
 | `POST /admin/passages` | ADM-002 (if imported), ADM-003 (version) |
 | `PATCH /admin/passages/:id` | ADM-003 (version) |
 | `POST /admin/content/:type/:id/publish` | ADM-001, ADM-003 |
 | `POST /admin/sources/import` | SY-001, SY-002, SY-003 |
 | BullMQ worker (writing scoring) | WR-002, WR-004, WR-005 |
+| `POST /classrooms` | CR-001 |
+| `PATCH /classrooms/:id` | CR-002 |
+| `POST /classrooms/:id/members` | CR-002, CR-004, CR-005 |
+| `POST /classrooms/join` | CR-004, CR-005 |
+| `POST /classrooms/:id/topics` | CR-002, CR-006 |
+| `GET /classrooms/:id/topics` | CR-007 |
+| `POST /topics/:id/lessons` | CR-006 |
+| `GET /topics/:id/lessons` | CR-007 |
+| `PATCH /classrooms/topics/:topicId/toggle-status` | CR-002, CR-006, CR-007 |
+| `PATCH /classrooms/lessons/:lessonId/toggle-status` | CR-002, CR-006, CR-007 |
+| `POST /classrooms/topics/:topicId/duplicate` | CR-002, CR-006, CR-009 |
+| `POST /classrooms/lessons/:lessonId/duplicate` | CR-002, CR-006, CR-009 |
+| `GET /classrooms/:id/announcements` | Any member |
+| `POST /classrooms/:id/announcements` | CR-008 |
+| `DELETE /classrooms/:id/announcements/:annId` | CR-008 |
+| `GET /classrooms/:id/progress` | CR-010 |
+| `GET /dashboard/instructor-stats` | CR-012 |
 
 ---
 

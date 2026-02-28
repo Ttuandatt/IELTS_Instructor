@@ -200,6 +200,7 @@ API trả danh sách passages đã published. Hỗ trợ filter theo level, topi
 |-------|------|----------|---------|-------------|
 | level | enum | ❌ | all | A2 \| B1 \| B2 \| C1 |
 | topic | string | ❌ | — | Filter by topic tag (partial match) |
+| collection | string | ❌ | — | Filter by collection (e.g. "IELTS Mock Test 2025") |
 | page | number | ❌ | 1 | Page number |
 | limit | number | ❌ | 10 | Items per page (max 50) |
 
@@ -207,7 +208,7 @@ API trả danh sách passages đã published. Hỗ trợ filter theo level, topi
 
 | Field | Type | Description |
 |-------|------|-------------|
-| data | array | `[{id, title, level, topic_tags[], question_count, source_refs[], created_at}]` |
+| data | array | `[{id, title, level, collection, topic_tags[], question_count, source_refs[], created_at}]` |
 | meta | object | `{page, limit, total, totalPages}` |
 
 ---
@@ -359,10 +360,11 @@ Danh sách prompts published, filter theo task_type (1/2), level, topic. Paginat
 | task_type | enum | ❌ | all |
 | level | enum | ❌ | all |
 | topic | string | ❌ | — |
+| collection | string | ❌ | — |
 | page | number | ❌ | 1 |
 | limit | number | ❌ | 10 |
 
-**Output:** Same pagination structure as FR-201 with prompt fields `{id, title, task_type, level, topic_tags[], source_refs[]}`.
+**Output:** Same pagination structure as FR-201 with prompt fields `{id, title, task_type, level, collection, topic_tags[], source_refs[]}`.
 
 ---
 
@@ -661,4 +663,379 @@ Admin cung cấp NotebookLM URL + metadata. Backend fetch content, sanitize HTML
 
 ---
 
+## 8. Classroom Management (7xx)
+
+### FR-701: Classroom CRUD
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-701 |
+| **Title** | CRUD lớp học |
+| **Priority** | P0 |
+| **User Story** | US-801, US-809 |
+
+**Mô tả:**
+Instructor tạo/sửa/xóa/archive lớp học. Hệ thống tự sinh `invite_code` khi tạo.
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/classrooms` | Tạo lớp mới |
+| GET | `/classrooms` | Danh sách lớp (owned + joined) |
+| GET | `/classrooms/:id` | Chi tiết lớp |
+| PATCH | `/classrooms/:id` | Sửa lớp (owner only) |
+| DELETE | `/classrooms/:id` | Archive lớp (owner only) |
+
+**Input (Create):**
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| name | string | ✅ | Max 100 chars |
+| description | string | ❌ | Max 1000 chars |
+| cover_image_url | string | ❌ | Valid URL |
+| max_members | number | ❌ | Default 50, min 2, max 200 |
+
+**Output (201):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | uuid | — |
+| name | string | — |
+| invite_code | string | 8-char alphanumeric |
+| owner_id | uuid | — |
+| status | string | 'active' |
+| members_count | number | 1 (owner) |
+
+---
+
+### FR-702: Classroom Members Management
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-702 |
+| **Title** | Quản lý thành viên lớp |
+| **Priority** | P0 |
+| **User Story** | US-802, US-805, US-810 |
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/classrooms/:id/members` | Thêm thành viên bằng email |
+| GET | `/classrooms/:id/members` | Danh sách thành viên |
+| DELETE | `/classrooms/:id/members/:userId` | Xóa thành viên (owner only) |
+
+**Input (Add member):**
+
+| Field | Type | Required |
+|-------|------|----------|
+| email | string | ✅ |
+
+**Business Rules:**
+- CR-004: Reject nếu lớp đã đạt max_members.
+- CR-005: Reject nếu user đã là thành viên.
+- Chỉ owner classroom hoặc admin mới được add/remove members.
+
+---
+
+### FR-703: Invite Link & QR Code
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-703 |
+| **Title** | Tạo invite link và QR code |
+| **Priority** | P0 |
+| **User Story** | US-803, US-804 |
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/classrooms/:id/invite` | Lấy invite_code + URL + QR base64 |
+| POST | `/classrooms/:id/invite/regenerate` | Tạo invite_code mới |
+| POST | `/classrooms/join` | Tham gia lớp bằng invite_code |
+
+**Join Input:**
+
+| Field | Type | Required |
+|-------|------|----------|
+| invite_code | string | ✅ |
+
+**Join Output (200):**
+
+| Field | Type |
+|-------|------|
+| classroom_id | uuid |
+| classroom_name | string |
+| role | 'student' |
+
+**Error Responses:**
+
+| Status | Condition |
+|--------|-----------|
+| 404 | invite_code không hợp lệ |
+| 409 | Đã là thành viên |
+| 403 | Lớp đã đầy |
+
+---
+
+### FR-704: Topic CRUD
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-704 |
+| **Title** | CRUD chủ đề học trong lớp |
+| **Priority** | P0 |
+| **User Story** | US-806 |
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/classrooms/:id/topics` | Tạo topic |
+| GET | `/classrooms/:id/topics` | Danh sách topics (ordered) |
+| PATCH | `/topics/:id` | Sửa topic |
+| DELETE | `/topics/:id` | Xóa topic (cascade lessons) |
+| PATCH | `/classrooms/:id/topics/reorder` | Sắp xếp lại |
+
+**Input (Create):**
+
+| Field | Type | Required |
+|-------|------|----------|
+| title | string | ✅ |
+| description | string | ❌ |
+| status | enum | ❌ (default 'draft') |
+
+**Reorder Input:** `{topic_ids: [uuid, uuid, ...]}`
+
+---
+
+### FR-705: Lesson CRUD
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-705 |
+| **Title** | CRUD bài học trong chủ đề |
+| **Priority** | P0 |
+| **User Story** | US-807, US-808 |
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/topics/:id/lessons` | Tạo lesson |
+| GET | `/topics/:id/lessons` | Danh sách lessons (ordered) |
+| PATCH | `/lessons/:id` | Sửa lesson |
+| DELETE | `/lessons/:id` | Xóa lesson |
+| PATCH | `/topics/:id/lessons/reorder` | Sắp xếp lại |
+
+**Input (Create):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| title | string | ✅ | — |
+| content | string | ❌ | Rich text / Markdown |
+| content_type | enum | ❌ | text / video / passage / prompt (default 'text') |
+| linked_entity_id | uuid | ❌ | ID passage/prompt liên kết |
+| status | enum | ❌ | draft / published (default 'draft') |
+
+---
+
+### FR-706: Content Status Toggle
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-706 |
+| **Title** | Bật/tắt trạng thái publish/draft cho Topics và Lessons |
+| **Priority** | P0 |
+| **User Story** | US-806, US-807 |
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| PATCH | `/classrooms/topics/:topicId/toggle-status` | Toggle trạng thái topic |
+| PATCH | `/classrooms/lessons/:lessonId/toggle-status` | Toggle trạng thái lesson |
+
+**Business Rules:**
+- Chỉ classroom owner hoặc admin mới thực hiện được.
+- Toggle giữa `draft` ↔ `published`.
+- Student chỉ xem content có status='published' (CR-007).
+
+---
+
+### FR-707: Video Embed trong Lesson
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-707 |
+| **Title** | Hỗ trợ nhúng video YouTube/Vimeo trong bài học |
+| **Priority** | P1 |
+| **User Story** | US-807 |
+
+**Mô tả:**
+Khi lesson có `content_type = 'video'`, frontend tự động phân tích URL trong `content` field:
+- YouTube: detect `youtube.com/watch?v=`, `youtu.be/`, hoặc `youtube.com/embed/` → extract video ID → render `<iframe>` embed.
+- Vimeo: detect `vimeo.com/<id>` → render Vimeo embed.
+- URL không hợp lệ → hiển thị thông báo lỗi.
+
+**Enforcement Point:** Frontend renderer, không cần backend thay đổi.
+
+---
+
+### FR-708: Library Content Linking
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-708 |
+| **Title** | Liên kết lesson với Passage/Prompt từ thư viện |
+| **Priority** | P1 |
+| **User Story** | US-808 |
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/classrooms/library/passages` | Danh sách passages đã published |
+| GET | `/classrooms/library/prompts` | Danh sách prompts đã published |
+
+**Mô tả:**
+Khi tạo/sửa lesson với `content_type` là `passage` hoặc `prompt`, instructor chọn từ dropdown searchable thay vì nhập UUID thủ công. Frontend fetch danh sách từ library endpoints.
+
+---
+
+### FR-709: Classroom Announcements
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-709 |
+| **Title** | Hệ thống thông báo lớp học |
+| **Priority** | P1 |
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/classrooms/:id/announcements` | Lấy danh sách thông báo (20 gần nhất) |
+| POST | `/classrooms/:id/announcements` | Tạo thông báo mới |
+| DELETE | `/classrooms/:id/announcements/:annId` | Xóa thông báo |
+
+**Input (Create):**
+
+| Field | Type | Required |
+|-------|------|----------|
+| message | string | ✅ |
+
+**Business Rules:**
+- Chỉ classroom owner mới tạo và xóa thông báo.
+- Tất cả members đều xem được thông báo.
+- Hiển thị tên tác giả và thời gian.
+
+---
+
+### FR-710: Duplicate Topic/Lesson
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-710 |
+| **Title** | Nhân bản Topic hoặc Lesson |
+| **Priority** | P1 |
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/classrooms/topics/:topicId/duplicate` | Nhân bản topic + tất cả lessons |
+| POST | `/classrooms/lessons/:lessonId/duplicate` | Nhân bản lesson riêng lẻ |
+
+**Business Rules:**
+- Bản sao có title thêm " (Copy)" và status mặc định là `draft`.
+- Duplicate topic sẽ cascade duplicate tất cả lessons bên trong.
+- Chỉ classroom owner thực hiện được.
+
+---
+
+### FR-711: Student Progress Tracking
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-711 |
+| **Title** | Theo dõi tiến độ học viên trong lớp |
+| **Priority** | P1 |
+| **User Story** | US-810 |
+
+**Endpoint:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/classrooms/:id/progress` | Tiến độ tất cả students trong lớp |
+
+**Output:**
+Mảng objects, mỗi student chứa:
+- `display_name`, `email`, `joined_at`
+- `reading_count`, `reading_avg` (điểm trung bình reading submissions)
+- `writing_count`, `writing_avg` (điểm trung bình writing overall)
+- `recent_reading[]`, `recent_writing[]` (3 submissions gần nhất)
+
+---
+
+### FR-712: Instructor Dashboard Stats
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-712 |
+| **Title** | Thống kê tổng quan cho instructor trên Dashboard |
+| **Priority** | P1 |
+
+**Endpoint:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/dashboard/instructor-stats` | Thống kê instructor |
+
+**Output:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| total_classrooms | number | Tổng số lớp instructor đang sở hữu |
+| total_students | number | Tổng số học viên (distinct) trong tất cả lớp |
+| pending_writing_reviews | number | Số bài writing chưa được review |
+| pending_reading_reviews | number | Số bài reading chưa được review |
+
+---
+
+### FR-713: Instructor Writing Review
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-713 |
+| **Title** | Instructor review và override điểm Writing submission |
+| **Priority** | P0 |
+| **User Story** | US-701, US-702 |
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/instructor/writing-submissions` | Danh sách bài writing submissions |
+| GET | `/instructor/writing-submissions/:id` | Chi tiết submission + AI scores |
+| PATCH | `/instructor/writing-submissions/:id/review` | Override score + comment |
+
+**Input (Review):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| instructor_override_score | float | ❌ | 0–9 (0.5 increments) |
+| instructor_comment | string | ❌ | Nhận xét của instructor |
+
+**Business Rules:**
+- Chỉ instructor hoặc admin mới thực hiện được.
+- AI score gốc vẫn giữ nguyên, hiển thị cùng override score.
+- Lưu tự động: `reviewed_by`, `reviewed_at`.
+- Learner thấy cả AI score + instructor override + comment.
+
+---
+
 > **Tham chiếu:** [04_user_stories](04_user_stories.md) | [06_acceptance_criteria](06_acceptance_criteria.md) | [09_api_specifications](09_api_specifications.md) | [11_business_rules](11_business_rules.md)
+

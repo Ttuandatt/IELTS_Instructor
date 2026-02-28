@@ -48,6 +48,7 @@
 | `npx prisma migrate reset` | Reset database and re-apply migrations |
 | `npx prisma studio` | Open Prisma Studio (DB browser) |
 | `npm run seed` | Run seed script (admin user + sample data) |
+| `npx prisma migrate dev --name AddTestModeAndInstructor` | Create migration for test_mode + instructor fields |
 
 ### Worker Commands
 
@@ -100,6 +101,20 @@ docker exec -it ielts-redis redis-cli PING
 
 # 6. Check Postgres
 docker exec -it ielts-postgres psql -U postgres -d ielts_helper -c "SELECT count(*) FROM users;"
+
+# 7. Submit reading in Practice mode
+curl -X POST http://localhost:3001/api/reading/passages/<passage_id>/submit \
+  -H "Authorization: Bearer <access_token>" \
+  -H "Content-Type: application/json" \
+  -d '{"answers":[{"question_id":"q-001","value":"B"}],"test_mode":"practice"}'
+
+# 8. Access instructor panel (requires instructor role)
+curl http://localhost:3001/api/instructor/writing-submissions \
+  -H "Authorization: Bearer <instructor_token>"
+
+# 9. Check content stats (social proof)
+curl http://localhost:3001/api/content/stats \
+  -H "Authorization: Bearer <access_token>"
 ```
 
 ---

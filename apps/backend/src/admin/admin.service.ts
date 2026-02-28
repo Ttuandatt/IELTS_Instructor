@@ -4,7 +4,7 @@ import { ContentStatus, CefrLevel, UserRole } from '@prisma/client';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /* ── Passages ── */
 
@@ -41,12 +41,13 @@ export class AdminService {
     return passage;
   }
 
-  async createPassage(adminId: string, dto: { title: string; body: string; level: CefrLevel; topic_tags?: string[]; status?: ContentStatus }) {
+  async createPassage(adminId: string, dto: { title: string; body: string; level: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus }) {
     return this.prisma.passage.create({
       data: {
         title: dto.title,
         body: dto.body,
         level: dto.level,
+        collection: dto.collection,
         topic_tags: dto.topic_tags || [],
         status: dto.status || ContentStatus.draft,
         created_by: adminId,
@@ -54,7 +55,7 @@ export class AdminService {
     });
   }
 
-  async updatePassage(id: string, dto: { title?: string; body?: string; level?: CefrLevel; topic_tags?: string[]; status?: ContentStatus }) {
+  async updatePassage(id: string, dto: { title?: string; body?: string; level?: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus }) {
     await this.getPassage(id); // throws if not found
     return this.prisma.passage.update({ where: { id }, data: dto });
   }
@@ -126,13 +127,14 @@ export class AdminService {
     return prompt;
   }
 
-  async createPrompt(adminId: string, dto: { task_type: string; title: string; prompt_text: string; level: CefrLevel; topic_tags?: string[]; status?: ContentStatus; min_words?: number }) {
+  async createPrompt(adminId: string, dto: { task_type: string; title: string; prompt_text: string; level: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus; min_words?: number }) {
     return this.prisma.prompt.create({
       data: {
         task_type: dto.task_type as any,
         title: dto.title,
         prompt_text: dto.prompt_text,
         level: dto.level,
+        collection: dto.collection,
         topic_tags: dto.topic_tags || [],
         status: dto.status || ContentStatus.draft,
         min_words: dto.min_words || 250,
@@ -141,7 +143,7 @@ export class AdminService {
     });
   }
 
-  async updatePrompt(id: string, dto: { title?: string; prompt_text?: string; level?: CefrLevel; topic_tags?: string[]; status?: ContentStatus; min_words?: number }) {
+  async updatePrompt(id: string, dto: { title?: string; prompt_text?: string; level?: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus; min_words?: number }) {
     await this.getPrompt(id);
     return this.prisma.prompt.update({ where: { id }, data: dto });
   }

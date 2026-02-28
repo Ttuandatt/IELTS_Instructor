@@ -50,6 +50,23 @@ enum ProcessingStatus {
   failed
 }
 
+enum ClassroomStatus {
+  active
+  archived
+}
+
+enum ClassroomRole {
+  teacher
+  student
+}
+
+enum LessonContentType {
+  text
+  video
+  passage
+  prompt
+}
+
 // ─── Users ───────────────────────────────────────────
 
 model User {
@@ -64,10 +81,14 @@ model User {
   updated_at    DateTime @updatedAt @db.Timestamptz()
 
   // Relations
-  passages_created     Passage[]           @relation("PassageCreator")
-  prompts_created      Prompt[]            @relation("PromptCreator")
-  reading_submissions  ReadingSubmission[]
-  writing_submissions  WritingSubmission[]
+  passages_created         Passage[]           @relation("PassageCreator")
+  prompts_created          Prompt[]            @relation("PromptCreator")
+  reading_submissions      ReadingSubmission[]
+  writing_submissions      WritingSubmission[]
+  reviewed_submissions     WritingSubmission[] @relation("InstructorReviewer")
+  classrooms_owned         Classroom[]         @relation("ClassroomOwner")
+  classroom_memberships    ClassroomMember[]
+  authored_announcements   Announcement[]      @relation("AnnouncementAuthor")
 
   @@index([email])
   @@index([role])
@@ -81,6 +102,7 @@ model Passage {
   title      String        @db.VarChar(200)
   body       String        @db.Text
   level      CefrLevel
+  collection String?       @db.VarChar(100)
   topic_tags String[]      @default([])
   status     ContentStatus @default(draft)
   created_by String
@@ -88,8 +110,8 @@ model Passage {
   updated_at DateTime      @updatedAt @db.Timestamptz()
 
   // Relations
-  creator    User       @relation("PassageCreator", fields: [created_by], references: [id])
-  questions  Question[]
+  creator     User                @relation("PassageCreator", fields: [created_by], references: [id])
+  questions   Question[]
   submissions ReadingSubmission[]
 
   @@index([level])
@@ -103,8 +125,8 @@ model Question {
   passage_id  String
   type        QuestionType
   prompt      String       @db.Text
-  options     Json?        // MCQ: ["A. ...", "B. ...", "C. ...", "D. ..."]
-  answer_key  Json         // MCQ: "B" | Short: ["keyword1", "keyword2"]
+  options     Json? // MCQ: ["A. ...", "B. ...", "C. ...", "D. ..."]
+  answer_key  Json // MCQ: "B" | Short: ["keyword1", "keyword2"]
   explanation String?      @db.Text
   order_index Int          @default(0)
 
@@ -122,6 +144,7 @@ model Prompt {
   title       String        @db.VarChar(200)
   prompt_text String        @db.Text
   level       CefrLevel
+  collection  String?       @db.VarChar(100)
   topic_tags  String[]      @default([])
   status      ContentStatus @default(draft)
   min_words   Int           @default(250)
@@ -145,12 +168,13 @@ model ReadingSubmission {
   id              String   @id @default(uuid())
   user_id         String
   passage_id      String
-  answers         Json     // [{question_id, value}]
-  score_pct       Float    // 0–100
+  answers         Json // [{question_id, value}]
+  score_pct       Float // 0–100
   correct_count   Int
   total_questions Int
   duration_sec    Int?
   timed_out       Boolean  @default(false)
+  test_mode       String   @default("practice") @db.VarChar(20)
   completed_at    DateTime @default(now()) @db.Timestamptz()
 
   // Relations
@@ -168,8 +192,8 @@ model WritingSubmission {
   prompt_id         String
   content           String           @db.Text
   word_count        Int
-  scores            Json?            // {TR, CC, LR, GRA, overall} — null when pending
-  feedback          Json?            // {summary, strengths[], improvements[]}
+  scores            Json? // {TR, CC, LR, GRA, overall} — null when pending
+  feedback          Json? // {summary, strengths[], improvements[]}
   model_tier        ModelTier        @default(cheap)
   model_name        String?          @db.VarChar(50)
   turnaround_ms     Int?
@@ -178,12 +202,113 @@ model WritingSubmission {
   created_at        DateTime         @default(now()) @db.Timestamptz()
   scored_at         DateTime?        @db.Timestamptz()
 
+  // Instructor review fields (E7: US-702)
+  instructor_override_score Float?    // 0–9 (0.5 increments)
+  instructor_comment        String?   @db.Text
+  reviewed_by               String?
+  reviewed_at               DateTime? @db.Timestamptz()
+
   // Relations
-  user   User   @relation(fields: [user_id], references: [id])
-  prompt Prompt @relation(fields: [prompt_id], references: [id])
+  user     User   @relation(fields: [user_id], references: [id])
+  prompt   Prompt @relation(fields: [prompt_id], references: [id])
+  reviewer User?  @relation("InstructorReviewer", fields: [reviewed_by], references: [id])
 
   @@index([user_id, created_at(sort: Desc)])
   @@index([prompt_id])
   @@index([processing_status])
+  @@index([reviewed_by])
   @@map("submissions_writing")
+}
+
+// ─── Classrooms ────────────────────────────────────────
+
+model Classroom {
+  id              String          @id @default(uuid())
+  name            String          @db.VarChar(100)
+  description     String?         @db.Text
+  cover_image_url String?         @db.Text
+  invite_code     String          @unique @db.VarChar(8)
+  owner_id        String
+  status          ClassroomStatus @default(active)
+  max_members     Int             @default(50)
+  created_at      DateTime        @default(now()) @db.Timestamptz()
+  updated_at      DateTime        @updatedAt @db.Timestamptz()
+
+  // Relations
+  owner         User              @relation("ClassroomOwner", fields: [owner_id], references: [id])
+  members       ClassroomMember[]
+  topics        Topic[]
+  announcements Announcement[]
+
+  @@index([invite_code])
+  @@index([owner_id])
+  @@index([status])
+  @@map("classrooms")
+}
+
+model ClassroomMember {
+  id           String        @id @default(uuid())
+  classroom_id String
+  user_id      String
+  role         ClassroomRole @default(student)
+  joined_at    DateTime      @default(now()) @db.Timestamptz()
+
+  // Relations
+  classroom Classroom @relation(fields: [classroom_id], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [user_id], references: [id])
+
+  @@unique([classroom_id, user_id])
+  @@index([user_id])
+  @@map("classroom_members")
+}
+
+model Topic {
+  id           String        @id @default(uuid())
+  classroom_id String
+  title        String        @db.VarChar(200)
+  description  String?       @db.Text
+  order_index  Int           @default(0)
+  status       ContentStatus @default(draft)
+  created_at   DateTime      @default(now()) @db.Timestamptz()
+
+  // Relations
+  classroom Classroom @relation(fields: [classroom_id], references: [id], onDelete: Cascade)
+  lessons   Lesson[]
+
+  @@index([classroom_id, order_index])
+  @@map("topics")
+}
+
+model Lesson {
+  id               String            @id @default(uuid())
+  topic_id         String
+  title            String            @db.VarChar(200)
+  content          String?           @db.Text
+  content_type     LessonContentType @default(text)
+  linked_entity_id String?
+  attachment_url   String?           @db.Text
+  order_index      Int               @default(0)
+  status           ContentStatus     @default(draft)
+  created_at       DateTime          @default(now()) @db.Timestamptz()
+
+  // Relations
+  topic Topic @relation(fields: [topic_id], references: [id], onDelete: Cascade)
+
+  @@index([topic_id, order_index])
+  @@map("lessons")
+}
+
+model Announcement {
+  id           String   @id @default(uuid())
+  classroom_id String
+  author_id    String
+  message      String   @db.Text
+  created_at   DateTime @default(now()) @db.Timestamptz()
+
+  // Relations
+  classroom Classroom @relation(fields: [classroom_id], references: [id], onDelete: Cascade)
+  author    User      @relation("AnnouncementAuthor", fields: [author_id], references: [id])
+
+  @@index([classroom_id, created_at])
+  @@map("announcements")
 }

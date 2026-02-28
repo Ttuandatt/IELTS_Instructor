@@ -17,6 +17,8 @@
 | RD-002 | Auto-grade: MCQ direct compare; short answer case-insensitive keyword match | Backend grading service | — |
 | RD-003 | Timer expiry → auto-submit (bypass 80% rule); flag `timed_out=true` | Frontend timer + backend override | Accept partial answers |
 | RD-004 | Keep all attempt history (INSERT only, no UPDATE) | Backend service | — |
+| RD-005 | Mode selection required before starting: Practice (no timer, choose parts) vs Simulation (60 min, full test) | Frontend modal (S22) + backend `test_mode` field | — |
+| RD-006 | Simulation mode: 60 min countdown, no pause, auto-submit on expiry | Frontend Timer + backend validation | Reject late submissions |
 
 ---
 
@@ -29,6 +31,8 @@
 | WR-003 | Default cheap tier; rate limit 5–10/day/user | Backend rate-limit middleware | 429 error if exceeded |
 | WR-004 | SLA < 5 min for 90% jobs; timeout 90s; retry 2x; DLQ on failure | BullMQ config | Mark status=failed with error |
 | WR-005 | Store full scoring metadata (scores, feedback, model, turnaround) | Worker after scoring | — |
+| WR-006 | Instructor can override AI score (0–9) and add comment; original AI score preserved | Backend PATCH endpoint | — |
+| WR-007 | Feedback must include: TR/CC/LR/GRA scores, summary, strengths[], improvements[], suggestions | LLM prompt + JSON schema validation | Retry if malformed |
 
 ---
 

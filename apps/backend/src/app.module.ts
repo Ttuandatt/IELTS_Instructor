@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { BullModule } from '@nestjs/bull';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma';
@@ -9,6 +10,9 @@ import { InstructorModule } from './instructor/instructor.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { ReadingModule } from './reading/reading.module';
 import { WritingModule } from './writing/writing.module';
+import { ClassroomModule } from './classroom/classroom.module';
+import { TopicModule } from './topic/topic.module';
+import { LessonModule } from './lesson/lesson.module';
 
 @Module({
   imports: [
@@ -16,6 +20,15 @@ import { WritingModule } from './writing/writing.module';
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: '.env',
+    }),
+
+    // BullMQ — Redis connection (global so all queues share it)
+    BullModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (config: ConfigService) => ({
+        redis: config.get<string>('REDIS_URL', 'redis://localhost:6379'),
+      }),
+      inject: [ConfigService],
     }),
 
     // Database (Prisma)
@@ -30,8 +43,11 @@ import { WritingModule } from './writing/writing.module';
     DashboardModule,
     ReadingModule,
     WritingModule,
+    ClassroomModule,
+    TopicModule,
+    LessonModule,
   ],
   controllers: [AppController],
   providers: [AppService],
 })
-export class AppModule {}
+export class AppModule { }

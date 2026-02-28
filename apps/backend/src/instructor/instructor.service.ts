@@ -3,7 +3,7 @@ import { PrismaService } from '../prisma';
 
 @Injectable()
 export class InstructorService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly prisma: PrismaService) { }
 
   /* ── Learner list ── */
 
@@ -71,6 +71,35 @@ export class InstructorService {
       include: {
         user: { select: { id: true, display_name: true, email: true } },
         prompt: true,
+        reviewer: { select: { id: true, display_name: true } },
+      },
+    });
+  }
+
+  async reviewWritingSubmission(
+    id: string,
+    reviewerId: string,
+    data: { instructor_override_score?: number; instructor_comment?: string },
+  ) {
+    // Validate score range
+    if (data.instructor_override_score !== undefined) {
+      if (data.instructor_override_score < 0 || data.instructor_override_score > 9) {
+        throw new Error('Score must be between 0 and 9');
+      }
+    }
+
+    return this.prisma.writingSubmission.update({
+      where: { id },
+      data: {
+        instructor_override_score: data.instructor_override_score,
+        instructor_comment: data.instructor_comment,
+        reviewed_by: reviewerId,
+        reviewed_at: new Date(),
+      },
+      include: {
+        user: { select: { id: true, display_name: true, email: true } },
+        prompt: true,
+        reviewer: { select: { id: true, display_name: true } },
       },
     });
   }

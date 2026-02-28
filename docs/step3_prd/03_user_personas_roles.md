@@ -53,15 +53,18 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 | **Trình độ** | IELTS 8.0; CELTA certified |
 | **Thiết bị** | Desktop tại trung tâm, laptop cá nhân |
 | **Tần suất sử dụng** | 2–3 lần/tuần, mỗi lần 15–30 phút (review submissions) |
-| **Mục tiêu** | Giảm thời gian chấm bài; đảm bảo feedback nhất quán; theo dõi learner progress |
-| **Nhu cầu** | Xem bài nộp của learners; xem AI scoring để so sánh với đánh giá cá nhân; (tương lai) comment/override |
-| **Pain points** | - Chấm 30 bài Writing/ngày → mệt mỏi, không nhất quán<br>- Không có tool track learner progress tập trung<br>- Muốn AI hỗ trợ chấm sơ bộ để mình chỉ cần review |
-| **Kỳ vọng với IELTS Helper** | AI chấm chính xác ~80% so với human; giảm 60% thời gian review; dashboard learner progress |
+| **Mục tiêu** | Giảm thời gian chấm bài; tạo lớp học để quản lý học sinh; tổ chức nội dung học thành Topics → Lessons |
+| **Nhu cầu** | Tạo lớp, thêm học sinh (manually hoặc QR/link); CRUD chủ đề + bài học; xem submissions; (tương lai) comment/override |
+| **Pain points** | - Chấm 30 bài Writing/ngày → mệt mỏi, không nhất quán<br>- Không có tool quản lý lớp học + nội dung tập trung<br>- Muốn AI hỗ trợ chấm sơ bộ để mình chỉ cần review |
+| **Kỳ vọng với IELTS Helper** | Tạo lớp dễ; share QR cho học sinh join; tổ chức Topics/Lessons rõ ràng; AI chấm chính xác ~80% so với human |
 
-**User Journey (MVP-lite):**
-1. Login → View submissions list (filter by learner, date, prompt).
-2. Click vào submission → xem essay + AI scores + feedback.
-3. (Phase 2) Thêm comment hoặc adjust score.
+**User Journey (MVP):**
+1. Login → Tạo lớp "IELTS B2 - K10" → nhận invite link + QR code.
+2. Share QR cho học sinh tham gia lớp.
+3. Vào lớp → tạo Topic "Reading Skills" → thêm Lesson "Skimming & Scanning" + link Passage có sẵn.
+4. Xem danh sách thành viên → kiểm tra tiến độ.
+5. View submissions list → click submission → xem essay + AI scores + feedback.
+6. (Phase 2) Thêm comment hoặc adjust score.
 
 ---
 
@@ -130,6 +133,14 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 | View usage stats | ❌ | ❌ | ✅ |
 | Manage user roles | ❌ | ❌ | ✅ |
 | View audit log (content versions) | ❌ | ❌ | ✅ |
+| **Classroom** | | | |
+| Create classroom | ❌ | ✅ | ✅ |
+| Edit/delete/archive own classroom | ❌ | ✅ (owner) | ✅ |
+| Add/remove members | ❌ | ✅ (owner) | ✅ |
+| Join classroom via invite code | ✅ | ✅ | ✅ |
+| CRUD topics/lessons (own classroom) | ❌ | ✅ (owner) | ✅ |
+| View published topics/lessons (member) | ✅ | ✅ | ✅ |
+| View member list | ❌ | ✅ (owner) | ✅ |
 
 ---
 

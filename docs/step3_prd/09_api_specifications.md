@@ -295,7 +295,8 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
     { "question_id": "q-002", "value": "carbon dioxide" }
   ],
   "timed_out": false,
-  "duration_sec": 1080
+  "duration_sec": 1080,
+  "test_mode": "practice"
 }
 ```
 
@@ -634,6 +635,30 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
 | GET | /admin/users | List users (paginated, filterable) |
 | PATCH | /admin/users/:id/role | Change user role |
 
+### Instructor Review (Sprint 5)
+
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| GET | /instructor/writing-submissions | List learner submissions for review | instructor |
+| GET | /instructor/writing-submissions/:id | View submission detail + AI scores | instructor |
+| PATCH | /instructor/writing-submissions/:id/review | Add comment + optional score override | instructor |
+
+**PATCH /instructor/writing-submissions/:id/review — Request Body:**
+```json
+{
+  "instructor_comment": "Good structure but needs more examples...",
+  "instructor_override_score": 6.5
+}
+```
+
+**Response (200):** Updated submission with instructor fields populated.
+
+### Content Stats (Sprint 4)
+
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| GET | /content/stats | Submission counts per passage/prompt | any |
+
 ---
 
 ## 9. Async Scoring Flow (Writing)
@@ -693,15 +718,357 @@ Client                    API Server               BullMQ Queue           Worker
 
 ---
 
-## 10. Error Codes Reference
+## 10.5 Classroom Management Endpoints
+
+### POST /classrooms
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-701 |
+| **Auth** | Bearer JWT (instructor/admin) |
+| **Body** | `{name, description?, cover_image_url?, max_members?}` |
+| **Response (201)** | `{id, name, invite_code, owner_id, status, created_at}` |
+
+---
+
+### GET /classrooms
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-701 |
+| **Auth** | Bearer JWT |
+| **Description** | Returns classrooms owned + joined by current user |
+| **Query Params** | `?page=1&limit=10&status=active` |
+| **Response (200)** | Paginated list of `{id, name, description, invite_code, owner_id, status, members_count, role}` |
+
+---
+
+### GET /classrooms/:id
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-701 |
+| **Auth** | Bearer JWT (must be member) |
+| **Response (200)** | Classroom detail + topics with lessons |
+
+---
+
+### PATCH /classrooms/:id
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-701 |
+| **Auth** | Bearer JWT (owner/admin) |
+| **Body** | Partial `{name?, description?, cover_image_url?, max_members?, status?}` |
+
+---
+
+### POST /classrooms/:id/members
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-702 |
+| **Auth** | Bearer JWT (owner/admin) |
+| **Body** | `{email}` |
+| **Errors** | 404 (user not found), 409 (already member), 403 (classroom full) |
+
+---
+
+### GET /classrooms/:id/members
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-702 |
+| **Auth** | Bearer JWT (owner/admin) |
+| **Response (200)** | `[{id, user_id, display_name, email, role, joined_at}]` |
+
+---
+
+### DELETE /classrooms/:id/members/:userId
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-702 |
+| **Auth** | Bearer JWT (owner/admin) |
+
+---
+
+### GET /classrooms/:id/invite
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-703 |
+| **Auth** | Bearer JWT (owner) |
+| **Response (200)** | `{invite_code, invite_url, qr_code_base64}` |
+
+---
+
+### POST /classrooms/:id/invite/regenerate
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-703 |
+| **Auth** | Bearer JWT (owner) |
+| **Response (200)** | `{invite_code, invite_url}` (new code) |
+
+---
+
+### POST /classrooms/join
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-703 |
+| **Auth** | Bearer JWT (any role) |
+| **Body** | `{invite_code}` |
+| **Response (200)** | `{classroom_id, classroom_name, role: 'student'}` |
+| **Errors** | 404 (invalid code), 409 (already member), 403 (full) |
+
+---
+
+### POST /classrooms/:id/topics
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-704 |
+| **Auth** | Bearer JWT (owner/admin) |
+| **Body** | `{title, description?, status?}` |
+
+---
+
+### GET /classrooms/:id/topics
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-704 |
+| **Auth** | Bearer JWT (member) |
+| **Note** | Students see only `status='published'` (CR-007) |
+
+---
+
+### PATCH /topics/:id
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-704 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+
+---
+
+### DELETE /topics/:id
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-704 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+| **Note** | CASCADE deletes all lessons |
+
+---
+
+### PATCH /classrooms/:id/topics/reorder
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-704 |
+| **Auth** | Bearer JWT (owner/admin) |
+| **Body** | `{topic_ids: [uuid, uuid, ...]}` |
+
+---
+
+### POST /topics/:id/lessons
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-705 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+| **Body** | `{title, content?, content_type?, linked_entity_id?, status?}` |
+
+---
+
+### GET /topics/:id/lessons
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-705 |
+| **Auth** | Bearer JWT (member) |
+| **Note** | Students see only `status='published'` |
+
+---
+
+### PATCH /lessons/:id
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-705 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+
+---
+
+### DELETE /lessons/:id
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-705 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+
+---
+
+### PATCH /topics/:id/lessons/reorder
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-705 |
+| **Auth** | Bearer JWT (owner/admin) |
+| **Body** | `{lesson_ids: [uuid, uuid, ...]}` |
+
+---
+
+## 10.1 Content Status Toggle Endpoints
+
+### PATCH /classrooms/topics/:topicId/toggle-status
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-706 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+| **Response (200)** | Updated topic object with new `status` |
+
+---
+
+### PATCH /classrooms/lessons/:lessonId/toggle-status
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-706 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+| **Response (200)** | Updated lesson object with new `status` |
+
+---
+
+## 10.2 Library Content Endpoints
+
+### GET /classrooms/library/passages
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-708 |
+| **Auth** | Bearer JWT (instructor/admin) |
+| **Response (200)** | `[{id, title, level, collection}]` — only published passages |
+
+---
+
+### GET /classrooms/library/prompts
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-708 |
+| **Auth** | Bearer JWT (instructor/admin) |
+| **Response (200)** | `[{id, title, task_type, level}]` — only published prompts |
+
+---
+
+## 10.3 Duplicate Endpoints
+
+### POST /classrooms/topics/:topicId/duplicate
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-710 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+| **Response (201)** | Duplicated topic with all lessons (status='draft') |
+
+---
+
+### POST /classrooms/lessons/:lessonId/duplicate
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-710 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+| **Response (201)** | Duplicated lesson (status='draft') |
+
+---
+
+## 10.4 Announcement Endpoints
+
+### GET /classrooms/:id/announcements
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-709 |
+| **Auth** | Bearer JWT (classroom member) |
+| **Response (200)** | `[{id, message, author: {display_name}, created_at}]` (20 items, DESC) |
+
+---
+
+### POST /classrooms/:id/announcements
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-709 |
+| **Auth** | Bearer JWT (classroom owner) |
+| **Body** | `{message}` |
+| **Response (201)** | Created announcement object |
+
+---
+
+### DELETE /classrooms/:id/announcements/:announcementId
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-709 |
+| **Auth** | Bearer JWT (classroom owner) |
+
+---
+
+## 10.5 Student Progress & Instructor Stats
+
+### GET /classrooms/:id/progress
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-711 |
+| **Auth** | Bearer JWT (classroom owner) |
+| **Response (200)** | Array of student progress objects |
+
+**Response Example:**
+```json
+[
+  {
+    "user_id": "uuid",
+    "display_name": "Minh",
+    "email": "minh@example.com",
+    "joined_at": "2025-01-15T...",
+    "reading_count": 5,
+    "reading_avg": 78.5,
+    "writing_count": 3,
+    "writing_avg": 6.5,
+    "recent_reading": [...],
+    "recent_writing": [...]
+  }
+]
+```
+
+---
+
+### GET /dashboard/instructor-stats
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-712 |
+| **Auth** | Bearer JWT (instructor) |
+| **Response (200)** | `{total_classrooms, total_students, pending_writing_reviews}` |
+
+---
+
+## 11. Error Codes Reference
 
 | HTTP Status | Code | Description | Example |
 |-------------|------|-------------|---------|
 | 400 | BAD_REQUEST | Validation error | Missing required field, bad format |
 | 401 | UNAUTHORIZED | Authentication failed | Missing/invalid/expired JWT |
-| 403 | FORBIDDEN | Authorization failed | Learner accessing admin route |
-| 404 | NOT_FOUND | Resource not found | Passage ID doesn't exist |
-| 409 | CONFLICT | Resource conflict | Duplicate email |
+| 403 | FORBIDDEN | Authorization failed | Learner accessing admin route; classroom full |
+| 404 | NOT_FOUND | Resource not found | Passage ID doesn't exist; invalid invite code |
+| 409 | CONFLICT | Resource conflict | Duplicate email; already a member |
 | 429 | TOO_MANY_REQUESTS | Rate limit exceeded | Daily writing limit |
 | 500 | INTERNAL_ERROR | Server error | Unhandled exception |
 | 503 | SERVICE_UNAVAILABLE | Service degraded | Queue full, DB down |

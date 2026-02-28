@@ -66,6 +66,11 @@ BASE_URL=http://localhost:3001/api
 | R08 | Verify MCQ grading correct | POST | submit + check correct_count | answer "B" vs key "B" → correct | Critical |
 | R09 | Verify short answer grading | POST | submit + check | "carbon dioxide" vs ["CO2", "carbon dioxide"] → correct | Critical |
 | R10 | Reading history | GET | /reading/history | 200 + paginated submissions | Medium |
+| R11 | Submit with test_mode=practice | POST | /reading/passages/:id/submit | 200 + test_mode saved as "practice" | Critical |
+| R12 | Submit with test_mode=simulation | POST | /reading/passages/:id/submit | 200 + test_mode saved as "simulation" | Critical |
+| R13 | Simulation mode reject late submit | POST | /reading/passages/:id/submit | 400 if duration_sec > 3605 + test_mode=simulation | High |
+| R14 | Simulation auto-submit timed_out | POST | /reading/passages/:id/submit | 200 + timed_out=true + test_mode=simulation | High |
+| R15 | Content stats (social proof) | GET | /content/stats | 200 + passage/prompt submission counts | Medium |
 
 ### 3.3 Writing Tests
 
@@ -76,11 +81,24 @@ BASE_URL=http://localhost:3001/api
 | W03 | Poll pending submission | GET | /writing/submissions/:id | 200 + status=pending | Critical |
 | W04 | Poll done submission | GET | /writing/submissions/:id | 200 + status=done + scores + feedback | Critical |
 | W05 | Verify score shape | GET | after done | scores has TR, CC, LR, GRA, overall (numbers) | Critical |
-| W06 | Verify feedback shape | GET | after done | feedback has summary (string), strengths[], improvements[] | Critical |
+| W06 | Verify feedback shape | GET | after done | feedback has summary (string), strengths[], improvements[], suggestions (string) | Critical |
 | W07 | Submit empty essay | POST | /writing/prompts/:id/submit | 400 Bad Request | High |
 | W08 | Rate limit exceeded | POST | submit N+1 times | 429 + reset header | High |
 | W09 | Submit with premium tier | POST | /writing/submit {model_tier: "premium"} | 202 + model_tier saved | Medium |
 | W10 | Failed scoring (mock error) | GET | /writing/submissions/:id | status=failed + error_message | High |
+| W11 | Verify suggestions in feedback | GET | after done | feedback.suggestions is non-empty string | High |
+| W12 | Schema validation retry | POST | submit with broken LLM mock | Worker retries with schema-only prompt; eventually done or failed | Medium |
+
+### 3.6 Instructor Review Tests (Sprint 5)
+
+| # | Test | Method | Endpoint | Expected | Priority |
+|---|------|--------|----------|----------|----------|
+| IR01 | List submissions as instructor | GET | /instructor/writing-submissions | 200 + paginated list | Critical |
+| IR02 | List submissions as learner (denied) | GET | /instructor/writing-submissions | 403 Forbidden | Critical |
+| IR03 | View submission detail | GET | /instructor/writing-submissions/:id | 200 + essay + AI scores | Critical |
+| IR04 | Add review comment only | PATCH | /instructor/writing-submissions/:id/review | 200 + instructor_comment saved | High |
+| IR05 | Override score + comment | PATCH | /instructor/writing-submissions/:id/review | 200 + both AI score & override visible | Critical |
+| IR06 | Override score invalid (>9) | PATCH | /instructor/writing-submissions/:id/review | 400 + validation error | High |
 
 ### 3.4 Dashboard Tests
 
@@ -104,6 +122,7 @@ BASE_URL=http://localhost:3001/api
 | AD08 | Import source | POST | /admin/sources/import | 201 + source + snippets | High |
 | AD09 | List users | GET | /admin/users | 200 + paginated users | Medium |
 | AD10 | Change user role | PATCH | /admin/users/:id/role | 200 + updated role | Medium |
+| AD11 | Change user role to instructor | PATCH | /admin/users/:id/role | 200 + role=instructor | Medium |
 
 ---
 
@@ -164,6 +183,72 @@ for i in $(seq 1 100); do
   fi
   sleep 3
 done
+```
+
+---
+
+## 7. Instructor Review End-to-End Test
+
+```bash
+# 1. Login as instructor
+INS_TOKEN=$(curl -s -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"instructor@example.com","password":"Test1234"}' | jq -r '.data.access_token')
+
+# 2. List unreviewed submissions
+curl -s $BASE_URL/instructor/writing-submissions \
+  -H "Authorization: Bearer $INS_TOKEN" | jq '.data'
+
+# 3. View a submission detail
+SUB_ID="<submission_id_from_list>"
+curl -s $BASE_URL/instructor/writing-submissions/$SUB_ID \
+  -H "Authorization: Bearer $INS_TOKEN" | jq '.data'
+
+# 4. Add review with score override
+curl -s -X PATCH $BASE_URL/instructor/writing-submissions/$SUB_ID/review \
+  -H "Authorization: Bearer $INS_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"instructor_comment":"Good structure but needs more vocabulary variety.","instructor_override_score":6.5}' | jq '.data'
+
+# 5. Verify as learner — both AI and instructor scores visible
+LEARNER_TOKEN=$(curl -s -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Test1234"}' | jq -r '.data.access_token')
+
+curl -s $BASE_URL/writing/submissions/$SUB_ID \
+  -H "Authorization: Bearer $LEARNER_TOKEN" | jq '{ai_score: .data.scores.overall, instructor_override: .data.instructor_override_score, comment: .data.instructor_comment}'
+```
+
+---
+
+## 8. Mode Selection Test Script
+
+```bash
+# 1. Login as learner
+TOKEN=$(curl -s -X POST $BASE_URL/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"test@example.com","password":"Test1234"}' | jq -r '.data.access_token')
+
+# 2. Submit in Practice mode (no timer constraints)
+curl -s -X POST $BASE_URL/reading/passages/<passage_id>/submit \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"answers":[{"question_id":"q-001","value":"B"},{"question_id":"q-002","value":"carbon dioxide"}],"timed_out":false,"duration_sec":1200,"test_mode":"practice"}' | jq '.data.test_mode'
+# Expected: "practice"
+
+# 3. Submit in Simulation mode (within 60 min)
+curl -s -X POST $BASE_URL/reading/passages/<passage_id>/submit \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"answers":[{"question_id":"q-001","value":"A"}],"timed_out":false,"duration_sec":2400,"test_mode":"simulation"}' | jq '.data.test_mode'
+# Expected: "simulation"
+
+# 4. Submit Simulation mode with duration > 3605 (should be rejected)
+curl -s -X POST $BASE_URL/reading/passages/<passage_id>/submit \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"answers":[{"question_id":"q-001","value":"A"}],"timed_out":false,"duration_sec":4000,"test_mode":"simulation"}'
+# Expected: 400 error
 ```
 
 ---

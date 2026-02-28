@@ -21,9 +21,9 @@
 │ ...      │   │   │ topic_tags │   │   │ score_pct          │
 └──────────┘   │   │ source_ids │   │   │ duration_sec       │
                │   │ status     │   │   │ timed_out          │
-               │   └────────────┘   │   │ completed_at       │
-               │         │          │   └────────────────────┘
-               │         │ 1:N      │
+               │   └────────────┘   │   │ test_mode          │
+               │         │          │   │ completed_at       │
+               │         │ 1:N      │   └────────────────────┘
                │         ▼          │
                │   ┌────────────┐   │
                │   │ questions  │   │
@@ -121,6 +121,7 @@
 | `title` | TEXT | NOT NULL, max 200 chars | Passage title |
 | `body` | TEXT | NOT NULL | Full passage text |
 | `level` | TEXT | NOT NULL, CHECK (level IN ('A2','B1','B2','C1')) | CEFR level |
+| `collection` | TEXT | NULL, max 100 chars | e.g. "IELTS Mock Test 2025" |
 | `topic_tags` | TEXT[] | DEFAULT '{}' | Array of topic tags |
 | `source_ids` | UUID[] | DEFAULT '{}' | References to sources table |
 | `status` | TEXT | NOT NULL, DEFAULT 'draft', CHECK (status IN ('draft','published')) | Publication status |
@@ -177,6 +178,7 @@
 | `total_questions` | INT | NOT NULL | Total questions in passage |
 | `duration_sec` | INT | NULL | Time spent in seconds |
 | `timed_out` | BOOLEAN | NOT NULL, DEFAULT false | Timer expired flag |
+| `test_mode` | TEXT | NOT NULL, DEFAULT 'practice', CHECK (test_mode IN ('practice','simulation')) | Practice vs Simulation mode |
 | `completed_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | Submission time |
 
 **Indexes:**
@@ -202,6 +204,7 @@
 | `title` | TEXT | NOT NULL, max 200 chars | Prompt title |
 | `prompt_text` | TEXT | NOT NULL | Full prompt instructions |
 | `level` | TEXT | NOT NULL, CHECK (level IN ('A2','B1','B2','C1')) | — |
+| `collection` | TEXT | NULL, max 100 chars | e.g. "IELTS Mock Test 2025" |
 | `topic_tags` | TEXT[] | DEFAULT '{}' | — |
 | `source_ids` | UUID[] | DEFAULT '{}' | — |
 | `status` | TEXT | NOT NULL, DEFAULT 'draft' | draft \| published |
@@ -235,6 +238,10 @@
 | `error_message` | TEXT | NULL | Error details if failed |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
 | `scored_at` | TIMESTAMPTZ | NULL | When scoring completed |
+| `instructor_comment` | TEXT | NULL | Instructor review comment |
+| `instructor_override_score` | NUMERIC(3,1) | NULL | Instructor override (0–9 in 0.5 increments) |
+| `reviewed_by` | UUID | FK → users.id, NULL | Instructor who reviewed |
+| `reviewed_at` | TIMESTAMPTZ | NULL | When instructor reviewed |
 
 **Indexes:**
 - `INDEX idx_sub_writing_user ON submissions_writing(user_id, created_at DESC)`
@@ -354,6 +361,7 @@
 | `content_status` | `draft`, `published` | passages.status, prompts.status |
 | `model_tier` | `cheap`, `premium` | submissions_writing.model_tier |
 | `processing_status` | `pending`, `done`, `failed` | submissions_writing.processing_status |
+| `test_mode` | `practice`, `simulation` | submissions_reading.test_mode |
 | `language` | `vi`, `en` | users.language |
 | `theme` | `dark`, `light` | users.theme |
 | `source_origin` | `notebooklm`, `manual` | sources.origin |
@@ -473,6 +481,7 @@ CREATE TABLE submissions_reading (
   total_questions INT NOT NULL,
   duration_sec INT,
   timed_out BOOLEAN NOT NULL DEFAULT false,
+  test_mode TEXT NOT NULL DEFAULT 'practice' CHECK (test_mode IN ('practice','simulation')),
   completed_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 CREATE INDEX idx_sub_reading_user ON submissions_reading(user_id, completed_at DESC);
@@ -491,7 +500,11 @@ CREATE TABLE submissions_writing (
   processing_status TEXT NOT NULL DEFAULT 'pending' CHECK (processing_status IN ('pending','done','failed')),
   error_message TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  scored_at TIMESTAMPTZ
+  scored_at TIMESTAMPTZ,
+  instructor_comment TEXT,
+  instructor_override_score NUMERIC(3,1),
+  reviewed_by UUID REFERENCES users(id),
+  reviewed_at TIMESTAMPTZ
 );
 CREATE INDEX idx_sub_writing_user ON submissions_writing(user_id, created_at DESC);
 CREATE INDEX idx_sub_writing_status ON submissions_writing(processing_status);
@@ -570,6 +583,120 @@ VALUES (
 | Rate limits | 30 days | Cron job cleanup old windows |
 | Redis cache | TTL-based | Auto-expire (15–60 min) |
 | BullMQ jobs | 7 days (completed) | Auto-cleanup via BullMQ config |
+
+---
+
+## 6. Classroom Domain Entities
+
+### 6.1 classrooms
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | — |
+| `name` | TEXT | NOT NULL, max 100 chars | Tên lớp học |
+| `description` | TEXT | NULL | Mô tả lớp |
+| `cover_image_url` | TEXT | NULL | Ảnh bìa |
+| `invite_code` | TEXT | UNIQUE, NOT NULL | Mã 8 ký tự alphanumeric |
+| `owner_id` | UUID | FK → users.id, NOT NULL | Instructor tạo lớp |
+| `status` | TEXT | NOT NULL, DEFAULT 'active', CHECK (status IN ('active','archived')) | — |
+| `max_members` | INT | NOT NULL, DEFAULT 50 | Giới hạn thành viên |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
+
+**Indexes:**
+- `UNIQUE INDEX idx_classrooms_invite ON classrooms(invite_code)`
+- `INDEX idx_classrooms_owner ON classrooms(owner_id)`
+- `INDEX idx_classrooms_status ON classrooms(status)`
+
+**Business Rules:**
+- Chỉ user có role `instructor` hoặc `admin` mới tạo được (CR-001)
+- `invite_code` tự sinh khi tạo, có thể regenerate (CR-003)
+- `owner_id` không đổi sau khi tạo
+
+---
+
+### 6.2 classroom_members
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | — |
+| `classroom_id` | UUID | FK → classrooms.id, ON DELETE CASCADE | — |
+| `user_id` | UUID | FK → users.id, NOT NULL | — |
+| `role` | TEXT | NOT NULL, DEFAULT 'student', CHECK (role IN ('teacher','student')) | Vai trò trong lớp |
+| `joined_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
+
+**Indexes:**
+- `UNIQUE INDEX idx_cm_unique ON classroom_members(classroom_id, user_id)`
+- `INDEX idx_cm_user ON classroom_members(user_id)`
+
+**Business Rules:**
+- Mỗi user chỉ join 1 lần trong 1 lớp (CR-005)
+- Owner được tự động thêm dạng role='teacher' khi tạo lớp
+- Max members = classrooms.max_members (CR-004)
+
+---
+
+### 6.3 topics
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | — |
+| `classroom_id` | UUID | FK → classrooms.id, ON DELETE CASCADE | — |
+| `title` | TEXT | NOT NULL, max 200 chars | Tên chủ đề |
+| `description` | TEXT | NULL | Mô tả |
+| `order_index` | INT | NOT NULL, DEFAULT 0 | Thứ tự hiển thị |
+| `status` | TEXT | NOT NULL, DEFAULT 'draft', CHECK (status IN ('draft','published')) | — |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
+
+**Indexes:**
+- `INDEX idx_topics_classroom ON topics(classroom_id, order_index)`
+
+**Business Rules:**
+- Student chỉ xem topics có status='published' (CR-007)
+- Xóa topic → cascade xóa tất cả lessons bên trong
+
+---
+
+### 6.4 lessons
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | — |
+| `topic_id` | UUID | FK → topics.id, ON DELETE CASCADE | — |
+| `title` | TEXT | NOT NULL, max 200 chars | Tên bài học |
+| `content` | TEXT | NULL | Nội dung (Rich text / Markdown) |
+| `content_type` | TEXT | NOT NULL, DEFAULT 'text', CHECK (content_type IN ('text','video','passage','prompt')) | Loại nội dung |
+| `linked_entity_id` | UUID | NULL | ID passage/prompt liên kết |
+| `order_index` | INT | NOT NULL, DEFAULT 0 | Thứ tự hiển thị |
+| `status` | TEXT | NOT NULL, DEFAULT 'draft', CHECK (status IN ('draft','published')) | — |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
+
+**Indexes:**
+- `INDEX idx_lessons_topic ON lessons(topic_id, order_index)`
+
+**Business Rules:**
+- `linked_entity_id` chỉ có giá trị khi `content_type` là 'passage' hoặc 'prompt'
+- Student chỉ xem lessons có status='published' (CR-007)
+
+---
+
+### 6.5 announcements
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | — |
+| `classroom_id` | UUID | FK → classrooms.id, ON DELETE CASCADE | — |
+| `author_id` | UUID | FK → users.id, NOT NULL | Instructor gửi thông báo |
+| `message` | TEXT | NOT NULL | Nội dung thông báo |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
+
+**Indexes:**
+- `INDEX idx_ann_classroom ON announcements(classroom_id, created_at DESC)`
+
+**Business Rules:**
+- Chỉ classroom owner mới tạo/xóa announcements
+- Tất cả members xem được
+- Cascade delete khi classroom bị xóa
 
 ---
 

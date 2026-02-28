@@ -60,6 +60,7 @@ cp apps/frontend/.env.example apps/frontend/.env
 # - JWT_REFRESH_SECRET=<generate-another-random-string>
 # - OPENAI_API_KEY=sk-...  (or GOOGLE_API_KEY)
 # - ADMIN_PASSWORD=<choose-admin-password>
+# - INSTRUCTOR_PASSWORD=<choose-instructor-password>  (for seed instructor user)
 
 # Edit frontend .env:
 # - NEXT_PUBLIC_API_URL=http://localhost:3001/api
@@ -114,6 +115,9 @@ curl http://localhost:3001/api/health
 # Open frontend
 # Navigate to http://localhost:3000
 # Login with admin credentials from .env
+
+# Instructor panel
+# Login as instructor → navigate to http://localhost:3000/instructor/writing-submissions
 ```
 
 ---

@@ -19,6 +19,8 @@
 | F05 | Admin Content CRUD | Admin | 6 | Draft/publish toggle, question management |
 | F06 | Admin Import | Admin | 5 | Cache check, sanitize, attach snippets |
 | F07 | Profile Settings | All | 2 | Language + theme toggle |
+| F08 | Mode Selection | Learner | 3 | Practice vs Simulation, timer config |
+| F09 | Instructor Review | Instructor | 4 | View AI score, comment, override |
 
 ---
 
@@ -62,13 +64,14 @@
 |------|--------|----------------|--------|-------|
 | 1 | Navigate to /reading | GET /reading/passages → show catalog | S04 | ADM-001 |
 | 2 | Apply filters (level, topic) | Re-fetch with filters | S04 | — |
-| 3 | Click passage card | GET /reading/passages/:id → load passage + questions | S05 | — |
-| 4 | (Optional) Select timer duration | Start countdown | S05 | — |
-| 5 | Read passage, answer questions | Live progress counter "X/Y answered" | S05 | — |
-| 6a | Click Submit (≥80% answered) | POST /submit → auto-grade → show results | S06 | RD-001, RD-002 |
-| 6b | Timer expires (any % answered) | Auto-submit with timed_out=true → auto-grade | S06 | RD-003 |
-| 7 | Review results | Score header + per-question breakdown with explanations | S06 | RD-004 |
-| 8 | Click "Retry" or "Back" | Re-attempt or return to catalog | S05/S04 | — |
+| 3 | Click passage card | Show Mode Selector modal (Practice vs Simulation) | S22 | — |
+| 3a | **Practice mode:** Choose parts, no timer, start | Load passage + questions (no timer) | S05 | — |
+| 3b | **Simulation mode:** Full test, 60 min timer, start | Load passage + questions + start countdown | S05 | — |
+| 4 | Read passage, answer questions | Live progress counter "X/Y answered" | S05 | — |
+| 5a | Click Submit (≥80% answered) | POST /submit → auto-grade → show results | S06/S24 | RD-001, RD-002 |
+| 5b | Timer expires (Simulation mode, any % answered) | Auto-submit with timed_out=true → auto-grade | S06/S24 | RD-003 |
+| 6 | Review results | Score header + per-question breakdown with explanations | S24 | RD-004 |
+| 7 | Click "Retry" or "Back" | Re-attempt or return to catalog | S05/S04 | — |
 
 **Error Paths:**
 - < 80% answered + manual submit → "Please answer at least X questions"
@@ -169,3 +172,46 @@
 ---
 
 > **Tham chiếu:** [04_user_stories](../step3_prd/04_user_stories.md) | [16_activity_diagrams](../step3_prd/16_activity_diagrams.md)
+
+---
+
+## 9. F08 — Mode Selection (New)
+
+> Inspired by ieltsonlinetests.com's Practice/Simulation mode.
+
+**Actor:** Learner  
+**Goal:** Choose test mode before starting a Reading or Writing practice  
+**Precondition:** Authenticated; passage/prompt selected
+
+| Step | Action | System Response | Screen |
+|------|--------|----------------|--------|
+| 1 | Click passage/prompt card | Show Mode Selector modal | S22 |
+| 2a | Select **Practice mode** | Configure: no timer, select parts (optional) | S22 |
+| 2b | Select **Simulation mode** | Configure: 60 min timer, full test, no pause | S22 |
+| 3 | Click "Start" | Navigate to practice page with selected config | S05/S09 |
+
+**Key Differences:**
+
+| Feature | Practice Mode | Simulation Mode |
+|---------|-------------|----------------|
+| Timer | None (or custom) | 60 min (Reading) / 60 min (Writing) |
+| Parts | Choose specific parts | Full test required |
+| Pause | Allow pause/resume | No pause |
+| Auto-submit | No | Yes, on timer expiry |
+| `test_mode` flag | `practice` | `simulation` |
+
+---
+
+## 10. F09 — Instructor Writing Review (New)
+
+**Actor:** Instructor  
+**Goal:** Review AI-scored essay, add comment, optionally override score  
+**Precondition:** Authenticated as instructor; has accessible student submissions
+
+| Step | Action | System Response | Screen |
+|------|--------|----------------|--------|
+| 1 | Navigate to /instructor/writing-submissions | GET submissions list (with student name, prompt, AI score) | Instructor list |
+| 2 | Click a submission | Load essay + AI scores + feedback | S23 |
+| 3 | (Optional) Enter override score (0–9) | Update score fields | S23 |
+| 4 | (Optional) Add comment | Text area for instructor feedback | S23 |
+| 5 | Click "Save" | PATCH submission with instructor_comment + override_score | S23 |

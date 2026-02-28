@@ -10,7 +10,8 @@
     "prompts": "Đề bài",
     "users": "Người dùng",
     "learners": "Người học",
-    "submissions": "Bài nộp"
+    "submissions": "Bài nộp",
+    "classrooms": "Lớp học"
   },
   "auth": {
     "login": "Đăng nhập",
