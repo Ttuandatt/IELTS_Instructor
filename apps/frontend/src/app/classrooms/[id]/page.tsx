@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
-import { Loader2, Settings, Users, ArrowLeft, Plus, Play, FileText, BookOpen, ChevronDown, ChevronRight, Eye, EyeOff, Pencil, ExternalLink, BarChart2, Copy, Megaphone, Paperclip } from 'lucide-react';
+import { Loader2, Settings, Users, ArrowLeft, Plus, Play, FileText, BookOpen, ChevronDown, ChevronRight, Eye, EyeOff, Pencil, ExternalLink, BarChart2, Copy, Megaphone, Paperclip, PenTool } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 
@@ -394,31 +394,79 @@ export default function ClassroomDetailPage({ params }: { params: Promise<{ id: 
                                     })()}
                                 </div>
                             ) : activeLesson.content_type === 'passage' || activeLesson.content_type === 'prompt' ? (
-                                <div className="flex flex-col items-center justify-center grow p-8 gap-6">
-                                    {activeLesson.content && (
-                                        <div
-                                            className="w-full max-w-2xl prose prose-sm prose-blue"
-                                            dangerouslySetInnerHTML={{ __html: activeLesson.content }}
-                                        />
-                                    )}
-                                    {activeLesson.linked_entity_id ? (
-                                        <div className={`w-full max-w-md p-6 rounded-2xl text-center shadow-md ${activeLesson.content_type === 'prompt' ? 'bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200' : 'bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200'}`}>
-                                            <div className="text-4xl mb-3">{activeLesson.content_type === 'prompt' ? '✍️' : '📖'}</div>
-                                            <h3 className={`font-bold text-lg mb-1 ${activeLesson.content_type === 'prompt' ? 'text-purple-800' : 'text-blue-800'}`}>
-                                                {activeLesson.content_type === 'prompt' ? 'Writing Assignment' : 'Reading Test'}
-                                            </h3>
-                                            <p className={`text-sm mb-4 ${activeLesson.content_type === 'prompt' ? 'text-purple-600' : 'text-blue-600'}`}>
-                                                {activeLesson.content_type === 'prompt' ? 'Write your essay and get AI feedback' : 'Complete the reading test with questions'}
-                                            </p>
-                                            <Link href={`/${activeLesson.content_type === 'prompt' ? 'writing' : 'reading'}/${activeLesson.linked_entity_id}`}>
-                                                <button className={`font-semibold py-3 px-8 rounded-xl shadow-sm flex items-center mx-auto transition-all hover:shadow-md ${activeLesson.content_type === 'prompt' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
-                                                    {activeLesson.content_type === 'prompt' ? 'Start Writing' : 'Start Reading'}
-                                                    <ExternalLink className="w-4 h-4 ml-2" />
-                                                </button>
-                                            </Link>
+                                <div className="flex flex-col grow p-6 gap-4">
+                                    {/* Truncated content preview from uploaded file */}
+                                    {activeLesson.content && !activeLesson.linked_entity_id && (
+                                        <div className="relative">
+                                            <div
+                                                className="w-full prose prose-sm prose-blue max-w-none max-h-[200px] overflow-hidden"
+                                                dangerouslySetInnerHTML={{ __html: activeLesson.content }}
+                                            />
+                                            {/* Fade gradient overlay */}
+                                            <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                                         </div>
-                                    ) : (
-                                        <p className="text-gray-400 text-sm italic">No practice content linked yet.</p>
+                                    )}
+
+                                    {/* View Full Lesson button (for uploaded content) */}
+                                    {activeLesson.content && !activeLesson.linked_entity_id && (
+                                        <Link href={`/classrooms/${id}/lessons/${activeLesson.id}`}>
+                                            <button className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all hover:shadow-md">
+                                                View Full Lesson
+                                                <ExternalLink className="w-4 h-4" />
+                                            </button>
+                                        </Link>
+                                    )}
+
+                                    {/* Attachment download link */}
+                                    {activeLesson.attachment_url && !activeLesson.linked_entity_id && (
+                                        <div className="flex items-center gap-2 text-xs text-gray-400">
+                                            <Paperclip className="w-3.5 h-3.5" />
+                                            <a
+                                                href={activeLesson.attachment_url}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="hover:text-blue-500 hover:underline truncate"
+                                            >
+                                                Download original file
+                                            </a>
+                                        </div>
+                                    )}
+
+                                    {/* Library-linked content: show practice button */}
+                                    {activeLesson.linked_entity_id && (
+                                        <>
+                                            {activeLesson.content && (
+                                                <div
+                                                    className="w-full prose prose-sm prose-blue max-w-none"
+                                                    dangerouslySetInnerHTML={{ __html: activeLesson.content }}
+                                                />
+                                            )}
+                                            <div className={`w-full max-w-md p-6 rounded-2xl text-center shadow-md mx-auto ${activeLesson.content_type === 'prompt' ? 'bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200' : 'bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200'}`}>
+                                                <div className="mb-3 flex justify-center">
+                                                    {activeLesson.content_type === 'prompt'
+                                                        ? <PenTool className="w-8 h-8 text-purple-500" />
+                                                        : <BookOpen className="w-8 h-8 text-blue-500" />
+                                                    }
+                                                </div>
+                                                <h3 className={`font-bold text-lg mb-1 ${activeLesson.content_type === 'prompt' ? 'text-purple-800' : 'text-blue-800'}`}>
+                                                    {activeLesson.content_type === 'prompt' ? 'Writing Assignment' : 'Reading Test'}
+                                                </h3>
+                                                <p className={`text-sm mb-4 ${activeLesson.content_type === 'prompt' ? 'text-purple-600' : 'text-blue-600'}`}>
+                                                    {activeLesson.content_type === 'prompt' ? 'Write your essay and get AI feedback' : 'Complete the reading test with questions'}
+                                                </p>
+                                                <Link href={`/${activeLesson.content_type === 'prompt' ? 'writing' : 'reading'}/${activeLesson.linked_entity_id}`}>
+                                                    <button className={`font-semibold py-3 px-8 rounded-xl shadow-sm flex items-center mx-auto transition-all hover:shadow-md ${activeLesson.content_type === 'prompt' ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-blue-600 hover:bg-blue-700 text-white'}`}>
+                                                        {activeLesson.content_type === 'prompt' ? 'Start Writing' : 'Start Reading'}
+                                                        <ExternalLink className="w-4 h-4 ml-2" />
+                                                    </button>
+                                                </Link>
+                                            </div>
+                                        </>
+                                    )}
+
+                                    {/* No content at all */}
+                                    {!activeLesson.content && !activeLesson.linked_entity_id && !activeLesson.attachment_url && (
+                                        <p className="text-gray-400 text-sm italic text-center">No practice content linked yet.</p>
                                     )}
                                 </div>
                             ) : (

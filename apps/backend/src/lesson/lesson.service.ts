@@ -36,6 +36,12 @@ export class LessonService {
         });
     }
 
+    async findOne(id: string) {
+        const lesson = await this.prisma.lesson.findUnique({ where: { id } });
+        if (!lesson) throw new NotFoundException('Lesson not found');
+        return lesson;
+    }
+
     async update(id: string, dto: UpdateLessonDto) {
         const lesson = await this.prisma.lesson.findUnique({ where: { id } });
         if (!lesson) throw new NotFoundException('Lesson not found');

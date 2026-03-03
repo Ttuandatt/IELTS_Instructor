@@ -6,25 +6,34 @@
    ============================================ */
 
 :root {
-  /* Color tokens — Light theme (Academia purple palette) */
-  --color-primary: #7c3aed;
-  --color-primary-hover: #6d28d9;
-  --color-primary-light: #ede9fe;
+  /* Color tokens — Light theme (Education Indigo palette) */
+  --color-primary: #6366f1;
+  --color-primary-hover: #4f46e5;
+  --color-primary-light: #eef2ff;
   --color-secondary: #64748b;
   --color-success: #10b981;
   --color-warning: #f59e0b;
   --color-error: #ef4444;
   --color-info: #6366f1;
 
+  /* Semantic: Module colors */
+  --color-reading: #0ea5e9;
+  --color-reading-subtle: #f0f9ff;
+  --color-writing: #8b5cf6;
+  --color-writing-subtle: #f5f3ff;
+  --color-success-subtle: #ecfdf5;
+  --color-warning-subtle: #fffbeb;
+  --color-error-subtle: #fef2f2;
+
   --color-bg-primary: #ffffff;
-  --color-bg-secondary: #faf8ff;
-  --color-bg-tertiary: #f3f0ff;
-  --color-bg-page: linear-gradient(135deg, #faf8ff 0%, #fdf2f8 50%, #faf8ff 100%);
-  --color-text-primary: #1e1b4b;
+  --color-bg-secondary: #f8fafc;
+  --color-bg-tertiary: #f1f5f9;
+  --color-bg-page: linear-gradient(135deg, #f8fafc 0%, #eef2ff 50%, #f8fafc 100%);
+  --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
   --color-text-muted: #94a3b8;
-  --color-border: #e9e5f5;
-  --color-border-focus: #7c3aed;
+  --color-border: #e2e8f0;
+  --color-border-focus: #6366f1;
 
   /* Spacing (rem) */
   --space-xs: 0.25rem;
@@ -41,11 +50,11 @@
   --radius-xl: 1.25rem;
   --radius-full: 9999px;
 
-  /* Shadows — soft purple tint */
-  --shadow-sm: 0 1px 3px rgba(124, 58, 237, 0.04);
-  --shadow-md: 0 4px 12px rgba(124, 58, 237, 0.08);
-  --shadow-lg: 0 12px 28px rgba(124, 58, 237, 0.12);
-  --shadow-card: 0 2px 8px rgba(124, 58, 237, 0.06);
+  /* Shadows — soft indigo tint */
+  --shadow-sm: 0 1px 3px rgba(99, 102, 241, 0.04);
+  --shadow-md: 0 4px 12px rgba(99, 102, 241, 0.08);
+  --shadow-lg: 0 12px 28px rgba(99, 102, 241, 0.12);
+  --shadow-card: 0 2px 8px rgba(99, 102, 241, 0.06);
 
   /* Sidebar */
   --sidebar-width: 270px;
@@ -53,46 +62,55 @@
 
   /* Fonts */
   --background: #ffffff;
-  --foreground: #1e1b4b;
+  --foreground: #0f172a;
 
   /* Card background */
   --color-bg-card: #ffffff;
-  --color-bg-hover: rgba(124, 58, 237, 0.03);
+  --color-bg-hover: rgba(99, 102, 241, 0.03);
 
   /* Transition */
   --transition-fast: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Dark theme */
+/* Dark theme — Slate-based neutrals for better readability */
 [data-theme="dark"] {
-  --color-primary: #a78bfa;
-  --color-primary-hover: #c4b5fd;
-  --color-primary-light: rgba(167, 139, 250, 0.15);
+  --color-primary: #818cf8;
+  --color-primary-hover: #a5b4fc;
+  --color-primary-light: rgba(129, 140, 248, 0.15);
   --color-secondary: #94a3b8;
   --color-success: #34d399;
   --color-warning: #fbbf24;
   --color-error: #f87171;
   --color-info: #818cf8;
 
-  --color-bg-primary: #0f0d1a;
-  --color-bg-secondary: #1a1730;
-  --color-bg-tertiary: #262340;
-  --color-bg-page: linear-gradient(135deg, #0f0d1a 0%, #1a1730 100%);
-  --color-bg-card: #1a1730;
-  --color-bg-hover: rgba(167, 139, 250, 0.06);
-  --color-text-primary: #f1f0ff;
-  --color-text-secondary: #c4c0e0;
-  --color-text-muted: #7c78a0;
-  --color-border: #2e2a4a;
-  --color-border-focus: #a78bfa;
+  /* Semantic: Module colors (dark) */
+  --color-reading: #38bdf8;
+  --color-reading-subtle: rgba(14, 165, 233, 0.12);
+  --color-writing: #a78bfa;
+  --color-writing-subtle: rgba(139, 92, 246, 0.12);
+  --color-success-subtle: rgba(16, 185, 129, 0.12);
+  --color-warning-subtle: rgba(245, 158, 11, 0.12);
+  --color-error-subtle: rgba(239, 68, 68, 0.12);
+
+  --color-bg-primary: #0f172a;
+  --color-bg-secondary: #1e293b;
+  --color-bg-tertiary: #334155;
+  --color-bg-page: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  --color-bg-card: #1e293b;
+  --color-bg-hover: rgba(129, 140, 248, 0.06);
+  --color-text-primary: #f1f5f9;
+  --color-text-secondary: #94a3b8;
+  --color-text-muted: #64748b;
+  --color-border: #334155;
+  --color-border-focus: #818cf8;
 
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
   --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.5);
   --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.6);
   --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.3);
 
-  --background: #0f0d1a;
-  --foreground: #f1f0ff;
+  --background: #0f172a;
+  --foreground: #f1f5f9;
 }
 
 @theme inline {
@@ -135,116 +153,116 @@ summary {
 }
 
 /* ============================================
-   Global: Remap Tailwind blue-* to purple palette
-   Ensures legacy pages use the new Academia colors
+   Global: Remap Tailwind blue-* to Indigo palette
+   Ensures legacy pages use the new Education colors
    ============================================ */
 
 /* Background colors */
 .bg-blue-600 {
-  background-color: #7c3aed !important;
+  background-color: #6366f1 !important;
 }
 
 .bg-blue-700,
 .hover\:bg-blue-700:hover {
-  background-color: #6d28d9 !important;
+  background-color: #4f46e5 !important;
 }
 
 .bg-blue-500 {
-  background-color: #8b5cf6 !important;
+  background-color: #818cf8 !important;
 }
 
 .bg-blue-50,
 .hover\:bg-blue-50:hover {
-  background-color: #ede9fe !important;
+  background-color: #eef2ff !important;
 }
 
 .bg-blue-100,
 .hover\:bg-blue-100:hover {
-  background-color: #e8e0fe !important;
+  background-color: #e0e7ff !important;
 }
 
 /* Text colors */
 .text-blue-600 {
-  color: #7c3aed !important;
+  color: #6366f1 !important;
 }
 
 .text-blue-700 {
-  color: #6d28d9 !important;
+  color: #4f46e5 !important;
 }
 
 .text-blue-500 {
-  color: #8b5cf6 !important;
+  color: #818cf8 !important;
 }
 
 .text-blue-300 {
-  color: #c4b5fd !important;
+  color: #a5b4fc !important;
 }
 
 .text-blue-800 {
-  color: #5b21b6 !important;
+  color: #3730a3 !important;
 }
 
 .hover\:text-blue-600:hover {
-  color: #7c3aed !important;
+  color: #6366f1 !important;
 }
 
 /* Border colors */
 .border-blue-600 {
-  border-color: #7c3aed !important;
+  border-color: #6366f1 !important;
 }
 
 .border-blue-200 {
-  border-color: #ddd6fe !important;
+  border-color: #c7d2fe !important;
 }
 
 .border-blue-100 {
-  border-color: #ede9fe !important;
+  border-color: #e0e7ff !important;
 }
 
 /* Gradient overrides */
 .from-blue-500 {
-  --tw-gradient-from: #8b5cf6 !important;
+  --tw-gradient-from: #818cf8 !important;
 }
 
 .to-blue-700 {
-  --tw-gradient-to: #6d28d9 !important;
+  --tw-gradient-to: #4f46e5 !important;
 }
 
 .from-blue-100 {
-  --tw-gradient-from: #ede9fe !important;
+  --tw-gradient-from: #e0e7ff !important;
 }
 
 .to-blue-200 {
-  --tw-gradient-to: #ddd6fe !important;
+  --tw-gradient-to: #c7d2fe !important;
 }
 
 .from-blue-400 {
-  --tw-gradient-from: #a78bfa !important;
+  --tw-gradient-from: #a5b4fc !important;
 }
 
 .from-blue-50 {
-  --tw-gradient-from: #f5f3ff !important;
+  --tw-gradient-from: #eef2ff !important;
 }
 
 .to-cyan-50 {
-  --tw-gradient-to: #f3e8ff !important;
+  --tw-gradient-to: #eef2ff !important;
 }
 
 .to-indigo-500 {
-  --tw-gradient-to: #7c3aed !important;
+  --tw-gradient-to: #6366f1 !important;
 }
 
 .to-indigo-50 {
-  --tw-gradient-to: #ede9fe !important;
+  --tw-gradient-to: #eef2ff !important;
 }
 
 /* Ring/focus */
 .ring-blue-500 {
-  --tw-ring-color: #8b5cf6 !important;
+  --tw-ring-color: #818cf8 !important;
 }
 
 .focus\:ring-blue-500:focus {
-  --tw-ring-color: #8b5cf6 !important;
+  --tw-ring-color: #818cf8 !important;
 }
 
 /* text-primary utility for inline usage */
@@ -336,6 +354,112 @@ summary {
   color: var(--color-text-primary);
 }
 
+/* ============================================
+   Dark Mode: Lesson card & badge overrides
+   (Classroom syllabus sidebar)
+   ============================================ */
+
+/* Active lesson highlight — subtle indigo glow */
+[data-theme="dark"] .bg-blue-50 {
+  background-color: rgba(99, 102, 241, 0.15) !important;
+}
+
+/* Lesson hover state */
+[data-theme="dark"] .hover\:bg-gray-100:hover {
+  background-color: rgba(255, 255, 255, 0.06) !important;
+}
+
+/* Draft badge in lesson list */
+[data-theme="dark"] .bg-gray-200 {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+  color: var(--color-text-muted) !important;
+}
+
+/* Draft badge (topic header) — yellow tones */
+[data-theme="dark"] .bg-yellow-100 {
+  background-color: rgba(251, 191, 36, 0.15) !important;
+}
+
+[data-theme="dark"] .text-yellow-700 {
+  color: #fbbf24 !important;
+}
+
+/* Border overrides for active/inactive lesson cards */
+[data-theme="dark"] .border-blue-200 {
+  border-color: rgba(99, 102, 241, 0.3) !important;
+}
+
+[data-theme="dark"] .border-transparent {
+  border-color: transparent !important;
+}
+
+/* Icon color: amber file icon */
+[data-theme="dark"] .text-amber-500 {
+  color: #f59e0b !important;
+}
+
+/* Green icon for passage type */
+[data-theme="dark"] .text-green-500 {
+  color: #34d399 !important;
+}
+
+/* Lesson list container bg */
+[data-theme="dark"] .bg-gray-50\/50 {
+  background-color: rgba(255, 255, 255, 0.02) !important;
+}
+
+/* Topic border */
+[data-theme="dark"] .border-gray-200 {
+  border-color: var(--color-border) !important;
+}
+
+[data-theme="dark"] .border-gray-100 {
+  border-color: rgba(255, 255, 255, 0.05) !important;
+}
+
+/* Hover on action buttons in lessons */
+[data-theme="dark"] .hover\:bg-gray-200:hover {
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+[data-theme="dark"] .hover\:bg-gray-300:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Green publish button */
+[data-theme="dark"] .bg-green-100 {
+  background-color: rgba(52, 211, 153, 0.15) !important;
+}
+
+[data-theme="dark"] .text-green-700 {
+  color: #34d399 !important;
+}
+
+[data-theme="dark"] .border-green-300 {
+  border-color: rgba(52, 211, 153, 0.3) !important;
+}
+
+[data-theme="dark"] .bg-green-50 {
+  background-color: rgba(52, 211, 153, 0.1) !important;
+}
+
+[data-theme="dark"] .hover\:bg-green-100:hover {
+  background-color: rgba(52, 211, 153, 0.2) !important;
+}
+
+/* Yellow draft button */
+[data-theme="dark"] .bg-yellow-50 {
+  background-color: rgba(251, 191, 36, 0.1) !important;
+}
+
+[data-theme="dark"] .border-yellow-300 {
+  border-color: rgba(251, 191, 36, 0.3) !important;
+}
+
+[data-theme="dark"] .hover\:bg-yellow-100:hover {
+  background-color: rgba(251, 191, 36, 0.2) !important;
+}
+
 
 /* ============================================
    App Layout
@@ -398,7 +522,7 @@ summary {
   flex-direction: column;
   z-index: 40;
   transition: background-color 0.3s ease;
-  box-shadow: 2px 0 20px rgba(124, 58, 237, 0.03);
+  box-shadow: 2px 0 20px rgba(99, 102, 241, 0.03);
 }
 
 .sidebar-logo {

@@ -1,13 +1,28 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
-import { Users, BookOpen, Plus, Loader2 } from 'lucide-react';
+import { Users, BookOpen, Plus, Loader2, UserPlus, GraduationCap } from 'lucide-react';
 import Link from 'next/link';
+import { JoinClassroomDialog } from '@/components/classroom/JoinClassroomDialog';
 
 export default function ClassroomsPage() {
     const [page, setPage] = useState(1);
+    const [menuOpen, setMenuOpen] = useState(false);
+    const [joinOpen, setJoinOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close dropdown on outside click
+    useEffect(() => {
+        function handleClick(e: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+                setMenuOpen(false);
+            }
+        }
+        document.addEventListener('mousedown', handleClick);
+        return () => document.removeEventListener('mousedown', handleClick);
+    }, []);
 
     const { data, isLoading, isError } = useQuery({
         queryKey: ['classrooms', page],
@@ -35,22 +50,87 @@ export default function ClassroomsPage() {
                         Manage and view all your active classes.
                     </p>
                 </div>
-                <Link href="/classrooms/new" style={{ textDecoration: 'none' }}>
-                    <button style={{
-                        display: 'flex', alignItems: 'center', gap: '0.5rem',
-                        padding: '0.6rem 1.25rem',
-                        background: 'var(--color-primary)',
-                        color: '#fff', border: 'none',
-                        borderRadius: 'var(--radius-lg)',
-                        fontWeight: 600, fontSize: '0.875rem',
-                        cursor: 'pointer',
-                        transition: 'all 0.2s ease',
-                    }}
+
+                {/* "+" dropdown — Google Classroom style */}
+                <div ref={menuRef} style={{ position: 'relative' }}>
+                    <button
+                        onClick={() => setMenuOpen(prev => !prev)}
+                        aria-label="Add"
+                        style={{
+                            width: 44, height: 44,
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            background: 'var(--color-primary)',
+                            color: '#fff', border: 'none',
+                            borderRadius: 'var(--radius-full)',
+                            cursor: 'pointer',
+                            boxShadow: 'var(--shadow-md)',
+                            transition: 'transform 0.2s, box-shadow 0.2s',
+                        }}
+                        onMouseEnter={e => {
+                            e.currentTarget.style.transform = 'scale(1.08)';
+                            e.currentTarget.style.boxShadow = 'var(--shadow-lg)';
+                        }}
+                        onMouseLeave={e => {
+                            e.currentTarget.style.transform = 'scale(1)';
+                            e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                        }}
                     >
-                        <Plus size={18} />
-                        Create Classroom
+                        <Plus size={22} strokeWidth={2.5} />
                     </button>
-                </Link>
+
+                    {menuOpen && (
+                        <div style={{
+                            position: 'absolute', top: 'calc(100% + 8px)', right: 0,
+                            background: 'var(--color-bg-card)',
+                            border: '1px solid var(--color-border)',
+                            borderRadius: 'var(--radius-lg)',
+                            boxShadow: 'var(--shadow-lg)',
+                            minWidth: 200, zIndex: 50,
+                            overflow: 'hidden',
+                            animation: 'fadeIn 0.15s ease',
+                        }}>
+                            <button
+                                onClick={() => { setMenuOpen(false); setJoinOpen(true); }}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                    width: '100%', padding: '0.75rem 1rem',
+                                    background: 'transparent', border: 'none',
+                                    color: 'var(--color-text-primary)',
+                                    fontSize: '0.875rem', fontWeight: 500,
+                                    cursor: 'pointer',
+                                    transition: 'background 0.15s',
+                                    textAlign: 'left',
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-tertiary)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                                <UserPlus size={18} style={{ color: 'var(--color-primary)' }} />
+                                Join Classroom
+                            </button>
+                            <div style={{ height: 1, background: 'var(--color-border)' }} />
+                            <Link href="/classrooms/new" style={{ textDecoration: 'none' }}>
+                                <button
+                                    onClick={() => setMenuOpen(false)}
+                                    style={{
+                                        display: 'flex', alignItems: 'center', gap: '0.75rem',
+                                        width: '100%', padding: '0.75rem 1rem',
+                                        background: 'transparent', border: 'none',
+                                        color: 'var(--color-text-primary)',
+                                        fontSize: '0.875rem', fontWeight: 500,
+                                        cursor: 'pointer',
+                                        transition: 'background 0.15s',
+                                        textAlign: 'left',
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'var(--color-bg-tertiary)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                >
+                                    <GraduationCap size={18} style={{ color: 'var(--color-primary)' }} />
+                                    Create Classroom
+                                </button>
+                            </Link>
+                        </div>
+                    )}
+                </div>
             </div>
 
             {data?.data?.length === 0 ? (
@@ -62,20 +142,37 @@ export default function ClassroomsPage() {
                     <p style={{ color: 'var(--color-text-muted)', marginBottom: '1.5rem' }}>
                         You haven&apos;t joined or created any classes yet.
                     </p>
-                    <Link href="/classrooms/new" style={{ textDecoration: 'none' }}>
-                        <button style={{
-                            display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
-                            padding: '0.6rem 1.25rem',
-                            background: 'var(--color-primary)',
-                            color: '#fff', border: 'none',
-                            borderRadius: 'var(--radius-lg)',
-                            fontWeight: 600, fontSize: '0.875rem',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s ease',
-                        }}>
-                            <Plus size={16} /> Create a classroom
+                    <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', flexWrap: 'wrap' }}>
+                        <button
+                            onClick={() => setJoinOpen(true)}
+                            style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                                padding: '0.6rem 1.25rem',
+                                background: 'var(--color-primary)',
+                                color: '#fff', border: 'none',
+                                borderRadius: 'var(--radius-lg)',
+                                fontWeight: 600, fontSize: '0.875rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                            }}>
+                            <UserPlus size={16} /> Join a classroom
                         </button>
-                    </Link>
+                        <Link href="/classrooms/new" style={{ textDecoration: 'none' }}>
+                            <button style={{
+                                display: 'inline-flex', alignItems: 'center', gap: '0.5rem',
+                                padding: '0.6rem 1.25rem',
+                                background: 'transparent',
+                                color: 'var(--color-primary)',
+                                border: '2px solid var(--color-primary)',
+                                borderRadius: 'var(--radius-lg)',
+                                fontWeight: 600, fontSize: '0.875rem',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s ease',
+                            }}>
+                                <Plus size={16} /> Create a classroom
+                            </button>
+                        </Link>
+                    </div>
                 </div>
             ) : (
                 <div className="card-grid">
@@ -184,6 +281,9 @@ export default function ClassroomsPage() {
                     </button>
                 </div>
             )}
+
+            {/* Join Dialog */}
+            <JoinClassroomDialog isOpen={joinOpen} onClose={() => setJoinOpen(false)} />
         </div>
     );
 }

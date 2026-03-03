@@ -835,10 +835,16 @@ Instructor tạo/sửa/xóa/archive lớp học. Hệ thống tự sinh `invite_
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
 | title | string | ✅ | — |
-| content | string | ❌ | Rich text / Markdown |
+| content | string | ❌ | Rich text / Markdown / mô tả hướng dẫn (upload mode) |
 | content_type | enum | ❌ | text / video / passage / prompt (default 'text') |
-| linked_entity_id | uuid | ❌ | ID passage/prompt liên kết |
+| linked_entity_id | uuid | ❌ | ID passage/prompt liên kết (library mode) |
+| attachment_url | string | ❌ | URL tài liệu bên ngoài (PDF, Google Docs — upload mode) |
 | status | enum | ❌ | draft / published (default 'draft') |
+
+**Content Linking (passage/prompt types):**
+- **Library mode:** Instructor chọn từ thư viện → lưu `linked_entity_id`. Student click lesson → mở practice page tương ứng.
+- **Upload mode:** Instructor chọn file từ device (POST `/api/uploads` → multer → `attachment_url`) HOẶC dán URL tài liệu. Optional: viết mô tả → lưu `content`. Student click → mở URL.
+- Validation: khi `content_type` là `passage`/`prompt`, phải có `linked_entity_id` (library) HOẶC `attachment_url` (upload).
 
 ---
 

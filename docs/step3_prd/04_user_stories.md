@@ -827,10 +827,15 @@ Mỗi User Story theo format:
 | **FR Ref** | FR-703, FR-702 |
 
 **Chi tiết:**
-- Quét QR hoặc mở link → landing page hiển thị tên lớp + nút "Tham gia".
+- Learner có 2 cách tham gia:
+  - **Nhập mã lớp**: Từ trang "Lớp học", click "+" → "Tham gia lớp học" → nhập class code (5-8 ký tự) → POST `/classrooms/join`.
+  - **Quét QR / mở link**: Mở invite link / quét QR → landing page hiển thị tên lớp + nút "Tham gia".
 - Nếu chưa login → redirect to login → quay lại join.
 - Nếu lớp đầy (max_members) → hiển thị lỗi.
 - Nếu đã join → hiển thị "Bạn đã là thành viên".
+- UI trang lớp học: nút "+" với dropdown 2 options (giống Google Classroom):
+  - "Tham gia lớp học" → mở JoinClassroomDialog
+  - "Tạo lớp học" → navigate to `/classrooms/new`
 
 ---
 
@@ -878,22 +883,35 @@ Mỗi User Story theo format:
 | **FR Ref** | FR-705 |
 
 **Chi tiết:**
-- Lesson types: text (Markdown/Rich text), video (URL), passage (link đến Passage), prompt (link đến Prompt).
-- Instructor chọn content_type → nếu passage/prompt → chọn từ danh sách Passages/Prompts có sẵn.
+- Lesson types: `text` (Markdown/Rich text), `video` (URL YouTube/Vimeo), `passage` (Reading Test), `prompt` (Writing Test).
+- Nhập title → chọn content_type → hiển thị form phù hợp:
+  - **Text**: textarea HTML content.
+  - **Video**: input URL.
+  - **Reading Test / Writing Test**: hiển thị 2 options:
+    - **📚 Chọn từ thư viện** → search & chọn Passage/Prompt có sẵn (linked_entity_id).
+    - **📎 Upload file** → nhập URL tài liệu (PDF, Google Docs, etc.) + optional mô tả/hướng dẫn.
+- Attachment URL (optional) cho mọi lesson type.
+- Status: draft/published.
 - Sắp xếp bằng API reorder.
 
 ---
 
-### US-808: Liên kết Lesson với Passage/Prompt
+### US-808: Liên kết Lesson với nội dung (Library hoặc Upload)
 
 | Field | Value |
 |-------|-------|
 | **As a** | Instructor |
-| **I want to** | Liên kết một Lesson với Passage hoặc Prompt có sẵn trong hệ thống |
-| **So that** | Học sinh có thể luyện tập Reading/Writing ngay trong bài học |
+| **I want to** | Liên kết Lesson với Passage/Prompt từ thư viện HOẶC upload file bên ngoài |
+| **So that** | Tôi linh hoạt sử dụng nội dung có sẵn hoặc tài liệu riêng |
 | **Priority** | P1 |
 | **Story Points** | 3 |
 | **FR Ref** | FR-705 |
+
+**Chi tiết:**
+- **Option A — Thư viện:** Search & chọn Passage/Prompt published → lưu `linked_entity_id`. Học sinh click → mở trang practice tương ứng.
+- **Option B — Upload file:** Chọn file từ device (PDF, DOC, DOCX, TXT, images — max 10MB) HOẶC dán URL tài liệu (Google Docs, etc.) → lưu `attachment_url`. Optional textarea để GV viết mô tả/hướng dẫn → lưu `content`.
+- Khi edit lesson đã tạo: hiển thị đúng mode (library/upload) dựa trên data đã lưu.
+- Validation: phải chọn ít nhất 1 trong 2 options.
 
 ---
 

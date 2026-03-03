@@ -13,6 +13,7 @@ import { WritingModule } from './writing/writing.module';
 import { ClassroomModule } from './classroom/classroom.module';
 import { TopicModule } from './topic/topic.module';
 import { LessonModule } from './lesson/lesson.module';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -46,6 +47,7 @@ import { LessonModule } from './lesson/lesson.module';
     ClassroomModule,
     TopicModule,
     LessonModule,
+    UploadModule,
   ],
   controllers: [AppController],
   providers: [AppService],

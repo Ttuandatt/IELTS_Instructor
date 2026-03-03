@@ -26,6 +26,11 @@ export class LessonController {
         return this.lessonService.findAllByTopic(topicId, role);
     }
 
+    @Get('lessons/:id')
+    async findOne(@Param('id') id: string) {
+        return this.lessonService.findOne(id);
+    }
+
     @Patch('lessons/:id')
     async update(@Req() req: any, @Param('id') id: string, @Body() updateLessonDto: UpdateLessonDto) {
         const lesson = await this.prisma.lesson.findUnique({ where: { id } });
