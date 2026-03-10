@@ -12,6 +12,12 @@ import { TopicDialog } from '@/components/classroom/TopicDialog';
 import { LessonDialog } from '@/components/classroom/LessonDialog';
 import { AnnouncementPanel } from '@/components/classroom/AnnouncementPanel';
 
+// Fix relative /uploads/ paths in HTML content to use full backend URL
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL?.replace('/api', '') || 'http://localhost:3001';
+function fixContentUrls(html: string): string {
+    return html.replace(/src="\/uploads\//g, `src="${BACKEND_URL}/uploads/`);
+}
+
 export default function ClassroomDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const { id } = use(params);
     const queryClient = useQueryClient();
@@ -395,20 +401,33 @@ export default function ClassroomDetailPage({ params }: { params: Promise<{ id: 
                                 </div>
                             ) : activeLesson.content_type === 'passage' || activeLesson.content_type === 'prompt' ? (
                                 <div className="flex flex-col grow p-6 gap-4">
-                                    {/* Truncated content preview from uploaded file */}
+                                    {/* ALWAYS show image from attachment_url if it's an image */}
+                                    {activeLesson.attachment_url && !activeLesson.linked_entity_id &&
+                                        /\.(png|jpe?g|webp|gif)$/i.test(activeLesson.attachment_url) && (
+                                            <div className="relative">
+                                                <img
+                                                    src={activeLesson.attachment_url}
+                                                    alt="Lesson attachment"
+                                                    className="w-full object-contain rounded-lg"
+                                                    style={{ maxHeight: '220px', border: '1px solid var(--color-border, #e5e7eb)', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' }}
+                                                />
+                                                <div className="absolute bottom-0 left-0 right-0 h-10 bg-gradient-to-t from-white/60 to-transparent pointer-events-none rounded-b-lg" />
+                                            </div>
+                                        )}
+
+                                    {/* Instruction / content text (separate from image) */}
                                     {activeLesson.content && !activeLesson.linked_entity_id && (
                                         <div className="relative">
                                             <div
-                                                className="w-full prose prose-sm prose-blue max-w-none max-h-[200px] overflow-hidden"
-                                                dangerouslySetInnerHTML={{ __html: activeLesson.content }}
+                                                className="w-full prose prose-sm prose-blue max-w-none max-h-[220px] overflow-hidden"
+                                                dangerouslySetInnerHTML={{ __html: fixContentUrls(activeLesson.content) }}
                                             />
-                                            {/* Fade gradient overlay */}
                                             <div className="absolute bottom-0 left-0 right-0 h-20 bg-gradient-to-t from-white to-transparent pointer-events-none" />
                                         </div>
                                     )}
 
-                                    {/* View Full Lesson button (for uploaded content) */}
-                                    {activeLesson.content && !activeLesson.linked_entity_id && (
+                                    {/* View Full Lesson button */}
+                                    {(activeLesson.content || (activeLesson.attachment_url && /\.(png|jpe?g|webp|gif)$/i.test(activeLesson.attachment_url))) && !activeLesson.linked_entity_id && (
                                         <Link href={`/classrooms/${id}/lessons/${activeLesson.id}`}>
                                             <button className="w-full py-3 px-6 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-sm flex items-center justify-center gap-2 transition-all hover:shadow-md">
                                                 View Full Lesson
@@ -417,29 +436,46 @@ export default function ClassroomDetailPage({ params }: { params: Promise<{ id: 
                                         </Link>
                                     )}
 
-                                    {/* Attachment download link */}
-                                    {activeLesson.attachment_url && !activeLesson.linked_entity_id && (
-                                        <div className="flex items-center gap-2 text-xs text-gray-400">
-                                            <Paperclip className="w-3.5 h-3.5" />
-                                            <a
-                                                href={activeLesson.attachment_url}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="hover:text-blue-500 hover:underline truncate"
-                                            >
-                                                Download original file
-                                            </a>
-                                        </div>
-                                    )}
+                                    {/* Attachment download link (non-image files) */}
+                                    {activeLesson.attachment_url && !activeLesson.linked_entity_id &&
+                                        !/\.(png|jpe?g|webp|gif)$/i.test(activeLesson.attachment_url) && (
+                                            <div className="flex items-center gap-2 text-xs text-gray-400">
+                                                <Paperclip className="w-3.5 h-3.5" />
+                                                <a
+                                                    href={activeLesson.attachment_url}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="hover:text-blue-500 hover:underline truncate"
+                                                >
+                                                    Download original file
+                                                </a>
+                                            </div>
+                                        )}
 
                                     {/* Library-linked content: show practice button */}
                                     {activeLesson.linked_entity_id && (
                                         <>
                                             {activeLesson.content && (
                                                 <div
-                                                    className="w-full prose prose-sm prose-blue max-w-none"
-                                                    dangerouslySetInnerHTML={{ __html: activeLesson.content }}
+                                                    className="w-full prose prose-sm prose-blue max-w-none mb-4"
+                                                    dangerouslySetInnerHTML={{ __html: fixContentUrls(activeLesson.content) }}
                                                 />
+                                            )}
+
+                                            {/* Passage Preview */}
+                                            {activeLesson.linked_passage && (
+                                                <div className="relative mb-6 border rounded-xl overflow-hidden bg-white shadow-sm">
+                                                    <div className="bg-gray-50 border-b px-4 py-2 font-semibold text-gray-700 text-sm">
+                                                        Preview: {activeLesson.linked_passage.title}
+                                                    </div>
+                                                    <div className="p-4 max-h-60 overflow-hidden relative">
+                                                        <div
+                                                            className="prose prose-sm prose-blue max-w-none text-gray-600"
+                                                            dangerouslySetInnerHTML={{ __html: fixContentUrls(activeLesson.linked_passage.body) }}
+                                                        />
+                                                        <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-white to-transparent pointer-events-none" />
+                                                    </div>
+                                                </div>
                                             )}
                                             <div className={`w-full max-w-md p-6 rounded-2xl text-center shadow-md mx-auto ${activeLesson.content_type === 'prompt' ? 'bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-200' : 'bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-200'}`}>
                                                 <div className="mb-3 flex justify-center">

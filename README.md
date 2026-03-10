@@ -153,7 +153,7 @@ npm run dev                     # → http://localhost:3000
 
 # 5. Đăng nhập
 #    Email: admin@ieltshelper.local
-#    Password: Admin1234!
+#    Password:  
 ```
 
 ---

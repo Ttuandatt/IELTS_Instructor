@@ -1,10 +1,11 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 
 const PUBLIC_PATHS = new Set(['/login', '/register']);
 
@@ -12,6 +13,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const isPublic = PUBLIC_PATHS.has(pathname);
 
@@ -45,10 +47,18 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
   if (!user) return null;
 
   return (
-    <div className="app-layout">
-      <Sidebar />
+    <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar collapsed={sidebarCollapsed} />
       <div className="app-main">
-        <Header />
+        <Header>
+          <button
+            className="sidebar-toggle-btn"
+            onClick={() => setSidebarCollapsed(c => !c)}
+            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {sidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+          </button>
+        </Header>
         <main className="app-content">{children}</main>
       </div>
     </div>

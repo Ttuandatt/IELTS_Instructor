@@ -27,6 +27,7 @@ Xác định rõ ràng ranh giới phạm vi của MVP (Phase 1) để tránh sc
 | Submit & Auto-grade | Gửi câu trả lời; yêu cầu ≥80% đã trả lời (RD-001); chấm MCQ bằng answer key; chấm short answer bằng keyword match (case-insensitive, trimmed) | P0 | FR-003 |
 | Explanations | Hiển thị giải thích cho từng câu sau khi submit (đúng/sai + explanation text) | P0 | FR-003 |
 | Attempt History | Lưu mỗi attempt: score_pct, duration_sec, timed_out, test_mode, answers; learner có thể xem lại | P1 | FR-003 |
+| DOCX Auto-Parser | Import file DOCX → AI phân tích tự động passage + question groups → lưu DB. Hỗ trợ tất cả question types IELTS (matching headings, T/F/NG, Y/N/NG, MCQ, matching info, matching features, sentence endings, fill-in-blank, summary, table, flowchart, diagram label, short answer) | P0 | FR-716 |
 
 ### 2.2 Module Writing Practice
 
@@ -60,6 +61,7 @@ Xác định rõ ràng ranh giới phạm vi của MVP (Phase 1) để tránh sc
 | Provenance Display | Hiển thị source_id, snippet_ids, admin_id, timestamp trên mỗi content item | P0 | FR-008 |
 | Content Versions | Ghi nhận version, editor_id, timestamp mỗi khi publish/update | P1 | ADM-003 |
 | Usage Stats | Hiển thị submissions count per passage/prompt để admin biết content nào được dùng nhiều | P1 | FR-006 |
+| DOCX Import | Admin import file DOCX → AI parser trích xuất passage + questions → preview → save DB | P0 | FR-716 |
 
 ### 2.5 Auth & Profile
 
@@ -91,13 +93,25 @@ Xác định rõ ràng ranh giới phạm vi của MVP (Phase 1) để tránh sc
 | Instructor Dashboard Stats | Dashboard hiển thị tổng lớp, tổng học viên, bài chờ review cho instructor | P1 | FR-712 |
 | Classroom View (Learner) | Learner xem danh sách lớp đã tham gia + Topics + Lessons đã published | P0 | FR-701 |
 | Members Overview | Instructor xem danh sách thành viên lớp | P1 | FR-702 |
+| File Upload | Instructor upload file (ảnh, PDF, DOCX) đính kèm vào lesson qua Multer | P0 | FR-714 |
+| Lesson Submission | Learner nộp bài viết (essay) trong lesson cho giáo viên chấm; GV xem danh sách bài nộp | P0 | FR-715 |
+| Student Passage Preview | Trong Classroom, khi lesson có content_type='passage', học sinh thấy preview đoạn đầu bài đọc (faded gradient) trước khi click "View Full Lesson" | P0 | FR-717 |
 
-### 2.8 Module File Attachments (Upcoming)
+### 2.10 Module Instructor Content Management
 
 | Tính năng | Mô tả chi tiết | Ưu tiên | Liên kết FR |
 |-----------|----------------|---------|-------------|
-| File Upload | Instructor tải lên file (PDF, image, DOCX,...) đính kèm vào bài học | P1 | FR-801 |
-| File Viewer/Download | Student xem hoặc tải xuống file đính kèm trong giao diện bài học | P1 | FR-801 |
+| Instructor Passage CRUD | Instructor tạo/xem/sửa/xóa passages y hệt Admin; import DOCX qua AI parser | P0 | FR-718 |
+| Instructor Prompt CRUD | Instructor tạo/xem/sửa/xóa writing prompts y hệt Admin | P0 | FR-718 |
+| Ownership Access Control | Chỉ owner (created_by) mới sửa/xóa passage/prompt; Admin bypass; tất cả authenticated users xem được | P0 | CR-015 |
+| Unified Sidebar Nav | Sidebar phân quyền theo role: Admin (full), Instructor (Classrooms, Passages, Prompts, Learners, Submissions), Learner (Reading, Writing, Classrooms) | P0 | — |
+
+### 2.8 Module File Attachments
+
+| Tính năng | Mô tả chi tiết | Ưu tiên | Liên kết FR |
+|-----------|----------------|---------|-------------|
+| File Upload | Instructor tải lên file (PDF, image, DOCX,...) đính kèm vào bài học qua `POST /api/uploads` (Multer) | P0 | FR-714 |
+| File Viewer/Download | Student xem ảnh inline hoặc tải xuống file đính kèm trong giao diện bài học | P0 | FR-714 |
 
 ### 2.9 Cross-cutting Concerns
 
@@ -142,7 +156,7 @@ Xác định rõ ràng ranh giới phạm vi của MVP (Phase 1) để tránh sc
 | B-06 | Advanced analytics | Trung bình | Trung bình | Cohort analysis, skill gap, recommendation engine |
 | B-07 | Offline/PWA support | Thấp | Cao | Service workers, local storage sync |
 | B-08 | Bulk import với progress | Trung bình | Trung bình | Queue-based import + progress bar |
-| B-09 | True/False/Not Given questions | Trung bình | Thấp | Mở rộng question_type enum |
+| B-09 | ~~True/False/Not Given questions~~ | ~~Trung bình~~ | ~~Thấp~~ | ~~Mở rộng question_type enum~~ → **Đã implemented Sprint 8** (DOCX Auto-Parser) |
 | B-10 | Version diff view (admin) | Thấp | Thấp | Show diff giữa versions của content |
 | B-11 | 6-Step Learning Path | Cao | Trung bình | IOT-inspired: Placement → Practice → AI Test → Full Services |
 | B-12 | Social proof stats | Trung bình | Thấp | IOT-inspired: Show "X lượt thi" per test/prompt |

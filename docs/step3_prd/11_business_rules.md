@@ -429,6 +429,46 @@
 
 ---
 
+### CR-013 — Lesson Submission Access Control
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-013 |
+| **Title** | Learner chỉ submit bài khi lesson có allow_submit = true |
+| **Description** | Khi `POST /lessons/:id/submissions`, backend kiểm tra `lesson.allow_submit`. Nếu `false` → reject 403. Content không được rỗng. `word_count` tự tính server-side. Learner có thể submit nhiều lần. Teacher xem tất cả submissions qua `GET /lessons/:id/submissions`. |
+| **Enforcement Point** | Backend: LessonController.submitEssay |
+| **Error Response** | `403 Forbidden` — "Submissions are not enabled for this lesson" |
+| **FR Ref** | FR-715 |
+
+---
+
+### CR-014 — File Upload Validation
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-014 |
+| **Title** | File upload phải qua validation (type + size) |
+| **Description** | `POST /api/uploads` chỉ chấp nhận file có extension trong whitelist (.png, .jpg, .jpeg, .webp, .pdf, .doc, .docx, .txt). File size max 10MB. UUID prefix cho filename để tránh trùng. DOCX chuyển HTML qua mammoth. |
+| **Enforcement Point** | Backend: Multer fileFilter + limits config |
+| **Error Response** | `400 Bad Request` — "File type {ext} not allowed" hoặc "File too large" |
+| **FR Ref** | FR-714 |
+
+---
+
+### CR-015 — Content Ownership Access Control
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | CR-015 |
+| **Title** | Chỉ owner mới sửa/xóa passages và prompts; Admin bypass |
+| **Description** | Khi Instructor gọi `PATCH` hoặc `DELETE` trên passage/prompt, backend kiểm tra `entity.created_by === req.user.sub`. Nếu không khớp và role không phải `admin` → trả 403. Admin luôn được phép (bypass ownership check). Tất cả user đều xem được (GET) bất kể ai tạo. Frontend: nút Edit/Delete chỉ hiện với owner hoặc admin. |
+| **Enforcement Point** | `AdminService.updatePassage`, `deletePassage`, `updatePrompt`, `deletePrompt` |
+| **Error Response** | `403 Forbidden` — "You can only edit/delete your own passages/prompts" |
+| **FR Ref** | FR-718 |
+| **Test Scenario** | Instructor A tạo passage → Instructor B gọi `PATCH /instructor/passages/:id` → 403. Admin gọi `PATCH` → 200. |
+
+---
+
 ## 5. Rule Enforcement Map
 
 | API Endpoint | Rules Enforced |
@@ -462,6 +502,16 @@
 | `DELETE /classrooms/:id/announcements/:annId` | CR-008 |
 | `GET /classrooms/:id/progress` | CR-010 |
 | `GET /dashboard/instructor-stats` | CR-012 |
+| `POST /uploads` | CR-014 |
+| `POST /lessons/:id/submissions` | CR-013 |
+| `GET /lessons/:id/submissions` | CR-002 (owner) |
+| `GET /lessons/:id/my-submissions` | Authenticated user |
+| `POST /reading/parse-docx` | Authenticated (instructor/admin) |
+| `POST /instructor/passages/import` | CR-015 (instructor role) |
+| `PATCH /instructor/passages/:id` | CR-015 (owner only) |
+| `DELETE /instructor/passages/:id` | CR-015 (owner only) |
+| `PATCH /instructor/prompts/:id` | CR-015 (owner only) |
+| `DELETE /instructor/prompts/:id` | CR-015 (owner only) |
 
 ---
 

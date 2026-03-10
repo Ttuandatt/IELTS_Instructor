@@ -115,6 +115,28 @@ export class ClassroomService {
             });
         }
 
+        // Preview rendering for Passages
+        const passageEntityIds = classroom.topics
+            .flatMap(t => t.lessons)
+            .filter(l => l.content_type === 'passage' && l.linked_entity_id)
+            .map(l => l.linked_entity_id as string);
+
+        if (passageEntityIds.length > 0) {
+            const passages = await this.prisma.passage.findMany({
+                where: { id: { in: passageEntityIds } },
+                select: { id: true, title: true, body: true }
+            });
+            const passageMap = new Map(passages.map(p => [p.id, p]));
+
+            classroom.topics.forEach(t => {
+                t.lessons.forEach((l: any) => {
+                    if (l.content_type === 'passage' && l.linked_entity_id) {
+                        l.linked_passage = passageMap.get(l.linked_entity_id);
+                    }
+                });
+            });
+        }
+
         return {
             ...classroom,
             role: userRole,           // ← include the user's role!

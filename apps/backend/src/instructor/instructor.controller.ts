@@ -1,7 +1,8 @@
 import {
-  Controller, Get, Patch, Param, Query, Body, UseGuards, Req,
+  Controller, Get, Patch, Param, Query, Body, UseGuards, Req, Post, Delete
 } from '@nestjs/common';
 import { InstructorService } from './instructor.service';
+import { AdminService } from '../admin/admin.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -10,7 +11,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('instructor' as any, 'admin' as any)
 export class InstructorController {
-  constructor(private readonly instructorService: InstructorService) { }
+  constructor(
+    private readonly instructorService: InstructorService,
+    private readonly adminService: AdminService
+  ) { }
 
   @Get('stats')
   getStats() {
@@ -59,5 +63,92 @@ export class InstructorController {
       page: query.page ? +query.page : undefined,
       limit: query.limit ? +query.limit : undefined,
     });
+  }
+
+  /* ── Passages (Shared with Admin) ── */
+
+  @Get('passages')
+  listPassages(@Query() query: { status?: string; level?: string; page?: string; limit?: string }) {
+    return this.adminService.listPassages({
+      status: query.status,
+      level: query.level,
+      page: query.page ? +query.page : undefined,
+      limit: query.limit ? +query.limit : undefined,
+    });
+  }
+
+  @Get('passages/:id')
+  getPassage(@Param('id') id: string) {
+    return this.adminService.getPassage(id);
+  }
+
+  @Post('passages')
+  createPassage(@Req() req: any, @Body() body: any) {
+    return this.adminService.createPassage(req.user.sub, body);
+  }
+
+  @Post('passages/import')
+  importPassage(@Req() req: any, @Body() body: any) {
+    return this.adminService.importPassage(req.user.sub, body);
+  }
+
+  @Patch('passages/:id')
+  updatePassage(@Param('id') id: string, @Req() req: any, @Body() body: any) {
+    return this.adminService.updatePassage(id, body, req.user.sub, req.user.role);
+  }
+
+  @Delete('passages/:id')
+  deletePassage(@Param('id') id: string, @Req() req: any) {
+    return this.adminService.deletePassage(id, req.user.sub, req.user.role);
+  }
+
+  /* ── Questions ── */
+
+  @Post('passages/:passageId/questions')
+  createQuestion(@Param('passageId') passageId: string, @Body() body: any) {
+    return this.adminService.createQuestion(passageId, body);
+  }
+
+  @Patch('questions/:id')
+  updateQuestion(@Param('id') id: string, @Body() body: any) {
+    return this.adminService.updateQuestion(id, body);
+  }
+
+  @Delete('questions/:id')
+  deleteQuestion(@Param('id') id: string) {
+    return this.adminService.deleteQuestion(id);
+  }
+
+  /* ── Prompts (Shared with Admin) ── */
+
+  @Get('prompts')
+  listPrompts(@Query() query: { status?: string; level?: string; task_type?: string; page?: string; limit?: string }) {
+    return this.adminService.listPrompts({
+      status: query.status,
+      level: query.level,
+      task_type: query.task_type,
+      page: query.page ? +query.page : undefined,
+      limit: query.limit ? +query.limit : undefined,
+    });
+  }
+
+  @Get('prompts/:id')
+  getPrompt(@Param('id') id: string) {
+    return this.adminService.getPrompt(id);
+  }
+
+  @Post('prompts')
+  createPrompt(@Req() req: any, @Body() body: any) {
+    return this.adminService.createPrompt(req.user.sub, body);
+  }
+
+  @Patch('prompts/:id')
+  updatePrompt(@Param('id') id: string, @Req() req: any, @Body() body: any) {
+    return this.adminService.updatePrompt(id, body, req.user.sub, req.user.role);
+  }
+
+  @Delete('prompts/:id')
+  deletePrompt(@Param('id') id: string, @Req() req: any) {
+    return this.adminService.deletePrompt(id, req.user.sub, req.user.role);
   }
 }

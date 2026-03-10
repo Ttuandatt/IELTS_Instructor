@@ -5,7 +5,7 @@ import { useI18n } from '@/providers/I18nProvider';
 import { useAuth } from '@/providers/AuthProvider';
 import { Moon, Sun, Bell, LogOut, Search, Globe } from 'lucide-react';
 
-export function Header() {
+export function Header({ children }: { children?: React.ReactNode }) {
   const { theme, toggleTheme } = useTheme();
   const { lang, setLang } = useI18n();
   const { user, logout } = useAuth();
@@ -13,7 +13,7 @@ export function Header() {
   return (
     <header className="app-header">
       <div className="header-left">
-        {/* Search bar */}
+        {children}        {/* Search bar */}
         <div style={{
           position: 'relative',
           display: 'flex',

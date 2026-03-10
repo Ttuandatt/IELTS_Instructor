@@ -25,7 +25,12 @@ export default function AdminPassagesPage() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
         <h1 className="page-title" style={{ margin: 0 }}>{t.admin.manage_passages}</h1>
-        <Link href="/admin/passages/new" className="btn btn-primary">{t.admin.create_passage}</Link>
+        <div className="flex gap-3">
+          <Link href="/admin/passages/upload" className="btn btn-secondary flex items-center gap-2">
+            Import DOCX
+          </Link>
+          <Link href="/admin/passages/new" className="btn btn-primary">{t.admin.create_passage}</Link>
+        </div>
       </div>
 
       {isLoading ? (

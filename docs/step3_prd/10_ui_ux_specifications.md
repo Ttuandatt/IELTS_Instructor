@@ -447,8 +447,26 @@ IELTS Helper
 | — `text` | Rendered HTML/Markdown với prose styling |
 | — `video` | YouTube/Vimeo iframe embed (auto-detect URL) |
 | — `passage`/`prompt` | Launch card với gradient colors, icon, nút "Start Reading" hoặc "Start Writing" |
+| Image handling | Nếu `content` đã chứa `<img>`, hiển thị via prose content. Nếu chỉ có `attachment_url` (standalone image), chèn `<img>` riêng với border + shadow |
 | Status badge | Published (green) / Draft (yellow) trong header |
 | Teacher actions | Edit button, Toggle status (Publish/Draft) |
+| View Full Lesson | Button mở `/classrooms/:id/lessons/:lessonId` khi lesson có content hoặc image |
+
+### S36b — Lesson Detail Page (`/classrooms/:id/lessons/:lessonId`)
+
+| Element | Spec |
+|---------|------|
+| Layout | Full page, max-width 4xl centered |
+| Header bar | Sticky: back arrow, lesson title, content_type icon, type badge (Writing/Reading) |
+| Image | Standalone image from `attachment_url` (only if content doesn't embed `<img>`); `max-height: 65vh`, border + shadow |
+| Content | Rendered HTML via prose styling; `fixContentUrls` converts relative `/uploads/` paths |
+| **Essay section** (Writing only) | White card with textarea (12 rows), live word count, submit/check-score buttons |
+| Word count | "{N} words" — emerald when ≥150, gray otherwise; "(X more needed)" hint |
+| Submit button | Enabled when ≥10 words + `allow_submit = true`; loading state |
+| Check Score button | Grayed out "coming soon" when `allow_checkscore = true` |
+| **Your Submissions** (Student) | List of own past submissions (newest first); each: status badge (⏳ Submitted / ✓ Graded), time ago, word count, score; expand/collapse to read essay + teacher feedback |
+| **Student Submissions** (Teacher) | List of all student submissions; each: avatar + name + email, status, word count, time ago; expand/collapse to read essay |
+| Empty state (Teacher) | "No student submissions yet." with file icon |
 
 ### S37 — Student Progress (`/classrooms/:id/progress`)
 

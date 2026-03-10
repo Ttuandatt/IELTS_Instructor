@@ -30,7 +30,18 @@ enum ContentStatus {
 }
 
 enum QuestionType {
+  matching_headings
+  true_false_notgiven
+  yes_no_notgiven
   mcq
+  matching_information
+  matching_features
+  matching_sentence_endings
+  sentence_completion
+  summary_completion
+  table_completion
+  flowchart_completion
+  diagram_label_completion
   short
 }
 
@@ -89,6 +100,7 @@ model User {
   classrooms_owned         Classroom[]         @relation("ClassroomOwner")
   classroom_memberships    ClassroomMember[]
   authored_announcements   Announcement[]      @relation("AnnouncementAuthor")
+  lesson_submissions       LessonSubmission[]  @relation("LessonSubmissions")
 
   @@index([email])
   @@index([role])
@@ -289,13 +301,36 @@ model Lesson {
   attachment_url   String?           @db.Text
   order_index      Int               @default(0)
   status           ContentStatus     @default(draft)
+  allow_submit     Boolean           @default(true)
+  allow_checkscore Boolean           @default(false)
   created_at       DateTime          @default(now()) @db.Timestamptz()
 
   // Relations
-  topic Topic @relation(fields: [topic_id], references: [id], onDelete: Cascade)
+  topic       Topic              @relation(fields: [topic_id], references: [id], onDelete: Cascade)
+  submissions LessonSubmission[]
 
   @@index([topic_id, order_index])
   @@map("lessons")
+}
+
+model LessonSubmission {
+  id         String   @id @default(uuid())
+  lesson_id  String
+  user_id    String
+  content    String   @db.Text
+  word_count Int
+  status     String   @default("submitted") @db.VarChar(20) // submitted | graded
+  score      Float?   // teacher-assigned score
+  feedback   String?  @db.Text
+  created_at DateTime @default(now()) @db.Timestamptz()
+
+  // Relations
+  lesson Lesson @relation(fields: [lesson_id], references: [id], onDelete: Cascade)
+  user   User   @relation("LessonSubmissions", fields: [user_id], references: [id])
+
+  @@index([lesson_id, created_at(sort: Desc)])
+  @@index([user_id])
+  @@map("lesson_submissions")
 }
 
 model Announcement {

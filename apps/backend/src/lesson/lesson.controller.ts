@@ -17,7 +17,7 @@ export class LessonController {
     @Post('topics/:topicId/lessons')
     async create(@Req() req: any, @Param('topicId') topicId: string, @Body() createLessonDto: CreateLessonDto) {
         await this.checkTopicOwnership(req.user, topicId);
-        return this.lessonService.create(topicId, createLessonDto);
+        return this.lessonService.create(req.user.sub, topicId, createLessonDto);
     }
 
     @Get('topics/:topicId/lessons')
@@ -36,7 +36,7 @@ export class LessonController {
         const lesson = await this.prisma.lesson.findUnique({ where: { id } });
         if (!lesson) throw new NotFoundException('Lesson not found');
         await this.checkTopicOwnership(req.user, lesson.topic_id);
-        return this.lessonService.update(id, updateLessonDto);
+        return this.lessonService.update(req.user.sub, id, updateLessonDto);
     }
 
     @Delete('lessons/:id')
@@ -51,6 +51,46 @@ export class LessonController {
     async reorder(@Req() req: any, @Param('topicId') topicId: string, @Body() dto: ReorderLessonsDto) {
         await this.checkTopicOwnership(req.user, topicId);
         return this.lessonService.reorder(topicId, dto.lesson_ids);
+    }
+
+    @Post('lessons/:id/submissions')
+    async submitEssay(
+        @Req() req: any,
+        @Param('id') lessonId: string,
+        @Body() body: { content: string },
+    ) {
+        const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+        if (!lesson) throw new NotFoundException('Lesson not found');
+        if (!lesson.allow_submit) throw new ForbiddenException('Submissions are not enabled for this lesson');
+        if (!body.content?.trim()) throw new ForbiddenException('Content cannot be empty');
+
+        const wordCount = body.content.trim().split(/\s+/).filter(Boolean).length;
+
+        return this.prisma.lessonSubmission.create({
+            data: {
+                lesson_id: lessonId,
+                user_id: req.user.sub,
+                content: body.content,
+                word_count: wordCount,
+            },
+        });
+    }
+
+    @Get('lessons/:id/submissions')
+    async getSubmissions(@Param('id') lessonId: string) {
+        return this.prisma.lessonSubmission.findMany({
+            where: { lesson_id: lessonId },
+            orderBy: { created_at: 'desc' },
+            include: { user: { select: { id: true, display_name: true, email: true } } },
+        });
+    }
+
+    @Get('lessons/:id/my-submissions')
+    async getMySubmissions(@Req() req: any, @Param('id') lessonId: string) {
+        return this.prisma.lessonSubmission.findMany({
+            where: { lesson_id: lessonId, user_id: req.user.sub },
+            orderBy: { created_at: 'desc' },
+        });
     }
 
     private async checkTopicOwnership(user: any, topicId: string) {

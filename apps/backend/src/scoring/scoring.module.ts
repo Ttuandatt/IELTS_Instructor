@@ -19,6 +19,6 @@ import { ScoringConsumer } from './scoring.consumer';
         }),
     ],
     providers: [LlmClientService, ScoringProducerService, ScoringConsumer],
-    exports: [ScoringProducerService],
+    exports: [ScoringProducerService, LlmClientService],
 })
 export class ScoringModule { }

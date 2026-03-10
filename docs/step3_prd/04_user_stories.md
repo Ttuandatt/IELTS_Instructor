@@ -49,7 +49,8 @@ Mỗi User Story theo format:
 | E7: Instructor Review | Instructor review & override Writing | 2 | 8 |
 | E8: Classroom Management | Lớp học, quản lý thành viên, Topics, Lessons | 10 | 37 |
 | E8 Extended: Classroom Enhancements | Video Embed, Announcements, Duplicate, Progress, Dashboard | 7 | 24 |
-| **Tổng** | | **44** | **156** |
+| E9: Content Auto-Parser & Instructor CMS | DOCX import, Instructor Passage/Prompt CRUD, Ownership, Preview, Sidebar | 5 | 18 |
+| **Tổng** | | **49** | **174** |
 
 ---
 
@@ -1032,6 +1033,45 @@ Mỗi User Story theo format:
 
 ---
 
+### US-818: Upload file đính kèm cho lesson
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Upload file (ảnh, PDF, DOCX) đính kèm vào lesson |
+| **So that** | Học viên xem được tài liệu trực tiếp (ảnh inline) hoặc tải xuống |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-714 |
+
+**Chi tiết:**
+- Upload qua `POST /api/uploads` (Multer, max 10MB)
+- Supported: JPEG, PNG, WEBP, GIF, PDF, DOC, DOCX
+- Backend trả URL + htmlContent (mammoth cho DOCX, `<img>` tag cho ảnh)
+- URL lưu vào `attachment_url` của lesson
+
+---
+
+### US-819: Nộp bài viết trong lesson
+
+| Field | Value |
+|-------|-------|
+| **As a** | Learner |
+| **I want to** | Viết essay trong textarea trên lesson detail page và submit cho giáo viên |
+| **So that** | Giáo viên nhận được bài viết để chấm điểm và nhận xét |
+| **Priority** | P0 |
+| **Story Points** | 5 |
+| **FR Ref** | FR-715 |
+
+**Chi tiết:**
+- Textarea với live word count hiển thị bên dưới lesson content
+- Nút Submit chỉ enable khi `allow_submit = true` (GV cấu hình khi tạo lesson)
+- Nút Check Score (coming soon) hiển thị khi `allow_checkscore = true`
+- Sau submit, bài viết hiển thị trong "Your Submissions" section (expand/collapse)
+- GV xem tất cả bài nộp trong "Student Submissions" section kèm thông tin học sinh
+
+---
+
 ## 9. Tổng kết Sprint Planning
 
 | Sprint | Epics | Stories | Story Points |
@@ -1042,10 +1082,102 @@ Mỗi User Story theo format:
 | Sprint 4 (M4+M5) | E4 (Dashboard) + E5 (Admin) | US-401..403 + US-501..506 | 29 |
 | Sprint 5 (M5+M6) | E6 (Import) + E7 (Instructor) | US-601..603 + US-701..702 | 18 |
 | Sprint 6 | E8 (Classroom) | US-801..810 | 37 |
-| Sprint 7 | E8 Extended (Video, Announcements, Progress) | US-811..817 | 24 |
-| Sprint 8 | Polish + Bug fixes | — | TBD |
-| **Tổng** | **8 Epics** | **51 Stories** | **180 SP** |
+| Sprint 7 | E8 Extended (Video, Announcements, Progress, Upload, Submission) | US-811..819 | 32 |
+| Sprint 8 | E9 (DOCX Parser, Instructor CMS, Ownership, Preview, Sidebar) | US-820..824 | 18 |
+| Sprint 9 | Polish + Bug fixes | — | TBD |
+| **Tổng** | **9 Epics** | **58 Stories** | **206 SP** |
 
 ---
 
 > **Tham chiếu:** [03_user_personas_roles](03_user_personas_roles.md) | [05_functional_requirements](05_functional_requirements.md) | [06_acceptance_criteria](06_acceptance_criteria.md)
+
+---
+
+## 10. Epic 9: Content Auto-Parser & Instructor CMS (Sprint 8)
+
+### US-820: Import DOCX và Auto-Parse Reading Passage
+
+| Field | Value |
+|-------|-------|
+| **As a** | Admin / Instructor |
+| **I want to** | Upload file DOCX và hệ thống tự động phân tích thành passage + câu hỏi |
+| **So that** | Tôi không cần nhập thủ công từng câu mà chỉ cần upload file nhà xuất bản |
+| **Priority** | P0 |
+| **Story Points** | 5 |
+| **FR Ref** | FR-716 |
+
+**Chi tiết:**
+- Upload `.docx` → Backend dùng `mammoth` convert → HTML → gửi vào LLM (Gemini Flash) với prompt chuyên biệt.
+- LLM trả về JSON: `{passage, question_groups: [{type, prompt, questions: [{prompt, options?, answer_key}]}]}`.
+- Frontend hiển thị preview 2 cột (Passage | Questions) trước khi save.
+- Hỗ trợ tất cả IELTS question types: matching_headings, true_false_notgiven, yes_no_notgiven, mcq, matching_information, matching_features, matching_sentence_endings, sentence_completion, summary_completion, table_completion, flowchart_completion, diagram_label_completion, short.
+
+---
+
+### US-821: Instructor quản lý Passages & Prompts
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Tạo, xem, sửa, xóa passages và writing prompts y hệt Admin |
+| **So that** | Tôi tự chủ động quản lý ngân hàng đề mà không cần liên hệ Admin |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-718 |
+
+**Chi tiết:**
+- Các API routes dưới `/instructor/passages` và `/instructor/prompts` được bảo vệ bởi RolesGuard (instructor, admin).
+- Frontend clone từ `/admin/passages` và `/admin/prompts` → `/instructor/passages` và `/instructor/prompts`.
+- Sidebar của Instructor có link đến cả Passages và Prompts.
+
+---
+
+### US-822: Kiểm soát quyền sửa/xóa theo Ownership
+
+| Field | Value |
+|-------|-------|
+| **As a** | Instructor |
+| **I want to** | Chỉ sửa và xóa được passages/prompts mà tôi tạo ra |
+| **So that** | Nội dung của người khác không bị thay đổi nhầm |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **FR Ref** | CR-015 |
+
+**Chi tiết:**
+- Backend: `updatePassage`, `deletePassage`, `updatePrompt`, `deletePrompt` kiểm tra `passage.created_by === userId` nếu role không phải admin. Trả 403 nếu vi phạm.
+- Frontend: Nút Edit/Delete chỉ hiển thị khi user là owner hoặc admin.
+- Cột "Creator" được thêm vào danh sách passages của Instructor.
+
+---
+
+### US-823: Student xem preview bài đọc trong Classroom
+
+| Field | Value |
+|-------|-------|
+| **As a** | Learner |
+| **I want to** | Xem preview đoạn đầu bài đọc ngay trong Classroom trước khi vào làm |
+| **So that** | Tôi biết nội dung bài trước khi cam kết thời gian làm bài |
+| **Priority** | P0 |
+| **Story Points** | 3 |
+| **FR Ref** | FR-717 |
+
+**Chi tiết:**
+- Backend: `ClassroomService.findOne()` tự động query và attach `linked_passage` (title, body) cho lessons có `content_type='passage'`.
+- Frontend: Hiển thị box preview với faded gradient ở dưới, giới hạn `max-h-60`.
+
+---
+
+### US-824: Sidebar thống nhất theo Role
+
+| Field | Value |
+|-------|-------|
+| **As a** | Developer |
+| **I want to** | Sidebar navigation được thống nhất theo role |
+| **So that** | Mỗi role thấy đúng các chức năng mình có quyền |
+| **Priority** | P0 |
+| **Story Points** | 2 |
+
+**Chi tiết:**
+- **Admin:** Dashboard, Classrooms, Passages, Prompts, Users, Settings.
+- **Instructor:** Dashboard, Classrooms, Passages, Prompts, Learners, Submissions, Settings.
+- **Learner:** Dashboard, Reading, Writing, Classrooms, Settings.

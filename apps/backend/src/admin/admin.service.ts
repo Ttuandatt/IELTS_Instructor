@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import { ContentStatus, CefrLevel, UserRole } from '@prisma/client';
 
@@ -55,14 +55,73 @@ export class AdminService {
     });
   }
 
-  async updatePassage(id: string, dto: { title?: string; body?: string; level?: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus }) {
-    await this.getPassage(id); // throws if not found
+  async updatePassage(id: string, dto: { title?: string; body?: string; level?: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus }, userId?: string, userRole?: string) {
+    const passage = await this.getPassage(id);
+    if (userId && userRole !== 'admin' && passage.created_by !== userId) {
+      throw new ForbiddenException('You can only edit your own passages');
+    }
     return this.prisma.passage.update({ where: { id }, data: dto });
   }
 
-  async deletePassage(id: string) {
-    await this.getPassage(id);
+  async deletePassage(id: string, userId?: string, userRole?: string) {
+    const passage = await this.getPassage(id);
+    if (userId && userRole !== 'admin' && passage.created_by !== userId) {
+      throw new ForbiddenException('You can only delete your own passages');
+    }
     return this.prisma.passage.delete({ where: { id } });
+  }
+
+  async importPassage(adminId: string, dto: { title: string; level: CefrLevel; status: ContentStatus; passage: string; question_groups: any[] }) {
+    const VALID_TYPES = new Set(['matching_headings', 'true_false_notgiven', 'yes_no_notgiven', 'mcq', 'matching_information', 'matching_features', 'matching_sentence_endings', 'sentence_completion', 'summary_completion', 'table_completion', 'flowchart_completion', 'diagram_label_completion', 'short']);
+
+    return this.prisma.$transaction(async (tx) => {
+      const newPassage = await tx.passage.create({
+        data: {
+          title: dto.title,
+          body: dto.passage,
+          level: dto.level,
+          status: dto.status || 'draft' as any,
+          created_by: adminId,
+        }
+      });
+
+      let order_index = 0;
+      for (const group of dto.question_groups) {
+        const safeType = VALID_TYPES.has(group.type) ? group.type : 'short';
+
+        for (let i = 0; i < group.questions?.length; i++) {
+          const q = group.questions[i];
+          let formattedPrompt = q.prompt;
+
+          if (i === 0) {
+            let prefix = '';
+            if (group.instruction) {
+              prefix += `<div class="mb-3 text-gray-800 font-semibold italic border-l-4 border-blue-400 pl-3 text-sm">${group.instruction}</div>`;
+            }
+            if (group.group_options && Array.isArray(group.group_options) && group.group_options.length > 0) {
+              prefix += `<div class="mb-4 p-4 border border-gray-300 rounded-lg bg-white shadow-sm font-medium text-gray-800">
+                <ul class="list-none space-y-1">
+                  ${group.group_options.map((opt: string) => `<li>${opt}</li>`).join('')}
+                </ul>
+              </div>`;
+            }
+            formattedPrompt = prefix + q.prompt;
+          }
+
+          await tx.question.create({
+            data: {
+              passage_id: newPassage.id,
+              type: safeType as any,
+              prompt: formattedPrompt,
+              options: q.options && q.options.length > 0 ? q.options : undefined,
+              answer_key: q.answer_key || null,
+              order_index: order_index++,
+            }
+          });
+        }
+      }
+      return newPassage;
+    });
   }
 
   /* ── Questions ── */
@@ -143,13 +202,19 @@ export class AdminService {
     });
   }
 
-  async updatePrompt(id: string, dto: { title?: string; prompt_text?: string; level?: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus; min_words?: number }) {
-    await this.getPrompt(id);
+  async updatePrompt(id: string, dto: { title?: string; prompt_text?: string; level?: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus; min_words?: number }, userId?: string, userRole?: string) {
+    const prompt = await this.getPrompt(id);
+    if (userId && userRole !== 'admin' && prompt.created_by !== userId) {
+      throw new ForbiddenException('You can only edit your own prompts');
+    }
     return this.prisma.prompt.update({ where: { id }, data: dto });
   }
 
-  async deletePrompt(id: string) {
-    await this.getPrompt(id);
+  async deletePrompt(id: string, userId?: string, userRole?: string) {
+    const prompt = await this.getPrompt(id);
+    if (userId && userRole !== 'admin' && prompt.created_by !== userId) {
+      throw new ForbiddenException('You can only delete your own prompts');
+    }
     return this.prisma.prompt.delete({ where: { id } });
   }
 

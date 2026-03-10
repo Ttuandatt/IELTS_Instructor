@@ -11,7 +11,7 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin' as any)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) {}
+  constructor(private readonly adminService: AdminService) { }
 
   /* ── Stats ── */
 
@@ -42,14 +42,19 @@ export class AdminController {
     return this.adminService.createPassage(req.user.sub, body);
   }
 
+  @Post('passages/import')
+  importPassage(@Request() req: any, @Body() body: any) {
+    return this.adminService.importPassage(req.user.sub, body);
+  }
+
   @Patch('passages/:id')
-  updatePassage(@Param('id') id: string, @Body() body: any) {
-    return this.adminService.updatePassage(id, body);
+  updatePassage(@Param('id') id: string, @Request() req: any, @Body() body: any) {
+    return this.adminService.updatePassage(id, body, req.user.sub, req.user.role);
   }
 
   @Delete('passages/:id')
-  deletePassage(@Param('id') id: string) {
-    return this.adminService.deletePassage(id);
+  deletePassage(@Param('id') id: string, @Request() req: any) {
+    return this.adminService.deletePassage(id, req.user.sub, req.user.role);
   }
 
   /* ── Questions ── */
@@ -93,13 +98,13 @@ export class AdminController {
   }
 
   @Patch('prompts/:id')
-  updatePrompt(@Param('id') id: string, @Body() body: any) {
-    return this.adminService.updatePrompt(id, body);
+  updatePrompt(@Param('id') id: string, @Request() req: any, @Body() body: any) {
+    return this.adminService.updatePrompt(id, body, req.user.sub, req.user.role);
   }
 
   @Delete('prompts/:id')
-  deletePrompt(@Param('id') id: string) {
-    return this.adminService.deletePrompt(id);
+  deletePrompt(@Param('id') id: string, @Request() req: any) {
+    return this.adminService.deletePrompt(id, req.user.sub, req.user.role);
   }
 
   /* ── Users ── */

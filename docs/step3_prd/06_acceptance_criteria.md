@@ -774,4 +774,79 @@ Feature: Instructor Score Override
 
 ---
 
+### AC-818: Upload file đính kèm
+
+```gherkin
+Feature: File Upload for Lessons
+  Ref: US-818, FR-714
+
+  Scenario: Successful image upload
+    Given I am an instructor creating a lesson
+    When I select a PNG file (< 10MB) and click Upload
+    Then the file is uploaded to /uploads/ directory
+    And I receive a URL, originalName, and htmlContent with <img> tag
+    And the URL is saved as attachment_url on the lesson
+
+  Scenario: Successful DOCX upload
+    Given I select a DOCX file
+    When the upload completes
+    Then the DOCX is converted to HTML via mammoth
+    And extractedHtml contains the document content
+    And attachment_url stores the download link
+
+  Scenario: File too large
+    Given I select a 15MB file
+    When I try to upload
+    Then I see error "File too large (max 10MB)"
+
+  Scenario: Unsupported file type
+    Given I select a .exe file
+    When I try to upload
+    Then I see error "File type .exe not allowed"
+```
+
+---
+
+### AC-819: Nộp bài viết trong lesson
+
+```gherkin
+Feature: Lesson Submission (Student Essay)
+  Ref: US-819, FR-715
+
+  Scenario: Successful essay submission
+    Given I am a learner viewing a Writing lesson with allow_submit = true
+    And I have written 180 words in the textarea
+    When I click Submit
+    Then the essay is saved with word_count = 180, status = "submitted"
+    And I see toast "Essay submitted successfully!"
+    And the essay appears in "Your Submissions" section
+
+  Scenario: View past submissions
+    Given I have submitted 3 essays for this lesson
+    Then "Your Submissions" shows 3 entries (newest first)
+    And each entry shows status badge, time ago, word count
+    And I can click to expand and read my full essay
+
+  Scenario: Teacher views all submissions
+    Given I am an instructor viewing a Writing lesson
+    Then "Student Submissions" shows all learner submissions
+    And each entry shows student avatar, name, email, status, word count
+    And I can expand to read the full essay
+
+  Scenario: Submissions disabled
+    Given allow_submit = false on the lesson
+    Then the Submit button is hidden
+    And POST /lessons/:id/submissions returns 403
+
+  Scenario: Empty content rejected
+    Given I try to submit with empty textarea
+    Then I see error "Content cannot be empty"
+
+  Scenario: Teacher feedback shown
+    Given my submission has been graded with score and feedback
+    Then I see the score and teacher feedback when expanding my submission
+```
+
+---
+
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [11_business_rules](11_business_rules.md) | [09_api_specifications](09_api_specifications.md)

@@ -1060,13 +1060,135 @@ Client                    API Server               BullMQ Queue           Worker
 
 ---
 
+## 10.6 File Upload
+
+### POST /uploads
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-714 |
+| **Auth** | Bearer JWT (any authenticated role) |
+| **Content-Type** | `multipart/form-data` |
+
+**Body:** `file` (multipart field — max 10MB)
+
+**Supported formats:** JPEG, PNG, WEBP, GIF, PDF, DOC, DOCX
+
+**Response (200):**
+```json
+{
+  "url": "http://localhost:3001/uploads/9ea91db6-f22b.png",
+  "filename": "original-name.png",
+  "htmlContent": "<img src=\"http://localhost:3001/uploads/9ea91db6-f22b.png\" alt=\"...\" />"
+}
+```
+
+**Notes:**
+- DOCX files are converted to HTML via `mammoth`
+- Image files return `<img>` tag in `htmlContent`
+- Files are stored in `/uploads/` directory with UUID prefix
+
+---
+
+## 10.7 Lesson Submission Endpoints
+
+### POST /lessons/:id/submissions
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-715 |
+| **Auth** | Bearer JWT (any role, typically learner) |
+
+**Request Body:**
+```json
+{
+  "content": "In recent years, the debate over renewable energy has intensified..."
+}
+```
+
+**Validation:**
+- Lesson must exist
+- Lesson `allow_submit` must be `true`
+- Content cannot be empty
+
+**Response (201):**
+```json
+{
+  "id": "sub-ls-001",
+  "lesson_id": "lesson-001",
+  "user_id": "user-001",
+  "content": "In recent years...",
+  "word_count": 267,
+  "status": "submitted",
+  "created_at": "2026-03-03T12:00:00Z"
+}
+```
+
+**Errors:** 400 (empty content), 403 (submissions disabled), 404 (lesson not found)
+
+---
+
+### GET /lessons/:id/submissions
+
+| Aspect | Detail |
+|--------|--------|
+| **FR Ref** | FR-715 |
+| **Auth** | Bearer JWT (classroom owner/admin) |
+| **Response (200)** | Array of submissions with user info |
+
+**Response Example:**
+```json
+[
+  {
+    "id": "sub-ls-001",
+    "lesson_id": "lesson-001",
+    "content": "In recent years...",
+    "word_count": 267,
+    "status": "submitted",
+    "score": null,
+    "feedback": null,
+    "created_at": "2026-03-03T12:00:00Z",
+    "user": {
+      "id": "user-001",
+      "display_name": "Minh Nguyen",
+      "email": "minh@example.com"
+    }
+  }
+]
+```
+
+---
+
+## 10.8 Updated Lesson Create/Update Body
+
+Khi tạo hoặc cập nhật lesson, body hỗ trợ thêm 2 fields mới:
+
+```json
+{
+  "title": "Writing Task 1 — Line Graph",
+  "content": "Summarise the information by selecting...",
+  "content_type": "prompt",
+  "attachment_url": "http://localhost:3001/uploads/xxx.png",
+  "status": "published",
+  "allow_submit": true,
+  "allow_checkscore": false
+}
+```
+
+| Field | Type | Required | Default |
+|-------|------|----------|---------|
+| allow_submit | boolean | ❌ | `true` |
+| allow_checkscore | boolean | ❌ | `false` |
+
+---
+
 ## 11. Error Codes Reference
 
 | HTTP Status | Code | Description | Example |
 |-------------|------|-------------|---------|
 | 400 | BAD_REQUEST | Validation error | Missing required field, bad format |
 | 401 | UNAUTHORIZED | Authentication failed | Missing/invalid/expired JWT |
-| 403 | FORBIDDEN | Authorization failed | Learner accessing admin route; classroom full |
+| 403 | FORBIDDEN | Authorization failed | Learner accessing admin route; classroom full; submissions disabled |
 | 404 | NOT_FOUND | Resource not found | Passage ID doesn't exist; invalid invite code |
 | 409 | CONFLICT | Resource conflict | Duplicate email; already a member |
 | 429 | TOO_MANY_REQUESTS | Rate limit exceeded | Daily writing limit |

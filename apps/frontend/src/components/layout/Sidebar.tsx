@@ -37,6 +37,8 @@ const LEARNER_NAV: NavItem[] = [
 const INSTRUCTOR_NAV: NavItem[] = [
   { href: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
   { href: '/classrooms', Icon: School, labelKey: 'classrooms' },
+  { href: '/instructor/passages', Icon: BookOpen, labelKey: 'passages' },
+  { href: '/instructor/prompts', Icon: FileText, labelKey: 'prompts' },
   { href: '/instructor/learners', Icon: Users, labelKey: 'learners' },
   { href: '/instructor/submissions', Icon: ClipboardList, labelKey: 'submissions' },
   { href: '/settings', Icon: Settings, labelKey: 'settings' },
@@ -44,6 +46,7 @@ const INSTRUCTOR_NAV: NavItem[] = [
 
 const ADMIN_NAV: NavItem[] = [
   { href: '/dashboard', Icon: LayoutDashboard, labelKey: 'dashboard' },
+  { href: '/classrooms', Icon: School, labelKey: 'classrooms' },
   { href: '/admin/passages', Icon: BookOpen, labelKey: 'passages' },
   { href: '/admin/prompts', Icon: FileText, labelKey: 'prompts' },
   { href: '/admin/users', Icon: Users, labelKey: 'users' },
@@ -58,7 +61,11 @@ function getNavItems(role?: string): NavItem[] {
   }
 }
 
-export function Sidebar() {
+interface SidebarProps {
+  collapsed?: boolean;
+}
+
+export function Sidebar({ collapsed = false }: SidebarProps) {
   const pathname = usePathname();
   const { t } = useI18n();
   const { user } = useAuth();
@@ -66,11 +73,11 @@ export function Sidebar() {
   const items = getNavItems(user?.role);
 
   return (
-    <aside className="sidebar">
+    <aside className={clsx('sidebar', collapsed && 'sidebar--collapsed')}>
       <div className="sidebar-logo">
         <Link href="/dashboard" className="sidebar-logo-link">
           <GraduationCap size={28} strokeWidth={2.5} />
-          <span className="sidebar-logo-text">{t.app_name}</span>
+          {!collapsed && <span className="sidebar-logo-text">{t.app_name}</span>}
         </Link>
       </div>
 
@@ -83,9 +90,10 @@ export function Sidebar() {
               key={item.href}
               href={item.href}
               className={clsx('sidebar-link', isActive && 'sidebar-link--active')}
+              title={collapsed ? t.nav[item.labelKey] : undefined}
             >
               <item.Icon size={20} strokeWidth={isActive ? 2.2 : 1.8} />
-              <span className="sidebar-link-label">{t.nav[item.labelKey]}</span>
+              {!collapsed && <span className="sidebar-link-label">{t.nav[item.labelKey]}</span>}
             </Link>
           );
         })}
@@ -96,10 +104,12 @@ export function Sidebar() {
           <div className="sidebar-user-avatar">
             {user?.display_name?.charAt(0).toUpperCase() || '?'}
           </div>
-          <div className="sidebar-user-info">
-            <span className="sidebar-user-name">{user?.display_name}</span>
-            <span className="sidebar-user-role">{user?.role}</span>
-          </div>
+          {!collapsed && (
+            <div className="sidebar-user-info">
+              <span className="sidebar-user-name">{user?.display_name}</span>
+              <span className="sidebar-user-role">{user?.role}</span>
+            </div>
+          )}
         </div>
       </div>
     </aside>

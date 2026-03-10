@@ -1043,5 +1043,179 @@ Mảng objects, mỗi student chứa:
 
 ---
 
+### FR-714: File Upload
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-714 |
+| **Title** | Upload file đính kèm cho lesson |
+| **Priority** | P0 |
+
+**Mô tả:**
+Instructor upload file (ảnh, PDF, DOCX) qua API. Backend lưu file vào thư mục `uploads/`, trả về URL đầy đủ. Hỗ trợ các định dạng: JPEG, PNG, WEBP, GIF, PDF, DOC, DOCX.
+
+**Endpoint:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/uploads` | Upload file (multipart/form-data) |
+
+**Input:** `file` (multipart field)
+
+**Output (200):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| url | string | Full URL của file đã upload (e.g. `http://localhost:3001/uploads/xxx.png`) |
+| filename | string | Tên file gốc |
+| htmlContent | string | HTML render nội dung (cho DOCX → HTML via mammoth; cho ảnh → `<img>` tag) |
+
+**Business Rules:**
+- File size tối đa: 10MB (Multer config)
+- Chỉ authenticated user mới upload được
+- UUID prefix cho filename để tránh trùng
+
+---
+
+### FR-715: Lesson Submission (Student Essay)
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-715 |
+| **Title** | Nộp bài viết trong lesson cho giáo viên chấm |
+| **Priority** | P0 |
+
+**Mô tả:**
+Learner viết essay trong textarea trên lesson detail page và submit cho giáo viên chấm. Giáo viên kiểm soát loại nộp bài qua 2 toggles khi tạo lesson: `allow_submit` (nộp cho giáo viên) và `allow_checkscore` (AI chấm — coming soon).
+
+**Endpoints:**
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/lessons/:id/submissions` | Learner nộp essay |
+| GET | `/lessons/:id/submissions` | Danh sách submissions (cho teacher) |
+
+**Input (POST):**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| content | string | ✅ | Nội dung essay |
+
+**Output (201):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| id | uuid | Submission ID |
+| lesson_id | uuid | — |
+| user_id | uuid | — |
+| content | string | — |
+| word_count | int | Auto-calculated |
+| status | string | 'submitted' |
+| created_at | timestamp | — |
+
+**Business Rules:**
+- Chỉ submit được khi lesson có `allow_submit = true`
+- Content không được rỗng
+- `word_count` tự tính từ `content`
+- Learner có thể nộp nhiều lần
+- Teacher xem submissions qua GET endpoint (kèm thông tin user)
+
+---
 > **Tham chiếu:** [04_user_stories](04_user_stories.md) | [06_acceptance_criteria](06_acceptance_criteria.md) | [09_api_specifications](09_api_specifications.md) | [11_business_rules](11_business_rules.md)
+
+---
+
+### FR-716: DOCX Auto-Parser (Reading Import)
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-716 |
+| **Title** | Import DOCX và auto-parse passage + questions bằng AI |
+| **Priority** | P0 |
+| **User Story** | US-820 |
+
+**Mô tả:**
+Admin/Instructor upload file `.docx`. Backend dùng `mammoth` convert sang HTML, gửi vào LLM (Gemini Flash) để trích xuất passage và question groups dưới dạng JSON. Frontend hiển thị preview 2 cột trước khi save.
+
+**Endpoints:**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | `/reading/parse-docx` | Upload DOCX, trả parsed JSON (passage + questions) |
+| POST | `/admin/passages/import` | Save parsed JSON vào DB (passage + nested questions) |
+| POST | `/instructor/passages/import` | Tương tự admin, cho instructor |
+
+**Input (parse-docx):** `file` (multipart DOCX)
+
+**Output (parse-docx, 200):**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| passage | string | HTML body của passage |
+| question_groups | array | `[{type, prompt, questions: [{prompt, options?, answer_key, explanation?}]}]` |
+
+**Supported Question Types:**
+`matching_headings`, `true_false_notgiven`, `yes_no_notgiven`, `mcq`, `matching_information`, `matching_features`, `matching_sentence_endings`, `sentence_completion`, `summary_completion`, `table_completion`, `flowchart_completion`, `diagram_label_completion`, `short`
+
+---
+
+### FR-717: Student Passage Preview in Classroom
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-717 |
+| **Title** | Preview bài đọc cho học sinh trong Classroom |
+| **Priority** | P0 |
+| **User Story** | US-823 |
+
+**Mô tả:**
+Khi `ClassroomService.findOne()` trả dữ liệu lớp học, nếu lesson có `content_type='passage'` và `linked_entity_id`, hệ thống tự động query và attach `linked_passage` (title, body) vào response. Frontend hiển thị preview với faded gradient (`max-h-60`, `overflow-hidden`, gradient overlay).
+
+**Output (trong Classroom detail response):**
+Mỗi lesson object có thêm:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| linked_passage | object? | `{id, title, body}` — chỉ có nếu content_type='passage' và linked_entity_id tồn tại |
+
+---
+
+### FR-718: Instructor Content CRUD (Passages & Prompts)
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-718 |
+| **Title** | Instructor tạo/xem/sửa/xóa passages và prompts |
+| **Priority** | P0 |
+| **User Story** | US-821, US-822 |
+| **Business Rules** | CR-015 |
+
+**Mô tả:**
+Instructor có đầy đủ chức năng CRUD passages và prompts như Admin, nhưng chịu ràng buộc **ownership**: chỉ sửa/xóa nội dung mình tạo. Admin bypass được ràng buộc này.
+
+**Endpoints (Passages):**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/instructor/passages` | List tất cả passages |
+| GET | `/instructor/passages/:id` | Chi tiết passage |
+| POST | `/instructor/passages` | Tạo passage |
+| POST | `/instructor/passages/import` | Import từ DOCX |
+| PATCH | `/instructor/passages/:id` | Sửa passage (owner only) |
+| DELETE | `/instructor/passages/:id` | Xóa passage (owner only) |
+
+**Endpoints (Prompts):**
+
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/instructor/prompts` | List tất cả prompts |
+| GET | `/instructor/prompts/:id` | Chi tiết prompt |
+| POST | `/instructor/prompts` | Tạo prompt |
+| PATCH | `/instructor/prompts/:id` | Sửa prompt (owner only) |
+| DELETE | `/instructor/prompts/:id` | Xóa prompt (owner only) |
+
+**Access Control (CR-015):**
+- PATCH/DELETE kiểm tra `entity.created_by === req.user.sub`.
+- Nếu user role = `admin` → bypass.
+- Vi phạm → `403 Forbidden: "You can only edit/delete your own content"`.
 

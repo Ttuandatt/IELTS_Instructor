@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useI18n } from '@/providers/I18nProvider';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
 import { ModeSelectorModal } from '@/components/ModeSelectorModal';
+import {
+  ArrowLeft, Clock, Send, CheckCircle2, XCircle, ChevronDown, ChevronUp,
+  Highlighter, RotateCcw,
+} from 'lucide-react';
 
 export default function ReadingPracticePage() {
   const { id } = useParams<{ id: string }>();
@@ -15,6 +19,8 @@ export default function ReadingPracticePage() {
   // State
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [result, setResult] = useState<any>(null);
+  const [highlightEnabled, setHighlightEnabled] = useState(false);
+  const [showResultDetail, setShowResultDetail] = useState(true);
 
   // Mode Selection State
   const [showModeModal, setShowModeModal] = useState(true);
@@ -22,7 +28,10 @@ export default function ReadingPracticePage() {
 
   // Timer State
   const [startTime, setStartTime] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number>(60 * 60); // 60 minutes in seconds
+  const [timeLeft, setTimeLeft] = useState<number>(60 * 60);
+
+  // Refs for scrolling question into view
+  const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
   const { data: passage, isLoading } = useQuery({
     queryKey: ['reading-passage', id],
@@ -36,20 +45,10 @@ export default function ReadingPracticePage() {
 
   const handleSubmit = (isAutoSubmit = false) => {
     if (!startTime || !testMode) return;
-
-    let duration_sec = Math.round((Date.now() - startTime) / 1000);
-    // Format answers array
+    const duration_sec = Math.round((Date.now() - startTime) / 1000);
     const answerList = Object.entries(answers).map(([question_id, value]) => ({ question_id, value: String(value) }));
-
-    // In simulation mode, if we auto-submit, mark timed_out
     const timed_out = isAutoSubmit;
-
-    submitMut.mutate({
-      answers: answerList,
-      duration_sec,
-      test_mode: testMode,
-      timed_out
-    });
+    submitMut.mutate({ answers: answerList, duration_sec, test_mode: testMode, timed_out });
   };
 
   const handleModeSelect = (mode: 'practice' | 'simulation') => {
@@ -61,35 +60,38 @@ export default function ReadingPracticePage() {
   // Timer Effect
   useEffect(() => {
     if (testMode !== 'simulation' || !startTime || result || submitMut.isPending) return;
-
     const interval = setInterval(() => {
       const elapsed = Math.round((Date.now() - startTime) / 1000);
       const remaining = Math.max(0, 60 * 60 - elapsed);
       setTimeLeft(remaining);
-
       if (remaining === 0) {
         clearInterval(interval);
-        handleSubmit(true); // Auto submit!
+        handleSubmit(true);
       }
     }, 1000);
-
     return () => clearInterval(interval);
   }, [testMode, startTime, result, submitMut.isPending]);
 
-  // Format time (MM:SS)
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
     const s = (seconds % 60).toString().padStart(2, '0');
     return `${m}:${s}`;
   };
 
-  if (isLoading) return <p>{t.common.loading}</p>;
+  const scrollToQuestion = (qId: string) => {
+    questionRefs.current[qId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  };
+
+  if (isLoading) return (
+    <div className="rp-loading">
+      <div className="app-loading-spinner" />
+    </div>
+  );
   if (!passage) return <p>{t.common.error}</p>;
 
-  // If modal is open, just show backend-loading container (but modal will overlay)
   if (showModeModal) {
     return (
-      <div>
+      <div style={{ padding: '2rem' }}>
         <h1 className="page-title">{passage.title}</h1>
         <ModeSelectorModal
           isOpen={showModeModal}
@@ -100,94 +102,112 @@ export default function ReadingPracticePage() {
     );
   }
 
-  // Calculate progress
+  const questions: any[] = passage.questions || [];
   const answeredCount = Object.keys(answers).filter(k => answers[k]?.trim() !== '').length;
-  const isReadyToSubmit = testMode === 'simulation' ? true : answeredCount >= Math.floor((passage.questions?.length || 0) * 0.8);
+  const isReadyToSubmit = testMode === 'simulation' ? true : answeredCount >= Math.floor(questions.length * 0.8);
+  const isTimerDanger = testMode === 'simulation' && timeLeft < 300;
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <button className="btn btn-secondary" onClick={() => router.back()}>{t.common.back}</button>
-
-        {/* Timer UI specifically for Simulation Mode */}
-        {testMode === 'simulation' && !result && (
-          <div style={{
-            padding: '0.5rem 1rem',
-            background: timeLeft < 300 ? 'var(--color-accent-danger)' : 'var(--color-bg-card)',
-            color: timeLeft < 300 ? 'white' : 'inherit',
-            borderRadius: 'var(--radius-full)',
-            fontWeight: 'bold',
-            border: '2px solid var(--color-border)',
-            boxShadow: 'var(--shadow-sm)'
-          }}>
-            ⏱️ {formatTime(timeLeft)}
-          </div>
-        )}
+    <div className="rp-wrapper">
+      {/* ── Top Header Bar ── */}
+      <div className="rp-header">
+        <div className="rp-header-left">
+          <button className="rp-exit-btn" onClick={() => router.back()}>
+            <ArrowLeft size={16} />
+            Thoát
+          </button>
+          <h1 className="rp-title">{passage.title}</h1>
+          <span className={`rp-mode-badge ${testMode === 'simulation' ? 'rp-mode-sim' : 'rp-mode-prac'}`}>
+            {testMode === 'simulation' ? 'Simulation' : 'Practice'}
+          </span>
+        </div>
       </div>
 
-      <h1 className="page-title">{passage.title}</h1>
-      <div className="reading-layout">
-        <div className="reading-passage">
-          <div className="passage-text" dangerouslySetInnerHTML={{ __html: passage.body?.replace(/\n/g, '<br/>') }} />
+      {/* ── Toolbar: highlight toggle ── */}
+      <div className="rp-toolbar">
+        <label className="rp-highlight-toggle">
+          <input
+            type="checkbox"
+            checked={highlightEnabled}
+            onChange={e => setHighlightEnabled(e.target.checked)}
+          />
+          <Highlighter size={14} />
+          Highlight nội dung
+        </label>
+        <span className="rp-answered-badge">
+          {answeredCount}/{questions.length} answered
+        </span>
+      </div>
+
+      {/* ── 3-panel Layout ── */}
+      <div className="rp-body">
+        {/* LEFT: Passage */}
+        <div className={`rp-passage ${highlightEnabled ? 'rp-passage--highlight' : ''}`}>
+          <div
+            className="rp-passage-text"
+            dangerouslySetInnerHTML={{ __html: passage.body?.replace(/\n/g, '<br/>') || '' }}
+          />
         </div>
 
-        <div className="reading-questions">
+        {/* CENTER: Questions or Results */}
+        <div className="rp-questions">
           {result ? (
-            <div className="result-card">
-              <div style={{ marginBottom: '1rem' }}>
-                <span className="badge" style={{ background: result.test_mode === 'simulation' ? 'var(--color-accent-warning)' : 'var(--color-accent-primary)' }}>
-                  {result.test_mode === 'simulation' ? 'Simulation Mode' : 'Practice Mode'}
-                </span>
-                {result.timed_out && <span className="badge badge-A2" style={{ marginLeft: '0.5rem' }}>Timed Out</span>}
+            /* ── Results View ── */
+            <div className="rp-result">
+              <div className="rp-result-header">
+                <div className="rp-result-score">
+                  <span className="rp-result-pct">{result.score_pct?.toFixed(0)}%</span>
+                  <span className="rp-result-count">{result.correct_count}/{result.total_questions} correct</span>
+                </div>
+                {result.timed_out && <span className="rp-badge-timeout">⏰ Timed Out</span>}
               </div>
 
-              <h2>{t.reading.score}: {result.score_pct?.toFixed(1)}%</h2>
-              <p>{t.reading.correct}: {result.correct_count} / {result.total_questions}</p>
-              <button className="btn btn-primary" onClick={() => router.push('/reading')} style={{ marginTop: '1rem' }}>
-                {t.common.back}
+              <button className="rp-toggle-detail" onClick={() => setShowResultDetail(!showResultDetail)}>
+                {showResultDetail ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {showResultDetail ? 'Hide Details' : 'Show Details'}
               </button>
 
-              <div style={{ marginTop: '2rem' }}>
-                <h3>Review Answers:</h3>
-                {result.details?.map((detail: any, idx: number) => (
-                  <div key={detail.question_id} style={{
-                    padding: '1rem',
-                    border: '1px solid var(--color-border)',
-                    borderRadius: 'var(--radius-md)',
-                    marginTop: '1rem',
-                    background: detail.correct ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)'
-                  }}>
-                    <p><strong>Q{idx + 1}.</strong> Your Answer: <span style={{ color: detail.correct ? 'var(--color-accent-success)' : 'var(--color-accent-danger)' }}>{detail.your_answer || '(blank)'}</span></p>
-                    {!detail.correct && (
-                      <p>Correct Answer: <strong>{typeof detail.correct_answer === 'object' ? JSON.stringify(detail.correct_answer) : detail.correct_answer}</strong></p>
-                    )}
-                    {detail.explanation && (
-                      <div style={{ marginTop: '0.5rem', fontSize: '0.9rem', color: 'var(--color-text-secondary)', background: 'var(--color-bg-primary)', padding: '0.5rem', borderRadius: 'var(--radius-sm)' }}>
-                        <strong>Explanation:</strong> {detail.explanation}
+              {showResultDetail && (
+                <div className="rp-result-list">
+                  {result.details?.map((d: any, idx: number) => (
+                    <div key={d.question_id} className={`rp-result-item ${d.correct ? 'rp-result-correct' : 'rp-result-wrong'}`}>
+                      <div className="rp-result-item-head">
+                        {d.correct ? <CheckCircle2 size={16} className="rp-icon-correct" /> : <XCircle size={16} className="rp-icon-wrong" />}
+                        <strong>Q{idx + 1}</strong>
                       </div>
-                    )}
-                  </div>
-                ))}
+                      <div className="rp-result-item-body">
+                        <p>Your answer: <span className={d.correct ? 'rp-text-correct' : 'rp-text-wrong'}>{d.your_answer || '(blank)'}</span></p>
+                        {!d.correct && <p>Correct: <strong>{typeof d.correct_answer === 'object' ? JSON.stringify(d.correct_answer) : d.correct_answer}</strong></p>}
+                        {d.explanation && <p className="rp-explanation">{d.explanation}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="rp-result-actions">
+                <button className="rp-btn rp-btn-primary" onClick={() => { setResult(null); setAnswers({}); setStartTime(Date.now()); }}>
+                  <RotateCcw size={16} /> Retry
+                </button>
+                <button className="rp-btn rp-btn-secondary" onClick={() => router.push('/reading')}>
+                  Back to Catalog
+                </button>
               </div>
             </div>
           ) : (
-            <>
-              <div style={{ marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="badge" style={{ background: testMode === 'simulation' ? 'var(--color-accent-warning)' : 'var(--color-accent-primary)' }}>
-                  {testMode === 'simulation' ? 'Simulation Mode' : 'Practice Mode'}
-                </span>
-                <span style={{ fontSize: '0.875rem', color: answeredCount >= Math.floor((passage.questions?.length || 0) * 0.8) ? 'var(--color-accent-success)' : 'var(--color-text-secondary)' }}>
-                  {answeredCount}/{passage.questions?.length} answered
-                </span>
-              </div>
-
-              {passage.questions?.map((q: any, idx: number) => (
-                <div key={q.id} className="question-card">
-                  <p className="question-prompt"><strong>Q{idx + 1}.</strong> {q.prompt}</p>
+            /* ── Questions View ── */
+            <div className="rp-question-list">
+              {questions.map((q: any, idx: number) => (
+                <div
+                  key={q.id}
+                  className="rp-question-card"
+                  ref={el => { questionRefs.current[q.id] = el; }}
+                >
+                  <p className="rp-question-prompt"><strong>{idx + 1}.</strong> {q.prompt}</p>
                   {q.options?.length > 0 ? (
-                    <div className="question-options">
+                    <div className="rp-options">
                       {q.options.map((opt: string, oi: number) => (
-                        <label key={oi} className="option-label">
+                        <label key={oi} className={`rp-option ${answers[q.id] === opt ? 'rp-option--selected' : ''}`}>
                           <input
                             type="radio"
                             name={q.id}
@@ -195,6 +215,7 @@ export default function ReadingPracticePage() {
                             checked={answers[q.id] === opt}
                             onChange={() => setAnswers(a => ({ ...a, [q.id]: opt }))}
                           />
+                          <span className="rp-option-letter">{String.fromCharCode(65 + oi)}</span>
                           <span>{opt}</span>
                         </label>
                       ))}
@@ -202,7 +223,7 @@ export default function ReadingPracticePage() {
                   ) : (
                     <input
                       type="text"
-                      className="question-input"
+                      className="rp-answer-input"
                       value={answers[q.id] || ''}
                       onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}
                       placeholder="Your answer..."
@@ -210,23 +231,70 @@ export default function ReadingPracticePage() {
                   )}
                 </div>
               ))}
-              <div style={{ marginTop: '1.5rem' }}>
-                <button
-                  className="btn btn-primary"
-                  onClick={() => handleSubmit(false)}
-                  disabled={submitMut.isPending || !isReadyToSubmit}
-                  style={{ width: '100%' }}
-                >
-                  {submitMut.isPending ? 'Submitting...' : t.reading.submit_answers}
-                </button>
-                {testMode === 'practice' && !isReadyToSubmit && (
-                  <p style={{ fontSize: '0.75rem', color: 'var(--color-accent-danger)', textAlign: 'center', marginTop: '0.5rem' }}>
-                    * In Practice Mode, please answer at least 80% of questions before submitting.
-                  </p>
-                )}
-              </div>
-            </>
+            </div>
           )}
+        </div>
+
+        {/* RIGHT: Sidebar — Timer + Submit + Answer Sheet */}
+        <div className="rp-sidebar">
+          {/* Timer */}
+          {testMode === 'simulation' && !result && (
+            <div className={`rp-timer ${isTimerDanger ? 'rp-timer--danger' : ''}`}>
+              <div className="rp-timer-label"><Clock size={14} /> Thời gian còn lại:</div>
+              <div className="rp-timer-value">{formatTime(timeLeft)}</div>
+            </div>
+          )}
+
+          {/* Submit */}
+          {!result && (
+            <button
+              className="rp-submit-btn"
+              onClick={() => handleSubmit(false)}
+              disabled={submitMut.isPending || !isReadyToSubmit}
+            >
+              <Send size={16} />
+              {submitMut.isPending ? 'Submitting...' : 'NỘP BÀI'}
+            </button>
+          )}
+
+          {result && (
+            <div className="rp-sidebar-score">
+              <div className="rp-sidebar-score-pct">{result.score_pct?.toFixed(0)}%</div>
+              <div className="rp-sidebar-score-label">{result.correct_count}/{result.total_questions} correct</div>
+            </div>
+          )}
+
+          {/* Hint */}
+          {!result && testMode === 'practice' && !isReadyToSubmit && (
+            <p className="rp-submit-hint">
+              Answer ≥80% to submit ({answeredCount}/{questions.length})
+            </p>
+          )}
+
+          {/* Answer Sheet Grid */}
+          <div className="rp-sheet">
+            <div className="rp-sheet-title">Answer Sheet</div>
+            <div className="rp-sheet-grid">
+              {questions.map((q: any, idx: number) => {
+                const answered = !!answers[q.id]?.trim();
+                let status = answered ? 'answered' : '';
+                if (result) {
+                  const detail = result.details?.find((d: any) => d.question_id === q.id);
+                  status = detail?.correct ? 'correct' : detail ? 'wrong' : '';
+                }
+                return (
+                  <button
+                    key={q.id}
+                    className={`rp-sheet-cell rp-sheet-cell--${status}`}
+                    onClick={() => scrollToQuestion(q.id)}
+                    title={`Q${idx + 1}`}
+                  >
+                    {idx + 1}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>

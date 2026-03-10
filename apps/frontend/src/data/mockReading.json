@@ -1,0 +1,25 @@
+{
+  "passage": {
+    "html": "<h2>Reading Practice Test 02</h2><p><strong>IELTS Reading Practice Exercise</strong></p><p><em>You should spend about 20 minutes on Questions 1-5 which are based on Reading Passage 1 below.</em></p><p><strong>From Physics to History: The Origins of Humankind</strong></p><p>About 13.5 billion years ago, matter, energy, time and space came into being in what is known as the Big Bang...</p>",
+    "text": "Reading Practice Test 02..."
+  },
+  "questions": [
+    {
+      "type": "instruction",
+      "html": "<p><strong>Questions 1-5</strong></p><p>Do the following statements agree with the information given in Reading Passage 1?</p>",
+      "text": "Questions 1-5..."
+    },
+    {
+      "type": "question",
+      "number": 1,
+      "html": "<p>1. IELTS Online Tests is the number one IELTS study platform.</p><ul><li>TRUE</li><li>FALSE</li><li>NOT GIVEN</li></ul>",
+      "text": "1. IELTS Online Tests is the number one IELTS study platform."
+    },
+    {
+      "type": "question",
+      "number": 2,
+      "html": "<p>2. The platform offers instant results after each reading test.</p><ul><li>TRUE</li><li>FALSE</li><li>NOT GIVEN</li></ul>",
+      "text": "2. The platform offers instant results after each reading test."
+    }
+  ]
+}

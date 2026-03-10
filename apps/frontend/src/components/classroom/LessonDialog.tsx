@@ -34,12 +34,15 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
         linked_entity_id: '',
         attachment_url: '',
         status: 'draft',
+        allow_submit: true,
+        allow_checkscore: false,
     });
     const [search, setSearch] = useState('');
     const [linkMode, setLinkMode] = useState<LinkMode>(null);
     const [uploadMethod, setUploadMethod] = useState<UploadMethod>('file');
     const [uploadedFileName, setUploadedFileName] = useState('');
     const [isUploading, setIsUploading] = useState(false);
+    const [readingPayload, setReadingPayload] = useState<any | null>(null);
 
     useEffect(() => {
         if (lesson) {
@@ -50,6 +53,8 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                 linked_entity_id: lesson.linked_entity_id || '',
                 attachment_url: lesson.attachment_url || '',
                 status: lesson.status || 'draft',
+                allow_submit: lesson.allow_submit ?? true,
+                allow_checkscore: lesson.allow_checkscore ?? false,
             });
             const isLinkType = lesson.content_type === 'passage' || lesson.content_type === 'prompt';
             if (isLinkType) {
@@ -65,12 +70,25 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                 setLinkMode(null);
             }
         } else {
-            setFormData({ title: '', content: '', content_type: 'text', linked_entity_id: '', attachment_url: '', status: 'draft' });
+            setFormData({ title: '', content: '', content_type: 'text', linked_entity_id: '', attachment_url: '', status: 'draft', allow_submit: true, allow_checkscore: false });
             setLinkMode(null);
             setUploadedFileName('');
         }
+        setReadingPayload(null);
         setSearch('');
     }, [lesson, isOpen]);
+
+    useEffect(() => {
+        if (formData.content_type !== 'passage') {
+            setReadingPayload(null);
+        }
+    }, [formData.content_type]);
+
+    useEffect(() => {
+        if (linkMode !== 'upload') {
+            setReadingPayload(null);
+        }
+    }, [linkMode]);
 
     // Fetch passage library
     const { data: passages, isLoading: passagesLoading } = useQuery({
@@ -93,22 +111,30 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
         try {
             const fd = new FormData();
             fd.append('file', file);
-            const res = await apiClient.post('/uploads', fd, {
+            const lowerName = file.name.toLowerCase();
+            const isDocx = lowerName.endsWith('.docx');
+            const isTxt = lowerName.endsWith('.txt');
+            const shouldParseReading = formData.content_type === 'passage' && (isDocx || isTxt);
+            const endpoint = shouldParseReading ? '/uploads?parse=reading' : '/uploads';
+            const res = await apiClient.post(endpoint, fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
             const baseUrl = backendUrl.replace(/\/api$/, '');
+            const extracted = res.data.lessonHtml || res.data.extractedHtml;
             setFormData(prev => ({
                 ...prev,
                 attachment_url: `${baseUrl}${res.data.url}`,
                 // Auto-fill content with extracted HTML from uploaded file
-                content: res.data.extractedHtml || prev.content,
+                content: extracted || prev.content,
             }));
             setUploadedFileName(res.data.originalName);
-            if (res.data.extractedHtml) {
-                toast.success('File uploaded & content extracted!');
+            if (shouldParseReading && res.data.parsedReading) {
+                setReadingPayload(res.data.parsedReading);
+                toast.success('DOCX parsed into a reading test!');
             } else {
-                toast.success('File uploaded!');
+                setReadingPayload(null);
+                toast.success(res.data.extractedHtml ? 'File uploaded & content extracted!' : 'File uploaded!');
             }
         } catch (err: any) {
             toast.error(err.response?.data?.message || 'Upload failed');
@@ -125,6 +151,9 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
             }
             if (!payload.linked_entity_id) delete payload.linked_entity_id;
             if (!payload.attachment_url) delete payload.attachment_url;
+            if (formData.content_type === 'passage' && linkMode === 'upload' && readingPayload) {
+                payload.reading_payload = readingPayload;
+            }
             if (lesson) return apiClient.patch(`/lessons/${lesson.id}`, payload).then(r => r.data);
             return apiClient.post(`/topics/${topicId}/lessons`, payload).then(r => r.data);
         },
@@ -204,6 +233,7 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                                         setLinkMode(null);
                                         setSearch('');
                                         setUploadedFileName('');
+                                        setReadingPayload(null);
                                     }}
                                     className={`flex items-center gap-2.5 p-3 rounded-lg border text-left transition-all ${formData.content_type === ct.value
                                         ? 'border-blue-500 bg-blue-50 text-blue-700'
@@ -233,6 +263,7 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                                         setLinkMode('library');
                                         setFormData(prev => ({ ...prev, attachment_url: '' }));
                                         setUploadedFileName('');
+                                        setReadingPayload(null);
                                     }}
                                     className={`flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all ${linkMode === 'library'
                                         ? 'border-blue-500 bg-blue-50/50 text-blue-700'
@@ -334,7 +365,10 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                             <div className="flex border-b">
                                 <button
                                     type="button"
-                                    onClick={() => setUploadMethod('file')}
+                                    onClick={() => {
+                                        setUploadMethod('file');
+                                        setReadingPayload(null);
+                                    }}
                                     className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${uploadMethod === 'file'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -345,7 +379,10 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                                 </button>
                                 <button
                                     type="button"
-                                    onClick={() => setUploadMethod('url')}
+                                    onClick={() => {
+                                        setUploadMethod('url');
+                                        setReadingPayload(null);
+                                    }}
                                     className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium border-b-2 transition-colors ${uploadMethod === 'url'
                                         ? 'border-blue-500 text-blue-600'
                                         : 'border-transparent text-gray-500 hover:text-gray-700'
@@ -380,6 +417,7 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                                                     setFormData(prev => ({ ...prev, attachment_url: '' }));
                                                     setUploadedFileName('');
                                                     if (fileInputRef.current) fileInputRef.current.value = '';
+                                                    setReadingPayload(null);
                                                 }}
                                                 className="text-green-600 hover:text-green-800 ml-2 shrink-0"
                                             >
@@ -492,6 +530,39 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                         </span>
                     </div>
                 </div>
+
+                {/* Grading options (only for Writing) */}
+                {(formData.content_type === 'prompt') && (
+                    <div className="px-5 pt-4 pb-2">
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Grading Options</p>
+                        <div className="flex flex-col gap-3">
+                            <label className="flex items-center justify-between cursor-pointer">
+                                <div>
+                                    <span className="text-sm font-medium text-gray-700">Allow Submit</span>
+                                    <p className="text-xs text-gray-400">Teacher will grade manually</p>
+                                </div>
+                                <div
+                                    className={`relative w-10 h-5 rounded-full transition-colors ${formData.allow_submit ? 'bg-emerald-500' : 'bg-gray-300'}`}
+                                    onClick={() => setFormData(f => ({ ...f, allow_submit: !f.allow_submit }))}
+                                >
+                                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.allow_submit ? 'translate-x-5' : ''}`} />
+                                </div>
+                            </label>
+                            <label className="flex items-center justify-between cursor-pointer">
+                                <div>
+                                    <span className="text-sm font-medium text-gray-700">Allow AI Check Score</span>
+                                    <p className="text-xs text-gray-400">AI auto-scoring (coming soon)</p>
+                                </div>
+                                <div
+                                    className={`relative w-10 h-5 rounded-full transition-colors ${formData.allow_checkscore ? 'bg-blue-500' : 'bg-gray-300'}`}
+                                    onClick={() => setFormData(f => ({ ...f, allow_checkscore: !f.allow_checkscore }))}
+                                >
+                                    <div className={`absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${formData.allow_checkscore ? 'translate-x-5' : ''}`} />
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                )}
 
                 {/* Footer */}
                 <div className="p-5 border-t bg-gray-50 flex items-center gap-3">

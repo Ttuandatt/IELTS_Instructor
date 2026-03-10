@@ -664,11 +664,14 @@ VALUES (
 | `id` | UUID | PK | — |
 | `topic_id` | UUID | FK → topics.id, ON DELETE CASCADE | — |
 | `title` | TEXT | NOT NULL, max 200 chars | Tên bài học |
-| `content` | TEXT | NULL | Nội dung (Rich text / Markdown) |
+| `content` | TEXT | NULL | Nội dung (Rich text / Markdown / Instruction) |
 | `content_type` | TEXT | NOT NULL, DEFAULT 'text', CHECK (content_type IN ('text','video','passage','prompt')) | Loại nội dung |
-| `linked_entity_id` | UUID | NULL | ID passage/prompt liên kết |
+| `linked_entity_id` | UUID | NULL | ID passage/prompt liên kết (library mode) |
+| `attachment_url` | TEXT | NULL | URL file đính kèm (upload mode: ảnh, PDF, docx...) |
 | `order_index` | INT | NOT NULL, DEFAULT 0 | Thứ tự hiển thị |
 | `status` | TEXT | NOT NULL, DEFAULT 'draft', CHECK (status IN ('draft','published')) | — |
+| `allow_submit` | BOOLEAN | NOT NULL, DEFAULT true | Cho phép learner submit bài cho giáo viên chấm |
+| `allow_checkscore` | BOOLEAN | NOT NULL, DEFAULT false | Cho phép learner dùng AI check score (coming soon) |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
 
 **Indexes:**
@@ -676,6 +679,8 @@ VALUES (
 
 **Business Rules:**
 - `linked_entity_id` chỉ có giá trị khi `content_type` là 'passage' hoặc 'prompt'
+- `attachment_url` được tạo qua `POST /api/uploads` (Multer) hoặc nhập URL trực tiếp
+- `allow_submit`/`allow_checkscore` chỉ có ý nghĩa khi `content_type` = 'prompt' (Writing)
 - Student chỉ xem lessons có status='published' (CR-007)
 
 ---
@@ -697,6 +702,31 @@ VALUES (
 - Chỉ classroom owner mới tạo/xóa announcements
 - Tất cả members xem được
 - Cascade delete khi classroom bị xóa
+
+---
+
+### 6.6 lesson_submissions
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | — |
+| `lesson_id` | UUID | FK → lessons.id, ON DELETE CASCADE | Lesson bài viết |
+| `user_id` | UUID | FK → users.id, NOT NULL | Learner nộp bài |
+| `content` | TEXT | NOT NULL | Nội dung essay |
+| `word_count` | INT | NOT NULL | Số từ (auto-calculated) |
+| `status` | TEXT | NOT NULL, DEFAULT 'submitted', CHECK (status IN ('submitted','graded')) | Trạng thái |
+| `score` | FLOAT | NULL | Điểm giáo viên chấm |
+| `feedback` | TEXT | NULL | Nhận xét giáo viên |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
+
+**Indexes:**
+- `INDEX idx_ls_lesson ON lesson_submissions(lesson_id, created_at DESC)`
+- `INDEX idx_ls_user ON lesson_submissions(user_id)`
+
+**Business Rules:**
+- Chỉ tạo được khi lesson có `allow_submit = true`
+- Learner có thể submit nhiều lần (latest submission hiển thị trước)
+- Cascade delete khi lesson bị xóa
 
 ---
 
