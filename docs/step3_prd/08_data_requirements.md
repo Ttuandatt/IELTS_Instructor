@@ -18,8 +18,8 @@
 │ email    │   │   │ title      │   │   │ user_id (FK)───────┤►users.id
 │ password │   │   │ body       │   │   │ passage_id (FK)────┤►passages.id
 │ role     │   │   │ level      │   │   │ answers (JSONB)    │
-│ ...      │   │   │ topic_tags │   │   │ score_pct          │
-└──────────┘   │   │ source_ids │   │   │ duration_sec       │
+│ ...      │   │   │ collection_id│   │ │ score_pct          │
+└──────────┘   │   │ source_id  │   │   │ duration_sec       │
                │   │ status     │   │   │ timed_out          │
                │   └────────────┘   │   │ test_mode          │
                │         │          │   │ completed_at       │
@@ -45,40 +45,29 @@
                │   │ title      │   │   │ prompt_id (FK)─────┤►prompts.id
                │   │ prompt_text│   │   │ content            │
                │   │ level      │   │   │ word_count         │
-               │   │ topic_tags │   │   │ scores (JSONB)     │
-               │   │ source_ids │   │   │ feedback (JSONB)   │
-               │   │ status     │   │   │ model_tier         │
-               │   └────────────┘   │   │ model_name         │
-               │                    │   │ turnaround_ms      │
-               │                    │   │ processing_status  │
-               │                    │   │ error_message      │
-               │                    │   │ created_at         │
+               │   │ collection_id│   │ │ scores (JSONB)     │
+               │   │ status     │   │   │ feedback (JSONB)   │
+               │   └────────────┘   │   │ processing_status  │
                │                    │   └────────────────────┘
-               │
-               │   ┌────────────┐       ┌────────────┐
-               │   │  sources   │       │  snippets  │
-               │   │────────────│       │────────────│
-               │   │ id (PK)    │◄──────│ source_id  │
-               │   │ title      │       │ id (PK)    │
-               │   │ url        │       │ text       │
-               │   │ origin     │       │ tags       │
-               │   │ metadata   │       │ level      │
-               │   │ imported_by│───────┤►users.id   │
-               │   │ imported_at│       │ linked_entity│
-               │   └────────────┘       │ linked_type │
-               │                        └────────────┘
-               │
-               │   ┌──────────────────┐  ┌────────────┐
-               │   │ content_versions │  │ rate_limits │
-               │   │──────────────────│  │────────────│
-               │   │ id (PK)          │  │ id (PK)    │
-               │   │ entity_id        │  │ user_id    │
-               │   │ entity_type      │  │ action     │
-               │   │ version          │  │ count      │
-               │   │ editor_id (FK)───┤  │ window_start│
-               │   │ updated_at       │  └────────────┘
-               │   │ diff_summary     │
-               │   └──────────────────┘
+               │                    │
+               │   ┌────────────────┐   ┌────────────────────┐
+               │   │source_documents│   │    import_jobs     │
+               │   │────────────────│   │────────────────────│
+               │◄──│ id (PK)    │   │◄──│ id (PK)            │
+                   │ file_name  │       │ user_id (FK)───────┤►users.id
+                   │ file_url   │       │ document_id (FK)───┤►source_documents.id
+                   │ uploaded_by│───────┤►users.id           │
+                   │ status     │       │ status             │
+                   └────────────────┘   │ parsed_raw_data    │
+                                        └────────────────────┘
+
+               ┌────────────┐   ┌────────────┐
+               │ collections│   │ topic_tags │
+               │────────────│   │────────────│
+               │ id (PK)    │   │ id (PK)    │
+               │ name       │   │ name       │
+               │ description│   └────────────┘
+               └────────────┘
 ```
 
 ---
@@ -121,9 +110,8 @@
 | `title` | TEXT | NOT NULL, max 200 chars | Passage title |
 | `body` | TEXT | NOT NULL | Full passage text |
 | `level` | TEXT | NOT NULL, CHECK (level IN ('A2','B1','B2','C1')) | CEFR level |
-| `collection` | TEXT | NULL, max 100 chars | e.g. "IELTS Mock Test 2025" |
-| `topic_tags` | TEXT[] | DEFAULT '{}' | Array of topic tags |
-| `source_ids` | UUID[] | DEFAULT '{}' | References to sources table |
+| `collection_id` | UUID | NULL | FK to Collection |
+| `source_document_id` | UUID | NULL | FK to SourceDocument |
 | `status` | TEXT | NOT NULL, DEFAULT 'draft', CHECK (status IN ('draft','published')) | Publication status |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
@@ -132,12 +120,12 @@
 **Indexes:**
 - `INDEX idx_passages_level ON passages(level)`
 - `INDEX idx_passages_status ON passages(status)`
-- `GIN INDEX idx_passages_tags ON passages USING GIN(topic_tags)`
 - `INDEX idx_passages_created ON passages(created_at DESC)`
+- `INDEX idx_passages_collection_id ON passages(collection_id)`
+- `INDEX idx_passages_source_id ON passages(source_document_id)`
 
 **Business Rules:**
 - Only status='published' visible to learners (ADM-001)
-- Must have ≥1 source when imported from NotebookLM (ADM-002)
 
 ---
 
@@ -147,7 +135,7 @@
 |-------|------|-------------|-------------|
 | `id` | UUID | PK | — |
 | `passage_id` | UUID | FK → passages.id, NOT NULL, ON DELETE CASCADE | Parent passage |
-| `type` | TEXT | NOT NULL, CHECK (type IN ('mcq','short')) | Question type |
+| `type` | TEXT | NOT NULL, CHECK (type IN ('matching_headings','true_false_notgiven','yes_no_notgiven','mcq','matching_information','matching_features','matching_sentence_endings','sentence_completion','summary_completion','table_completion','flowchart_completion','diagram_label_completion','short')) | Question type |
 | `prompt` | TEXT | NOT NULL | Question text |
 | `options` | JSONB | NULL | MCQ options: `["A. ...", "B. ...", "C. ...", "D. ..."]` |
 | `answer_key` | JSONB | NOT NULL | MCQ: `"B"` / Short: `["keyword1", "keyword2"]` |
@@ -160,7 +148,7 @@
 
 **Notes:**
 - `options` is NULL for short answer questions.
-- `answer_key` is JSONB to support both string (MCQ) and array (short answer) formats.
+- `answer_key` is JSONB to support both string (MCQ) and array formats.
 - CASCADE delete ensures questions are removed when passage is deleted.
 
 ---
@@ -204,9 +192,7 @@
 | `title` | TEXT | NOT NULL, max 200 chars | Prompt title |
 | `prompt_text` | TEXT | NOT NULL | Full prompt instructions |
 | `level` | TEXT | NOT NULL, CHECK (level IN ('A2','B1','B2','C1')) | — |
-| `collection` | TEXT | NULL, max 100 chars | e.g. "IELTS Mock Test 2025" |
-| `topic_tags` | TEXT[] | DEFAULT '{}' | — |
-| `source_ids` | UUID[] | DEFAULT '{}' | — |
+| `collection_id` | UUID | NULL | FK to Collection |
 | `status` | TEXT | NOT NULL, DEFAULT 'draft' | draft \| published |
 | `min_words` | INT | NOT NULL, DEFAULT 250 | Recommended minimum word count |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
@@ -217,6 +203,7 @@
 - `INDEX idx_prompts_task_type ON prompts(task_type)`
 - `INDEX idx_prompts_level ON prompts(level)`
 - `INDEX idx_prompts_status ON prompts(status)`
+- `INDEX idx_prompts_collection_id ON prompts(collection_id)`
 
 ---
 
@@ -230,110 +217,63 @@
 | `content` | TEXT | NOT NULL | Essay text |
 | `word_count` | INT | NOT NULL | Auto-calculated |
 | `scores` | JSONB | NULL | `{TR, CC, LR, GRA, overall}` — NULL when pending |
-| `feedback` | JSONB | NULL | `{summary, strengths[], improvements[]}` |
-| `model_tier` | TEXT | NOT NULL, DEFAULT 'cheap' | cheap \| premium |
-| `model_name` | TEXT | NULL | e.g., "gpt-4o-mini", "gemini-flash" |
-| `turnaround_ms` | INT | NULL | Processing duration in ms |
-| `processing_status` | TEXT | NOT NULL, DEFAULT 'pending' | pending \| done \| failed |
-| `error_message` | TEXT | NULL | Error details if failed |
+| `feedback` | JSONB | NULL | `{summary, strengths[], improvemen### 2.7 source_documents
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | — |
+| `file_name` | TEXT | NOT NULL | Name of the uploaded file |
+| `file_url` | TEXT | NOT NULL | Path/URL to the stored file |
+| `uploaded_by` | UUID | FK → users.id, NOT NULL | Admin/Instructor who uploaded |
+| `status` | TEXT | NOT NULL, DEFAULT 'pending' | pending \| done \| failed |
 | `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
-| `scored_at` | TIMESTAMPTZ | NULL | When scoring completed |
-| `instructor_comment` | TEXT | NULL | Instructor review comment |
-| `instructor_override_score` | NUMERIC(3,1) | NULL | Instructor override (0–9 in 0.5 increments) |
-| `reviewed_by` | UUID | FK → users.id, NULL | Instructor who reviewed |
-| `reviewed_at` | TIMESTAMPTZ | NULL | When instructor reviewed |
 
 **Indexes:**
-- `INDEX idx_sub_writing_user ON submissions_writing(user_id, created_at DESC)`
-- `INDEX idx_sub_writing_prompt ON submissions_writing(prompt_id)`
-- `INDEX idx_sub_writing_status ON submissions_writing(processing_status)`
-
-**JSONB Shape — scores:**
-```json
-{
-  "TR": 6.0,
-  "CC": 5.5,
-  "LR": 6.0,
-  "GRA": 5.5,
-  "overall": 5.75
-}
-```
-
-**JSONB Shape — feedback:**
-```json
-{
-  "summary": "Your essay addresses the topic clearly...",
-  "strengths": [
-    "Clear thesis statement in introduction",
-    "Good use of linking words (however, moreover)"
-  ],
-  "improvements": [
-    "Add more specific examples to support body paragraph 2",
-    "Vary sentence structure — too many simple sentences",
-    "Check subject-verb agreement in paragraph 3"
-  ]
-}
-```
+- `INDEX idx_source_documents_uploader ON source_documents(uploaded_by)`
+- `INDEX idx_source_documents_status ON source_documents(status)`
 
 ---
 
-### 2.7 sources
+### 2.8 import_jobs
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
 | `id` | UUID | PK | — |
-| `title` | TEXT | NOT NULL | Source title |
-| `url` | TEXT | NOT NULL | Original URL (NotebookLM) |
-| `origin` | TEXT | NOT NULL, DEFAULT 'notebooklm' | Source origin type |
-| `metadata` | JSONB | DEFAULT '{}' | Additional metadata |
-| `imported_by` | UUID | FK → users.id, NOT NULL | Admin who imported |
-| `imported_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
-
-**Indexes:**
-- `INDEX idx_sources_origin ON sources(origin)`
-- `INDEX idx_sources_imported ON sources(imported_at DESC)`
-
----
-
-### 2.8 snippets
-
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| `id` | UUID | PK | — |
-| `source_id` | UUID | FK → sources.id, NOT NULL, ON DELETE CASCADE | Parent source |
-| `text` | TEXT | NOT NULL | Snippet plain text |
-| `tags` | TEXT[] | DEFAULT '{}' | — |
-| `level` | TEXT | NULL | A2/B1/B2/C1 if applicable |
-| `linked_entity` | UUID | NULL | FK to passage or prompt |
-| `linked_type` | TEXT | NULL, CHECK (linked_type IN ('passage','prompt')) | Entity type |
-
-**Indexes:**
-- `INDEX idx_snippets_source ON snippets(source_id)`
-- `INDEX idx_snippets_linked ON snippets(linked_entity, linked_type)`
-
----
-
-### 2.9 content_versions
-
-| Field | Type | Constraints | Description |
-|-------|------|-------------|-------------|
-| `id` | UUID | PK | — |
-| `entity_id` | UUID | NOT NULL | ID of passage or prompt |
-| `entity_type` | TEXT | NOT NULL, CHECK (entity_type IN ('passage','prompt','question')) | — |
-| `version` | INT | NOT NULL | Incrementing version number |
-| `editor_id` | UUID | FK → users.id, NOT NULL | Admin who edited |
-| `action` | TEXT | NOT NULL | 'create' \| 'update' \| 'publish' \| 'unpublish' \| 'delete' |
-| `diff_summary` | TEXT | NULL | Human-readable change summary |
+| `user_id` | UUID | FK → users.id, NOT NULL | User who initiated the import |
+| `document_id` | UUID | FK → source_documents.id, ON DELETE CASCADE | Associated document |
+| `status` | TEXT | NOT NULL, DEFAULT 'pending' | pending \| done \| failed |
+| `parsed_raw_data` | JSONB | NULL | Results from AI parsing |
+| `error_message` | TEXT | NULL | Reason for failure |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
 | `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
 
 **Indexes:**
-- `INDEX idx_cv_entity ON content_versions(entity_id, entity_type, version DESC)`
+- `INDEX idx_import_jobs_user ON import_jobs(user_id)`
+- `INDEX idx_import_jobs_doc ON import_jobs(document_id)`
 
 ---
 
-### 2.10 rate_limits
+### 2.9 collections
 
 | Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | — |
+| `name` | TEXT | UNIQUE, NOT NULL, max 100 chars | Collection name |
+| `description` | TEXT | NULL | Optional description |
+| `created_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
+| `updated_at` | TIMESTAMPTZ | NOT NULL, DEFAULT now() | — |
+
+---
+
+### 2.10 topic_tags
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| `id` | UUID | PK | — |
+| `name` | TEXT | UNIQUE, NOT NULL, max 50 chars | Tag name (e.g., 'science') |
+
+**Notes:**
+- Topic tags are used to categorize both Passages and Prompts through an implicit many-to-many relationship managed by Prisma (`_PassageTags` and `_PromptTags` join tables). | Type | Constraints | Description |
 |-------|------|-------------|-------------|
 | `id` | UUID | PK | — |
 | `user_id` | UUID | FK → users.id, NOT NULL | — |
@@ -360,13 +300,10 @@
 | `cefr_level` | `A2`, `B1`, `B2`, `C1` | passages.level, prompts.level |
 | `content_status` | `draft`, `published` | passages.status, prompts.status |
 | `model_tier` | `cheap`, `premium` | submissions_writing.model_tier |
-| `processing_status` | `pending`, `done`, `failed` | submissions_writing.processing_status |
+| `processing_status` | `pending`, `done`, `failed` | submissions_writing.processing_status, source_documents.status, import_jobs.status |
 | `test_mode` | `practice`, `simulation` | submissions_reading.test_mode |
 | `language` | `vi`, `en` | users.language |
 | `theme` | `dark`, `light` | users.theme |
-| `source_origin` | `notebooklm`, `manual` | sources.origin |
-| `linked_type` | `passage`, `prompt` | snippets.linked_type |
-| `version_action` | `create`, `update`, `publish`, `unpublish`, `delete` | content_versions.action |
 
 ---
 
@@ -445,27 +382,42 @@ CREATE INDEX idx_prompts_status ON prompts(status);
 ### Migration 3: Sources & Snippets
 
 ```sql
-CREATE TABLE sources (
+CREATE TABLE collections (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title TEXT NOT NULL,
-  url TEXT NOT NULL,
-  origin TEXT NOT NULL DEFAULT 'notebooklm',
-  metadata JSONB DEFAULT '{}',
-  imported_by UUID NOT NULL REFERENCES users(id),
-  imported_at TIMESTAMPTZ NOT NULL DEFAULT now()
+  name TEXT UNIQUE NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE TABLE snippets (
+CREATE TABLE topic_tags (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  source_id UUID NOT NULL REFERENCES sources(id) ON DELETE CASCADE,
-  text TEXT NOT NULL,
-  tags TEXT[] DEFAULT '{}',
-  level TEXT,
-  linked_entity UUID,
-  linked_type TEXT CHECK (linked_type IN ('passage','prompt'))
+  name TEXT UNIQUE NOT NULL
 );
-CREATE INDEX idx_snippets_source ON snippets(source_id);
-CREATE INDEX idx_snippets_linked ON snippets(linked_entity, linked_type);
+
+CREATE TABLE source_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  file_name TEXT NOT NULL,
+  file_url TEXT NOT NULL,
+  uploaded_by UUID NOT NULL REFERENCES users(id),
+  status TEXT NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_source_documents_uploader ON source_documents(uploaded_by);
+CREATE INDEX idx_source_documents_status ON source_documents(status);
+
+CREATE TABLE import_jobs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id),
+  document_id UUID NOT NULL REFERENCES source_documents(id) ON DELETE CASCADE,
+  status TEXT NOT NULL DEFAULT 'pending',
+  parsed_raw_data JSONB,
+  error_message TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX idx_import_jobs_user ON import_jobs(user_id);
+CREATE INDEX idx_import_jobs_doc ON import_jobs(document_id);
 ```
 
 ### Migration 4: Submissions
@@ -510,29 +462,12 @@ CREATE INDEX idx_sub_writing_user ON submissions_writing(user_id, created_at DES
 CREATE INDEX idx_sub_writing_status ON submissions_writing(processing_status);
 ```
 
-### Migration 5: Audit & Rate Limits
+### Migration 5: Deleted Tables (Audit & Rate Limits)
 
 ```sql
-CREATE TABLE content_versions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  entity_id UUID NOT NULL,
-  entity_type TEXT NOT NULL CHECK (entity_type IN ('passage','prompt','question')),
-  version INT NOT NULL,
-  editor_id UUID NOT NULL REFERENCES users(id),
-  action TEXT NOT NULL,
-  diff_summary TEXT,
-  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-);
-CREATE INDEX idx_cv_entity ON content_versions(entity_id, entity_type, version DESC);
-
-CREATE TABLE rate_limits (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES users(id),
-  action TEXT NOT NULL,
-  count INT NOT NULL DEFAULT 0,
-  window_start TIMESTAMPTZ NOT NULL,
-  UNIQUE(user_id, action, window_start)
-);
+-- Deleted in code for Phase 3 implementation
+DROP TABLE IF EXISTS rate_limits;
+DROP TABLE IF EXISTS content_versions;
 ```
 
 ### Seed Data
@@ -579,8 +514,6 @@ VALUES (
 | Users | Indefinite | Manual admin delete |
 | Submissions (reading) | 12 months | Archive to cold storage (Phase 2) |
 | Submissions (writing) | 12 months | Archive to cold storage (Phase 2) |
-| Content versions | Indefinite | Keep for audit trail |
-| Rate limits | 30 days | Cron job cleanup old windows |
 | Redis cache | TTL-based | Auto-expire (15–60 min) |
 | BullMQ jobs | 7 days (completed) | Auto-cleanup via BullMQ config |
 

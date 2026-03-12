@@ -603,63 +603,57 @@ Admin có thể Create/Read/Update/Delete passages (với nested questions) và 
 
 ## 7. NotebookLM Import
 
-### FR-601: Import Source
+### FR-601: Upload Source Document
 
 | Field | Value |
 |-------|-------|
 | **ID** | FR-601 |
-| **Title** | Import source từ NotebookLM |
+| **Title** | Tải lên tài liệu gốc (Source Document) |
 | **Priority** | P0 |
 | **User Story** | US-601 |
 | **Business Rules** | SY-001, SY-002, SY-003 |
 
 **Mô tả:**  
-Admin cung cấp NotebookLM URL + metadata. Backend fetch content, sanitize HTML, extract/store snippets, log provenance.
+Admin/Instructor tải lên một tệp tài liệu (PDF, DOCX) để sử dụng cho việc trích xuất và tạo bài tập sinh tự động. Tệp sẽ được lưu trữ và tạo một job import.
 
 **Input:**
 
 | Field | Type | Required |
 |-------|------|----------|
-| url | string (URL) | ✅ |
-| title | string | ❌ |
-| tags | string[] | ❌ |
-| level | enum | ❌ |
-| metadata | object | ❌ |
+| file | multipart | ✅ |
 
 **Output (201):**
 
 | Field | Type |
 |-------|------|
-| source_id | uuid |
-| title | string |
-| snippets | array of `{id, text_preview, tags}` |
-| imported_at | datetime |
-| imported_by | uuid (admin_id) |
+| document_id | uuid |
+| file_name | string |
+| file_url | string |
+| status | string ('pending') |
+| uploaded_by | uuid |
 
 **Processing:**
-1. Check Redis cache for URL → if cached, return cached result.
-2. Fetch content from URL.
-3. Sanitize HTML (strip tags, normalize whitespace).
-4. Extract text snippets (by paragraph/section).
-5. Store source record + snippet records.
-6. Cache result in Redis (TTL 15–60 min).
-7. Log audit: admin_id, action=import, source_id, timestamp.
+1. Upload file lưu vào hệ thống.
+2. Tạo database record trong bảng `source_documents`.
+3. Trả về thông tin tệp đã upload thành công chờ xử lý tiếp theo.
 
 ---
 
-### FR-602: Attach Source to Content
+### FR-602: Parse Document & Create Import Job
 
 | Field | Value |
 |-------|-------|
 | **ID** | FR-602 |
-| **Title** | Gắn source/snippet vào content |
+| **Title** | Phân tích tài liệu gốc và tạo Import Job |
 | **Priority** | P0 |
 | **User Story** | US-602 |
-| **Business Rules** | ADM-002 |
 
-**Endpoint:** `POST /admin/content/{entity_type}/{id}/sources` → body `{source_ids[], snippet_ids[]}`
+**Endpoint:** `POST /import/parse/:documentId`
 
-**Rule ADM-002:** Content imported từ NotebookLM phải có ≥ 1 source attached.
+**Mô tả:**
+Gửi ID của tài liệu vừa upload đễ Backend kích hoạt AI pipeline (Gemini Flash) với DOCX / PDF parser, extract passages and questions. Lưu Raw Data vào `import_jobs`.
+
+**Rule ADM-002:** Content generated từ file upload phải lưu lại relationship tới `import_jobs` và `source_documents`.
 
 ---
 

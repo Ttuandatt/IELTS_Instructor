@@ -654,65 +654,63 @@ Mỗi User Story theo format:
 
 ## 8. Epic 6: Admin NotebookLM Import
 
-### US-601: Import source từ NotebookLM
+### US-601: Upload source document tệp tin
 
 | Field | Value |
 |-------|-------|
-| **As a** | Admin |
-| **I want to** | Import source từ NotebookLM bằng URL |
-| **So that** | Tôi có nội dung mới cho passages/prompts với provenance rõ ràng |
+| **As a** | Admin / Instructor |
+| **I want to** | Tải lên tệp tài liệu (PDF, DOCX) làm nguồn dữ liệu gốc |
+| **So that** | Tôi có nội dung mới cho passages/prompts với provenance rõ ràng thông qua tính năng trích xuất AI |
 | **Priority** | P0 |
 | **Story Points** | 5 |
 | **Acceptance Criteria** | See [AC-601](06_acceptance_criteria.md#ac-601) |
-| **FR Ref** | FR-008, SY-001, SY-002 |
+| **FR Ref** | FR-601, SY-001, SY-002 |
 
 **Chi tiết:**
-- Modal: nhập URL + metadata (title, tags, level).
-- Backend: fetch content → sanitize HTML → extract snippets → store source + snippets.
-- Thành công: hiển thị list snippets imported.
-- Thất bại: hiển thị error (unreachable, invalid content, rate-limited).
-- Cache: Redis 15–60 min để tránh fetch lại cùng URL.
-- Log: admin_id, timestamp, source_id (SY-003).
+- Giao diện: Upload kéo thả tệp hoặc chọn file từ thiết bị.
+- Hỗ trợ định dạng: PDF, DOC, DOCX.
+- Giới hạn kích thước tệp: 10MB.
+- Backend: upload file lên thư mục lưu trữ nội bộ (hoặc S3), lưu record vào `source_documents`.
+- Hiển thị danh sách các tệp đã upload chờ xử lý với trạng thái 'pending'.
 
 ---
 
-### US-602: Attach source/snippet to content
+### US-602: Parse tài liệu và tạo Import Job
 
 | Field | Value |
 |-------|-------|
-| **As a** | Admin |
-| **I want to** | Gắn source/snippet đã import vào passage hoặc prompt |
-| **So that** | Content có truy xuất nguồn gốc rõ ràng |
+| **As a** | Admin / Instructor |
+| **I want to** | Phân tích tài liệu đã tải lên bằng AI để trích xuất bài đọc và câu hỏi |
+| **So that** | Hệ thống tự động nhận diện dạng bài, câu hỏi mà tôi không cần nhập tay |
 | **Priority** | P0 |
-| **Story Points** | 3 |
-| **Acceptance Criteria** | See [AC-602](06_acceptance_criteria.md#ac-602) |
-| **FR Ref** | FR-008, ADM-002 |
+| **Story Points** | 5 |
+| **FR Ref** | FR-602, ADM-002, US-820 |
 
 **Chi tiết:**
-- Trong passage/prompt edit form: section "Sources" → autocomplete search existing sources/snippets → attach.
-- Hiển thị attached sources/snippets với title, URL, imported date.
-- Rule ADM-002: nếu content imported từ NotebookLM, phải có ít nhất 1 source attached.
-- Remove source: unlink (không delete source record).
+- Bấm nút "Parse" từ danh sách tài liệu.
+- Backend tạo Import Job và gửi tệp text (đã trích xuất bằng thư viện mammoth) tới AI model (Gemini Flash).
+- AI model trả về cấu trúc JSON chứa passage và list questions theo format IELTS chuẩn.
+- Giao diện hiển thị loading indicator trong thời gian parse (khoảng 5-15s).
+- Giao diện chuyển sang màn hình Preview 2 cột chuẩn form để người dùng kiểm tra trước khi lưu vào DB.
 
 ---
 
-### US-603: Xem provenance trên content
+### US-603: Giám sát Import Jobs
 
 | Field | Value |
 |-------|-------|
-| **As a** | Admin |
-| **I want to** | Xem provenance (nguồn gốc) của mỗi content item |
-| **So that** | Tôi trace được nội dung đến từ đâu |
+| **As a** | Admin / Instructor |
+| **I want to** | Xem trạng thái các phiên xử lý (Import Jobs) |
+| **So that** | Tôi biết việc parse nội dung AI có thành công hay lỗi gì để khắc phục |
 | **Priority** | P1 |
-| **Story Points** | 2 |
-| **Acceptance Criteria** | See [AC-603](06_acceptance_criteria.md#ac-603) |
-| **FR Ref** | FR-008, SY-002 |
+| **Story Points** | 3 |
 
 **Chi tiết:**
-- Panel/section trên content detail hiển thị:
-  - Source(s): title, URL, imported date, imported by.
-  - Snippet(s): text preview (truncated), tags, level.
-- Click source URL → external link to NotebookLM.
+- Panel hiển thị:
+  - Source Document: File name.
+  - Trạng thái: Pending, Done, Failed.
+  - Error messages (nếu có): ví dụ AI trả về schema sai.
+- Chức năng xem lại Raw Data để debug hoặc lấy thông tin nếu cần.
 
 ---
 

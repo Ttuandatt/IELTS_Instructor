@@ -47,8 +47,13 @@ export class AdminService {
         title: dto.title,
         body: dto.body,
         level: dto.level,
-        collection: dto.collection,
-        topic_tags: dto.topic_tags || [],
+        collection_id: dto.collection,
+        tags: {
+          connectOrCreate: (dto.topic_tags || []).map(tag => ({
+            where: { name: tag },
+            create: { name: tag }
+          }))
+        },
         status: dto.status || ContentStatus.draft,
         created_by: adminId,
       },
@@ -60,7 +65,22 @@ export class AdminService {
     if (userId && userRole !== 'admin' && passage.created_by !== userId) {
       throw new ForbiddenException('You can only edit your own passages');
     }
-    return this.prisma.passage.update({ where: { id }, data: dto });
+    const updateData: any = { ...dto };
+    if (dto.collection !== undefined) {
+      updateData.collection_id = dto.collection;
+      delete updateData.collection;
+    }
+    if (dto.topic_tags !== undefined) {
+      updateData.tags = {
+        set: [], // Clear existing relations
+        connectOrCreate: dto.topic_tags.map(tag => ({
+          where: { name: tag },
+          create: { name: tag }
+        }))
+      };
+      delete updateData.topic_tags;
+    }
+    return this.prisma.passage.update({ where: { id }, data: updateData });
   }
 
   async deletePassage(id: string, userId?: string, userRole?: string) {
@@ -193,8 +213,13 @@ export class AdminService {
         title: dto.title,
         prompt_text: dto.prompt_text,
         level: dto.level,
-        collection: dto.collection,
-        topic_tags: dto.topic_tags || [],
+        collection_id: dto.collection,
+        tags: {
+          connectOrCreate: (dto.topic_tags || []).map(tag => ({
+            where: { name: tag },
+            create: { name: tag }
+          }))
+        },
         status: dto.status || ContentStatus.draft,
         min_words: dto.min_words || 250,
         created_by: adminId,
@@ -207,7 +232,22 @@ export class AdminService {
     if (userId && userRole !== 'admin' && prompt.created_by !== userId) {
       throw new ForbiddenException('You can only edit your own prompts');
     }
-    return this.prisma.prompt.update({ where: { id }, data: dto });
+    const updateData: any = { ...dto };
+    if (dto.collection !== undefined) {
+      updateData.collection_id = dto.collection;
+      delete updateData.collection;
+    }
+    if (dto.topic_tags !== undefined) {
+      updateData.tags = {
+        set: [],
+        connectOrCreate: dto.topic_tags.map(tag => ({
+          where: { name: tag },
+          create: { name: tag }
+        }))
+      };
+      delete updateData.topic_tags;
+    }
+    return this.prisma.prompt.update({ where: { id }, data: updateData });
   }
 
   async deletePrompt(id: string, userId?: string, userRole?: string) {

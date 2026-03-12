@@ -19,10 +19,10 @@
 | prompts | Writing prompts | task_type, title, prompt_text, level | → submissions_writing |
 | submissions_reading | Reading attempt data | user_id, answers, score_pct | ← users, ← passages |
 | submissions_writing | Writing attempt + scoring | content, scores, feedback, processing_status | ← users, ← prompts |
-| sources | Imported content sources | title, url, origin, imported_by | → snippets (1:N) |
-| snippets | Source content extracts | text, tags, linked_entity | ← sources (N:1) |
-| content_versions | Audit trail for content | entity_id, version, action, editor_id | ← users |
-| rate_limits | API rate tracking | user_id, action, count, window_start | ← users |
+| source_documents | Uploaded docs | file_name, file_url, uploaded_by | → passages |
+| import_jobs | Parsing job statuses | document_id, status | ← source_documents, ← users |
+| collections | Content groupings | name, description | → passages, → prompts |
+| topic_tags | Many-to-Many Tags | name | ↔ passages, ↔ prompts |
 
 ---
 
@@ -50,8 +50,8 @@
 | title | string | Yes | — | Max 200 chars |
 | body | text | Yes | — | Full passage text |
 | level | enum | Yes | — | A2 \| B1 \| B2 \| C1 |
-| topic_tags | string[] | No | [] | Array of tags |
-| source_ids | UUID[] | No | [] | References to sources |
+| collection_id | UUID | No | null | FK → collections |
+| source_document_id | UUID | No | null | FK → source_documents |
 | status | enum | Yes | 'draft' | draft \| published |
 | created_by | UUID | Yes | — | FK → users |
 | created_at | timestamp | Auto | now() | — |
@@ -79,8 +79,7 @@
 | title | string | Yes | — | Max 200 |
 | prompt_text | text | Yes | — | Full prompt instructions |
 | level | enum | Yes | — | A2 \| B1 \| B2 \| C1 |
-| topic_tags | string[] | No | [] | — |
-| source_ids | UUID[] | No | [] | — |
+| collection_id | UUID | No | null | FK → collections |
 | status | enum | Yes | 'draft' | draft \| published |
 | min_words | int | Yes | 250 | Recommended minimum |
 | created_by | UUID | Yes | — | FK → users |
@@ -133,12 +132,12 @@
 | Name | Values | Used In |
 |------|--------|---------|
 | role | learner, instructor, admin | users |
-| question_type | mcq, short | questions |
+| question_type | mcq, short, matching_headings, true_false_notgiven, yes_no_notgiven, matching_information, matching_features, matching_sentence_endings, sentence_completion, summary_completion, table_completion, flowchart_completion, diagram_label_completion | questions |
 | task_type | 1, 2 | prompts |
 | cefr_level | A2, B1, B2, C1 | passages, prompts |
 | content_status | draft, published | passages, prompts |
 | model_tier | cheap, premium | submissions_writing |
-| processing_status | pending, done, failed | submissions_writing |
+| processing_status | pending, done, failed | submissions_writing, import_jobs, source_documents |
 | test_mode | practice, simulation | submissions_reading |
 | language | vi, en | users |
 | theme | dark, light | users |

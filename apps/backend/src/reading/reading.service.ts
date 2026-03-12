@@ -15,7 +15,7 @@ export class ReadingService {
     const [data, total] = await Promise.all([
       this.prisma.passage.findMany({
         where,
-        select: { id: true, title: true, level: true, collection: true, topic_tags: true, created_at: true, _count: { select: { questions: true } } },
+        select: { id: true, title: true, level: true, collection_id: true, tags: { select: { name: true } }, created_at: true, _count: { select: { questions: true } } },
         orderBy: { created_at: 'desc' },
         skip: (page - 1) * limit,
         take: limit,

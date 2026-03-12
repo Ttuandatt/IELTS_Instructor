@@ -55,7 +55,7 @@ export class ClassroomController {
                 status: 'published' as any,
                 ...(q ? { title: { contains: q, mode: 'insensitive' as any } } : {}),
             },
-            select: { id: true, title: true, level: true, topic_tags: true },
+            select: { id: true, title: true, level: true, tags: { select: { name: true } } },
             orderBy: { title: 'asc' },
             take: 100,
         });

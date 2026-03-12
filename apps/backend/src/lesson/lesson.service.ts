@@ -132,8 +132,6 @@ export class LessonService {
                     title: lessonTitle,
                     body: safeBody,
                     level,
-                    collection: 'docx-upload',
-                    topic_tags: [],
                     created_by: userId,
                 },
             });
