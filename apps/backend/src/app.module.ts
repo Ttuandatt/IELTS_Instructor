@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { PrismaModule } from './prisma';
@@ -26,9 +26,15 @@ import { UploadModule } from './upload/upload.module';
     // BullMQ — Redis connection (global so all queues share it)
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        redis: config.get<string>('REDIS_URL', 'redis://localhost:6379'),
-      }),
+      useFactory: (config: ConfigService) => {
+        const url = new URL(config.get<string>('REDIS_URL', 'redis://localhost:6379'));
+        return {
+          connection: {
+            host: url.hostname,
+            port: parseInt(url.port || '6379'),
+          },
+        };
+      },
       inject: [ConfigService],
     }),
 
