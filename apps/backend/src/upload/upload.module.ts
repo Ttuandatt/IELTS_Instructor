@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { BullModule } from '@nestjs/bull';
+import { BullModule } from '@nestjs/bullmq';
 import { UploadController } from './upload.controller';
 import { DocxParserService } from './docx-parser.service';
 import { FILE_CONVERSION_QUEUE } from './conversion.types';

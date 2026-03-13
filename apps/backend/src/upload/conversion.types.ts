@@ -1,4 +1,4 @@
-import type { Job } from 'bull';
+import { Job } from 'bullmq';
 
 export const FILE_CONVERSION_QUEUE = 'file-conversion';
 

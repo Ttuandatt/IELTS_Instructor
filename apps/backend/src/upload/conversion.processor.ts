@@ -1,23 +1,20 @@
-import { Process, Processor } from '@nestjs/bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
 import { Logger } from '@nestjs/common';
+import { Job } from 'bullmq';
 import { promises as fs } from 'fs';
 import { basename, extname, join } from 'path';
 import { spawn } from 'child_process';
 import * as mammoth from 'mammoth';
-import type { FileConversionJob, FileConversionResult } from './conversion.types';
-import { FILE_CONVERSION_QUEUE } from './conversion.types';
+import { FILE_CONVERSION_QUEUE, FileConversionJobData, FileConversionResult } from './conversion.types';
 
-@Processor(FILE_CONVERSION_QUEUE)
-export class FileConversionProcessor {
+@Processor(FILE_CONVERSION_QUEUE, { concurrency: 2 })
+export class FileConversionProcessor extends WorkerHost {
     private readonly logger = new Logger(FileConversionProcessor.name);
     private readonly uploadsRoot = join(process.cwd(), 'uploads');
     private readonly convertedRoot = join(this.uploadsRoot, 'converted');
 
-    constructor() { }
-
-    @Process({ concurrency: 2 })
-    async handle(job: FileConversionJob): Promise<FileConversionResult> {
-        const jobDir = await this.ensureJobDir(job.id.toString());
+    async process(job: Job<FileConversionJobData>): Promise<FileConversionResult> {
+        const jobDir = await this.ensureJobDir(job.id!.toString());
         const ext = extname(job.data.originalName).toLowerCase();
 
         let pdfPath: string | null = null;

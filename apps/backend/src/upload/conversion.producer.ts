@@ -1,7 +1,7 @@
-import { InjectQueue } from '@nestjs/bull';
+import { InjectQueue } from '@nestjs/bullmq';
 import { Injectable, Logger } from '@nestjs/common';
 import { randomUUID } from 'crypto';
-import type { Queue } from 'bull';
+import { Queue } from 'bullmq';
 import { FILE_CONVERSION_QUEUE, FileConversionJobData } from './conversion.types';
 
 @Injectable()
