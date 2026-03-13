@@ -1,6 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { InjectQueue } from '@nestjs/bull';
-import type { Queue } from 'bull';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 export const SCORING_QUEUE = 'writing-scoring';
 
@@ -22,12 +22,13 @@ export class ScoringProducerService {
     ) { }
 
     async enqueue(data: ScoringJobData): Promise<void> {
-        await this.scoringQueue.add(data, {
+        await this.scoringQueue.add('score-essay', data, {
+            priority: data.modelTier === 'premium' ? 1 : 5,
             attempts: 3,
             backoff: { type: 'exponential', delay: 5000 },
             removeOnComplete: 100,
             removeOnFail: 50,
         });
-        this.logger.log(`Enqueued scoring job for submission ${data.submissionId}`);
+        this.logger.log(`Enqueued scoring job for submission ${data.submissionId} (priority: ${data.modelTier})`);
     }
 }
