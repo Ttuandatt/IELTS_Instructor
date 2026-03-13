@@ -1,22 +1,34 @@
-import { Process, Processor } from '@nestjs/bull';
-import { Logger } from '@nestjs/common';
-import type { Job } from 'bull';
+import { Processor, WorkerHost } from '@nestjs/bullmq';
+import { Logger, OnModuleDestroy } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { Job } from 'bullmq';
+import Redis from 'ioredis';
 import { PrismaService } from '../prisma';
 import { LlmClientService } from './llm-client.service';
 import { SCORING_QUEUE, ScoringJobData } from './scoring.producer';
 
-
-@Processor(SCORING_QUEUE)
-export class ScoringConsumer {
+@Processor(SCORING_QUEUE, {
+    concurrency: parseInt(process.env.SCORING_CONCURRENCY || '3'),
+    lockDuration: 120000,
+})
+export class ScoringConsumer extends WorkerHost implements OnModuleDestroy {
     private readonly logger = new Logger(ScoringConsumer.name);
+    private readonly redisPub: Redis;
 
     constructor(
         private readonly prisma: PrismaService,
         private readonly llmClient: LlmClientService,
-    ) { }
+        private readonly config: ConfigService,
+    ) {
+        super();
+        this.redisPub = new Redis(config.get<string>('REDIS_URL', 'redis://localhost:6379'));
+    }
 
-    @Process()
-    async handleScoringJob(job: Job<ScoringJobData>): Promise<void> {
+    onModuleDestroy() {
+        this.redisPub.disconnect();
+    }
+
+    async process(job: Job<ScoringJobData>): Promise<void> {
         const { submissionId, essayContent, promptText, modelTier } = job.data;
         const startTime = Date.now();
 
@@ -57,11 +69,15 @@ export class ScoringConsumer {
             this.logger.log(
                 `Scored submission ${submissionId} — overall: ${feedback.overall}, model: ${modelName}, time: ${turnaroundMs}ms`,
             );
+
+            await this.redisPub.publish(
+                `scoring:status:${submissionId}`,
+                JSON.stringify({ processing_status: 'done', submission_id: submissionId }),
+            );
         } catch (err) {
             const error = err as Error;
             this.logger.error(`Scoring failed for ${submissionId}: ${error.message}`);
 
-            // Only mark as failed on the last attempt
             if (job.attemptsMade >= (job.opts.attempts ?? 1) - 1) {
                 await this.prisma.writingSubmission.update({
                     where: { id: submissionId },
@@ -71,9 +87,14 @@ export class ScoringConsumer {
                     },
                 });
                 this.logger.error(`Marked submission ${submissionId} as failed after all retries`);
+
+                await this.redisPub.publish(
+                    `scoring:status:${submissionId}`,
+                    JSON.stringify({ processing_status: 'failed', submission_id: submissionId }),
+                );
             }
 
-            throw err; // Re-throw so BullMQ handles retry
+            throw err;
         }
     }
 }
