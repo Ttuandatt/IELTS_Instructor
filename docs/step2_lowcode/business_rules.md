@@ -19,6 +19,7 @@
 | RD-004 | Keep all attempt history (INSERT only, no UPDATE) | Backend service | — |
 | RD-005 | Mode selection required before starting: Practice (no timer, choose parts) vs Simulation (60 min, full test) | Frontend modal (S22) + backend `test_mode` field | — |
 | RD-006 | Simulation mode: 60 min countdown, no pause, auto-submit on expiry | Frontend Timer + backend validation | Reject late submissions |
+| RD-007 | Auto-save reading answers to localStorage every 5s; clear on submit | Frontend hook | — |
 
 ---
 
@@ -34,6 +35,7 @@
 | WR-006 | Instructor can override AI score (0–9) and add comment; original AI score preserved | Backend PATCH endpoint | — |
 | WR-007 | Feedback must include: TR/CC/LR/GRA scores, summary, strengths[], improvements[], suggestions | LLM prompt + JSON schema validation | Retry if malformed |
 | WR-008 | Submissions stuck in 'pending' > 10 min are auto-marked 'failed' with error message | Cron service (every 5 min) | Mark failed; log warning |
+| WR-009 | Auto-save essay draft to localStorage every 5s; clear on submit | Frontend hook | — |
 
 ---
 
@@ -69,4 +71,21 @@
 
 ---
 
-> **Tham chiếu:** [11_business_rules](../step3_prd/11_business_rules.md) (full detail with test scenarios)
+## 6. Classroom Rules (CR)
+
+| ID | Rule | Enforcement | Action on Violation |
+|----|------|-------------|---------------------|
+| CR-001 | Chỉ instructor hoặc admin được tạo classroom | `RolesGuard` với `@Roles('instructor', 'admin')` trên `POST /classrooms` | 403 Forbidden |
+| CR-002 | Tham gia lớp yêu cầu mã mời hợp lệ (invite_code 8 ký tự) | Backend validation — `findUnique({invite_code})` | 404 "Invalid invite code" |
+| CR-003 | Chỉ owner hoặc admin được cập nhật/xóa classroom | `checkOwnership()` guard trong controller | 403 "Only classroom owner can perform this action" |
+| CR-004 | Owner tự động được thêm vào lớp với role `teacher` khi tạo lớp | `classroomService.create()` — nested `members.create` | — |
+| CR-005 | Không thể tham gia/thêm thành viên khi lớp đã đầy (`members >= max_members`) | Backend check `_count.members >= max_members` | 403 "Classroom is full" |
+| CR-006 | Không thể tham gia lớp nếu đã là thành viên | Unique constraint `classroom_id + user_id` + `findUnique` check | 409 "Already a member" |
+| CR-007 | Học viên chỉ thấy nội dung đã published (topics và lessons); giảng viên thấy tất cả | Filter `status = 'published'` khi role = `student` trong `findOne`, `findAllByClassroom`, `findAllByTopic` | Nội dung draft bị ẩn |
+| CR-008 | Học viên chỉ được nộp bài khi lesson có `allow_submit = true` | Backend check `lesson.allow_submit` trước khi tạo submission | 403 "Submissions are not enabled for this lesson" |
+| CR-009 | Nội dung bài nộp không được rỗng | Backend check `body.content?.trim()` | 403 "Content cannot be empty" |
+| CR-010 | Xóa classroom là soft delete (chuyển sang `archived`), dữ liệu vẫn lưu trữ | `classroomService.remove()` — `update({status: 'archived'})` thay vì `delete` | — |
+
+---
+
+> **Tham chiếu:** [11_business_rules](../step3_prd/11_business_rules.md) (full detail with test scenarios) | [18_classroom_module](../step3_prd/18_classroom_module.md)

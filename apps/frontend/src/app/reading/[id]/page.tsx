@@ -6,6 +6,7 @@ import { useI18n } from '@/providers/I18nProvider';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
 import { ModeSelectorModal } from '@/components/ModeSelectorModal';
+import { useAutoSave } from '@/hooks/useAutoSave';
 import {
   ArrowLeft, Clock, Send, CheckCircle2, XCircle, ChevronDown, ChevronUp,
   Highlighter, RotateCcw,
@@ -30,6 +31,19 @@ export default function ReadingPracticePage() {
   const [startTime, setStartTime] = useState<number | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(60 * 60);
 
+  // Auto-save reading answers
+  const { restored: restoredAnswers, clear: clearSavedAnswers } = useAutoSave(
+    `reading-answers-${id}`,
+    answers,
+  );
+
+  // Restore saved answers on mount
+  useEffect(() => {
+    if (restoredAnswers) {
+      setAnswers(restoredAnswers);
+    }
+  }, [restoredAnswers]);
+
   // Refs for scrolling question into view
   const questionRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
@@ -40,7 +54,10 @@ export default function ReadingPracticePage() {
 
   const submitMut = useMutation({
     mutationFn: (body: any) => apiClient.post(`/reading/passages/${id}/submit`, body).then(r => r.data),
-    onSuccess: (data) => setResult(data),
+    onSuccess: (data) => {
+      clearSavedAnswers();
+      setResult(data);
+    },
   });
 
   const handleSubmit = (isAutoSubmit = false) => {

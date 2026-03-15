@@ -1,11 +1,12 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useI18n } from '@/providers/I18nProvider';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
 import WordCounter from '@/components/WordCounter';
+import { useAutoSave } from '@/hooks/useAutoSave';
 
 export default function WritingPracticePage() {
   const { id } = useParams<{ id: string }>();
@@ -14,6 +15,19 @@ export default function WritingPracticePage() {
   const [essay, setEssay] = useState('');
   const [startTime] = useState(Date.now());
   const [modelTier, setModelTier] = useState<'cheap' | 'premium'>('cheap');
+
+  // Auto-save essay draft
+  const { restored: restoredEssay, clear: clearSavedEssay } = useAutoSave(
+    `writing-draft-${id}`,
+    essay,
+  );
+
+  // Restore saved draft on mount
+  useEffect(() => {
+    if (restoredEssay) {
+      setEssay(restoredEssay);
+    }
+  }, [restoredEssay]);
 
   const { data: promptData, isLoading } = useQuery({
     queryKey: ['writing-prompt', id],
@@ -26,6 +40,7 @@ export default function WritingPracticePage() {
     mutationFn: (body: any) =>
       apiClient.post(`/writing/prompts/${id}/submit`, body).then(r => r.data),
     onSuccess: (data: any) => {
+      clearSavedEssay();
       // Navigate to the submission polling/feedback page
       const submissionId = data?.id || data?.data?.id;
       if (submissionId) {
