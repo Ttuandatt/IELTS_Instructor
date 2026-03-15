@@ -97,9 +97,9 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 
 | Role | Mô tả | Tạo bởi | Mặc định khi register |
 |------|--------|---------|----------------------|
-| `learner` | Người học; truy cập practice modules, dashboard, profile | Self-register | ✅ Có (default) |
-| `instructor` | Giảng viên; xem submissions (MVP-lite); future: review/override | Self-register (chọn role) | ❌ Không |
-| `admin` | Quản trị; full CRUD content, import, publish, manage users | Self-register (chọn role) / System seed | ❌ Không |
+| `learner` | Người học; truy cập practice modules, dashboard, profile | Self-register | ✅ Có (mặc định, luôn luôn) |
+| `instructor` | Giảng viên; xem submissions (MVP-lite); future: review/override | Admin gán qua PATCH /admin/users/{id}/role | ❌ Không |
+| `admin` | Quản trị; full CRUD content, import, publish, manage users | Admin gán qua PATCH /admin/users/{id}/role / System seed | ❌ Không |
 
 ---
 
@@ -108,7 +108,7 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 | Hành động | `learner` | `instructor` | `admin` |
 |-----------|:---------:|:------------:|:-------:|
 | **Auth** | | | |
-| Register (self, chọn role) | ✅ | ✅ | ✅ |
+| Register (self, mặc định learner) | ✅ | — | — |
 | Login / Refresh / Logout | ✅ | ✅ | ✅ |
 | View & update own profile | ✅ | ✅ | ✅ |
 | **Reading** | | | |
@@ -146,15 +146,17 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 
 ## 5. Luồng đăng ký & phân quyền
 
-### 5.1 User Registration Flow (chọn role)
+### 5.1 User Registration Flow (mặc định learner)
 
 ```
-[User] → Chọn role (learner / instructor / admin) trên form đăng ký
-       → POST /auth/register {email, password, display_name, role}
-       → Server validate role ∈ [learner, instructor, admin]
-       → Tạo account với role được chọn (default: learner)
+[User] → Điền email, password, display_name trên form đăng ký
+       → POST /auth/register {email, password, display_name}
+       → Server tạo account với role = learner (LUÔN LUÔN)
        → Trả JWT access + refresh token
        → Redirect to Dashboard
+
+Lưu ý: Không cho phép chọn role khi đăng ký.
+Chỉ Admin có quyền thay đổi role qua PATCH /admin/users/{id}/role
 ```
 
 ### 5.2 Admin Role Management (bổ sung)

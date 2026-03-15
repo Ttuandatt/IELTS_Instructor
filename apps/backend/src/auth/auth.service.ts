@@ -46,7 +46,7 @@ export class AuthService {
         email: dto.email.toLowerCase(),
         password_hash,
         display_name: dto.display_name,
-        role: dto.role || UserRole.learner,
+        role: UserRole.learner,
         language: dto.language || 'vi',
         theme: dto.theme || 'light',
       },

@@ -33,6 +33,7 @@
 | WR-005 | Store full scoring metadata (scores, feedback, model, turnaround) | Worker after scoring | — |
 | WR-006 | Instructor can override AI score (0–9) and add comment; original AI score preserved | Backend PATCH endpoint | — |
 | WR-007 | Feedback must include: TR/CC/LR/GRA scores, summary, strengths[], improvements[], suggestions | LLM prompt + JSON schema validation | Retry if malformed |
+| WR-008 | Submissions stuck in 'pending' > 10 min are auto-marked 'failed' with error message | Cron service (every 5 min) | Mark failed; log warning |
 
 ---
 
@@ -64,6 +65,7 @@
 | AU-002 | JWT access token TTL = 15 min; refresh TTL = 7 days | Auth service | Auto-refresh or re-login |
 | AU-003 | Refresh token rotated on each use; old invalidated | Auth service | 401 if old token used |
 | AU-004 | Login rate-limit: 5/15min per IP; Register: 3/15min per IP | Rate-limit middleware | 429 error |
+| AU-005 | Registration always creates learner role; role changes require admin action | Backend validation | Reject any role field in register payload |
 
 ---
 
