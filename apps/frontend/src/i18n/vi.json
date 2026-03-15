@@ -86,7 +86,20 @@
     "writing_progress": "Tiến độ viết",
     "recent_activity": "Hoạt động gần đây",
     "avg_score": "Điểm trung bình",
-    "total_attempts": "Tổng số lần làm"
+    "total_attempts": "Tổng số lần làm",
+    "welcome": "Chào mừng bạn đến với IELTS Helper!",
+    "start_first_practice": "Bắt đầu luyện tập để theo dõi tiến trình của bạn.",
+    "practice_reading": "Luyện đọc",
+    "practice_writing": "Luyện viết",
+    "reading_avg": "Điểm TB đọc",
+    "writing_avg": "Điểm TB viết",
+    "completion_rate": "Tỉ lệ hoàn thành",
+    "trend_title": "Xu hướng tiến bộ",
+    "period_4w": "4 tuần",
+    "period_3m": "3 tháng",
+    "recent_submissions": "Bài làm gần đây",
+    "no_data_yet": "Chưa có dữ liệu",
+    "writing_criteria": "Điểm chi tiết Writing"
   },
   "admin": {
     "title": "Quản trị",

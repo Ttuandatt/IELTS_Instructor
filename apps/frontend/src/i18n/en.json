@@ -86,7 +86,20 @@
     "writing_progress": "Writing Progress",
     "recent_activity": "Recent Activity",
     "avg_score": "Average Score",
-    "total_attempts": "Total Attempts"
+    "total_attempts": "Total Attempts",
+    "welcome": "Welcome to IELTS Helper!",
+    "start_first_practice": "Start practicing to track your progress.",
+    "practice_reading": "Practice Reading",
+    "practice_writing": "Practice Writing",
+    "reading_avg": "Reading Avg",
+    "writing_avg": "Writing Avg",
+    "completion_rate": "Completion Rate",
+    "trend_title": "Progress Trends",
+    "period_4w": "4 weeks",
+    "period_3m": "3 months",
+    "recent_submissions": "Recent Submissions",
+    "no_data_yet": "No data yet",
+    "writing_criteria": "Writing Criteria Scores"
   },
   "admin": {
     "title": "Admin Panel",
