@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma';
 import { ContentStatus, CefrLevel, UserRole } from '@prisma/client';
+import { ContentVersionService } from './content-version.service';
 
 @Injectable()
 export class AdminService {
-  constructor(private readonly prisma: PrismaService) { }
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly versionService: ContentVersionService,
+  ) { }
 
   /* ── Passages ── */
 
@@ -42,7 +46,7 @@ export class AdminService {
   }
 
   async createPassage(adminId: string, dto: { title: string; body: string; level: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus }) {
-    return this.prisma.passage.create({
+    const passage = await this.prisma.passage.create({
       data: {
         title: dto.title,
         body: dto.body,
@@ -58,6 +62,10 @@ export class AdminService {
         created_by: adminId,
       },
     });
+    await this.versionService.record({
+      entityId: passage.id, entityType: 'passage', action: 'create', editorId: adminId,
+    });
+    return passage;
   }
 
   async updatePassage(id: string, dto: { title?: string; body?: string; level?: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus }, userId?: string, userRole?: string) {
@@ -80,13 +88,25 @@ export class AdminService {
       };
       delete updateData.topic_tags;
     }
-    return this.prisma.passage.update({ where: { id }, data: updateData });
+    const updated = await this.prisma.passage.update({ where: { id }, data: updateData });
+    const action = dto.status === 'published' ? 'publish' : dto.status === 'draft' ? 'unpublish' : 'update';
+    if (userId) {
+      await this.versionService.record({
+        entityId: id, entityType: 'passage', action, editorId: userId, changes: dto,
+      });
+    }
+    return updated;
   }
 
   async deletePassage(id: string, userId?: string, userRole?: string) {
     const passage = await this.getPassage(id);
     if (userId && userRole !== 'admin' && passage.created_by !== userId) {
       throw new ForbiddenException('You can only delete your own passages');
+    }
+    if (userId) {
+      await this.versionService.record({
+        entityId: id, entityType: 'passage', action: 'delete', editorId: userId,
+      });
     }
     return this.prisma.passage.delete({ where: { id } });
   }
@@ -207,7 +227,7 @@ export class AdminService {
   }
 
   async createPrompt(adminId: string, dto: { task_type: string; title: string; prompt_text: string; level: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus; min_words?: number }) {
-    return this.prisma.prompt.create({
+    const prompt = await this.prisma.prompt.create({
       data: {
         task_type: dto.task_type as any,
         title: dto.title,
@@ -225,6 +245,10 @@ export class AdminService {
         created_by: adminId,
       },
     });
+    await this.versionService.record({
+      entityId: prompt.id, entityType: 'prompt', action: 'create', editorId: adminId,
+    });
+    return prompt;
   }
 
   async updatePrompt(id: string, dto: { title?: string; prompt_text?: string; level?: CefrLevel; collection?: string; topic_tags?: string[]; status?: ContentStatus; min_words?: number }, userId?: string, userRole?: string) {
@@ -247,13 +271,25 @@ export class AdminService {
       };
       delete updateData.topic_tags;
     }
-    return this.prisma.prompt.update({ where: { id }, data: updateData });
+    const updated = await this.prisma.prompt.update({ where: { id }, data: updateData });
+    const action = dto.status === 'published' ? 'publish' : dto.status === 'draft' ? 'unpublish' : 'update';
+    if (userId) {
+      await this.versionService.record({
+        entityId: id, entityType: 'prompt', action, editorId: userId, changes: dto,
+      });
+    }
+    return updated;
   }
 
   async deletePrompt(id: string, userId?: string, userRole?: string) {
     const prompt = await this.getPrompt(id);
     if (userId && userRole !== 'admin' && prompt.created_by !== userId) {
       throw new ForbiddenException('You can only delete your own prompts');
+    }
+    if (userId) {
+      await this.versionService.record({
+        entityId: id, entityType: 'prompt', action: 'delete', editorId: userId,
+      });
     }
     return this.prisma.prompt.delete({ where: { id } });
   }

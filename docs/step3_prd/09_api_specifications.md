@@ -681,6 +681,27 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
 
 **Response (200):** Updated submission with instructor fields populated.
 
+### Content Versioning (ADM-003)
+
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| GET | /admin/content/:entityType/:id/versions | Version history for a passage or prompt | admin |
+
+**Response (200):**
+```json
+[
+  {
+    "id": "ver-001",
+    "entity_type": "passage",
+    "action": "update",
+    "version": 3,
+    "changes": {"title": "Updated Title", "status": "published"},
+    "editor": {"id": "usr-001", "display_name": "Admin User"},
+    "created_at": "2025-02-21T14:00:00Z"
+  }
+]
+```
+
 ### Content Stats (Sprint 4)
 
 | Method | Path | Description | Auth |

@@ -3,6 +3,7 @@ import {
   Body, Param, Query, UseGuards, Request,
 } from '@nestjs/common';
 import { AdminService } from './admin.service';
+import { ContentVersionService } from './content-version.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../auth/guards/roles.guard';
 import { Roles } from '../auth/decorators/roles.decorator';
@@ -11,7 +12,10 @@ import { Roles } from '../auth/decorators/roles.decorator';
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Roles('admin' as any)
 export class AdminController {
-  constructor(private readonly adminService: AdminService) { }
+  constructor(
+    private readonly adminService: AdminService,
+    private readonly versionService: ContentVersionService,
+  ) { }
 
   /* ── Stats ── */
 
@@ -127,5 +131,15 @@ export class AdminController {
   @Delete('users/:id')
   deleteUser(@Param('id') id: string) {
     return this.adminService.deleteUser(id);
+  }
+
+  /* ── Content Versioning ── */
+
+  @Get('content/:entityType/:id/versions')
+  getContentVersions(
+    @Param('entityType') entityType: string,
+    @Param('id') id: string,
+  ) {
+    return this.versionService.getHistory(entityType, id);
   }
 }
