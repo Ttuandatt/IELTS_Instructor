@@ -5,12 +5,20 @@ import { useI18n } from '@/providers/I18nProvider';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
 import Link from 'next/link';
-import { PenLine, BookOpen, ExternalLink } from 'lucide-react';
+import { PenLine, BookOpen, ExternalLink, LayoutList, GraduationCap } from 'lucide-react';
+
+type TabType = 'all' | 'writing' | 'reading' | 'lesson';
 
 export default function InstructorSubmissionsPage() {
   const { t } = useI18n();
-  const [tab, setTab] = useState<'writing' | 'reading'>('writing');
+  const [tab, setTab] = useState<TabType>('all');
   const [page, setPage] = useState(1);
+
+  const { data: allData, isLoading: allLoading } = useQuery({
+    queryKey: ['instructor-all-subs', page],
+    queryFn: () => apiClient.get(`/instructor/all-submissions?page=${page}&limit=20`).then(r => r.data),
+    enabled: tab === 'all',
+  });
 
   const { data: writingData, isLoading: wLoading } = useQuery({
     queryKey: ['instructor-writing-subs', page],
@@ -24,19 +32,33 @@ export default function InstructorSubmissionsPage() {
     enabled: tab === 'reading',
   });
 
-  const data = tab === 'writing' ? writingData : readingData;
-  const isLoading = tab === 'writing' ? wLoading : rLoading;
+  const { data: lessonData, isLoading: lLoading } = useQuery({
+    queryKey: ['instructor-lesson-subs', page],
+    queryFn: () => apiClient.get(`/instructor/all-submissions?type=lesson&page=${page}&limit=20`).then(r => r.data),
+    enabled: tab === 'lesson',
+  });
+
+  const dataMap = { all: allData, writing: writingData, reading: readingData, lesson: lessonData };
+  const loadingMap = { all: allLoading, writing: wLoading, reading: rLoading, lesson: lLoading };
+  const data = dataMap[tab];
+  const isLoading = loadingMap[tab];
 
   return (
     <div>
       <h1 className="page-title">{t.instructor.all_submissions}</h1>
 
       <div className="tab-bar">
+        <button className={`tab-btn ${tab === 'all' ? 'tab-btn--active' : ''}`} onClick={() => { setTab('all'); setPage(1); }}>
+          <LayoutList size={16} /> All
+        </button>
         <button className={`tab-btn ${tab === 'writing' ? 'tab-btn--active' : ''}`} onClick={() => { setTab('writing'); setPage(1); }}>
           <PenLine size={16} /> {t.instructor.writing_submissions}
         </button>
         <button className={`tab-btn ${tab === 'reading' ? 'tab-btn--active' : ''}`} onClick={() => { setTab('reading'); setPage(1); }}>
           <BookOpen size={16} /> {t.instructor.reading_submissions}
+        </button>
+        <button className={`tab-btn ${tab === 'lesson' ? 'tab-btn--active' : ''}`} onClick={() => { setTab('lesson'); setPage(1); }}>
+          <GraduationCap size={16} /> Lesson
         </button>
       </div>
 
@@ -44,6 +66,48 @@ export default function InstructorSubmissionsPage() {
         <p>{t.common.loading}</p>
       ) : !data?.data?.length ? (
         <div className="empty-state">{t.common.no_data}</div>
+      ) : (tab === 'all' || tab === 'lesson') ? (
+        <>
+          <div className="data-table-wrapper">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Type</th>
+                  <th>{t.instructor.learner_name}</th>
+                  <th>Title</th>
+                  <th>{t.reading.score}</th>
+                  <th>{t.common.status}</th>
+                  <th>{t.common.date}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.data.map((s: any) => (
+                  <tr key={`${s.submission_type}-${s.id}`}>
+                    <td>
+                      <span className={`badge badge-${s.submission_type}`}>
+                        {s.submission_type}
+                      </span>
+                    </td>
+                    <td>{s.student_name ?? '—'}</td>
+                    <td>{s.title ?? '—'}</td>
+                    <td>
+                      {s.score != null
+                        ? s.submission_type === 'reading' ? `${s.score.toFixed(1)}%` : s.score.toFixed(1)
+                        : '—'}
+                    </td>
+                    <td><span className={`badge badge-${s.status}`}>{s.status}</span></td>
+                    <td>{new Date(s.created_at).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <div className="pagination">
+            <button disabled={page <= 1} onClick={() => setPage(p => p - 1)} className="btn btn-sm">{t.common.previous}</button>
+            <span>Page {page} / {Math.ceil((data.total || 1) / 20)}</span>
+            <button disabled={page * 20 >= (data.total || 0)} onClick={() => setPage(p => p + 1)} className="btn btn-sm">{t.common.next}</button>
+          </div>
+        </>
       ) : tab === 'writing' ? (
         <>
           <div className="data-table-wrapper">

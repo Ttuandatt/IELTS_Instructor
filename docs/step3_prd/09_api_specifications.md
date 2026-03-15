@@ -635,6 +635,34 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
 | GET | /admin/users | List users (paginated, filterable) |
 | PATCH | /admin/users/:id/role | Change user role |
 
+### Unified Submission View (Sprint 5)
+
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| GET | /instructor/all-submissions | Unified list across reading, writing, lesson submissions | instructor |
+
+**Query:** `?type=all|reading|writing|lesson&page=1&limit=20`
+
+**Response (200):**
+```json
+{
+  "data": [
+    {
+      "submission_type": "writing",
+      "id": "sub-w-001",
+      "title": "Technology in Education",
+      "student_name": "Nguyen Van A",
+      "score": 6.0,
+      "status": "done",
+      "created_at": "2025-02-21T12:00:00Z"
+    }
+  ],
+  "total": 42,
+  "page": 1,
+  "limit": 20
+}
+```
+
 ### Instructor Review (Sprint 5)
 
 | Method | Path | Description | Auth |
@@ -1194,6 +1222,43 @@ Khi tạo hoặc cập nhật lesson, body hỗ trợ thêm 2 fields mới:
 | 429 | TOO_MANY_REQUESTS | Rate limit exceeded | Daily writing limit |
 | 500 | INTERNAL_ERROR | Server error | Unhandled exception |
 | 503 | SERVICE_UNAVAILABLE | Service degraded | Queue full, DB down |
+
+---
+
+## 12. Notification Endpoints
+
+### GET /notifications
+| Aspect | Detail |
+|--------|--------|
+| **Auth** | Bearer JWT |
+| **Query** | `?page=1&limit=20&unread_only=false` |
+
+**Response (200):**
+```json
+{
+  "data": [...],
+  "total": 42,
+  "page": 1,
+  "limit": 20
+}
+```
+
+### PATCH /notifications/:id/read
+| Aspect | Detail |
+|--------|--------|
+| **Auth** | Bearer JWT |
+
+**Response (200):** Updated notification object
+
+### GET /notifications/unread-count
+| Aspect | Detail |
+|--------|--------|
+| **Auth** | Bearer JWT |
+
+**Response (200):**
+```json
+{ "count": 5 }
+```
 
 ---
 

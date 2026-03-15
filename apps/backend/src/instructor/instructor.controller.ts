@@ -30,6 +30,15 @@ export class InstructorController {
     });
   }
 
+  @Get('all-submissions')
+  listAllSubmissions(@Query() query: { type?: string; page?: string; limit?: string }) {
+    return this.instructorService.listAllSubmissions({
+      type: query.type,
+      page: query.page ? +query.page : undefined,
+      limit: query.limit ? +query.limit : undefined,
+    });
+  }
+
   @Get('writing-submissions')
   listWritingSubmissions(@Query() query: { user_id?: string; prompt_id?: string; status?: string; page?: string; limit?: string }) {
     return this.instructorService.listWritingSubmissions({

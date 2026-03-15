@@ -130,6 +130,104 @@ export class InstructorService {
     return { data, total, page, limit };
   }
 
+  /* ── Unified All Submissions ── */
+
+  async listAllSubmissions(query: { type?: string; page?: number; limit?: number }) {
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const filterType = query.type || 'all';
+
+    type UnifiedSub = {
+      submission_type: string;
+      id: string;
+      title: string;
+      student_name: string;
+      score: number | null;
+      status: string;
+      created_at: Date;
+    };
+
+    const results: UnifiedSub[] = [];
+
+    // Fetch reading submissions
+    if (filterType === 'all' || filterType === 'reading') {
+      const readingSubs = await this.prisma.readingSubmission.findMany({
+        include: {
+          user: { select: { display_name: true } },
+          passage: { select: { title: true } },
+        },
+        orderBy: { completed_at: 'desc' },
+        take: 100,
+      });
+      results.push(
+        ...readingSubs.map(s => ({
+          submission_type: 'reading' as const,
+          id: s.id,
+          title: s.passage.title,
+          student_name: s.user.display_name,
+          score: s.score_pct,
+          status: 'completed',
+          created_at: s.completed_at,
+        })),
+      );
+    }
+
+    // Fetch writing submissions
+    if (filterType === 'all' || filterType === 'writing') {
+      const writingSubs = await this.prisma.writingSubmission.findMany({
+        include: {
+          user: { select: { display_name: true } },
+          prompt: { select: { title: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        take: 100,
+      });
+      results.push(
+        ...writingSubs.map(s => ({
+          submission_type: 'writing' as const,
+          id: s.id,
+          title: s.prompt.title,
+          student_name: s.user.display_name,
+          score: s.processing_status === 'done' ? ((s.scores as any)?.overall ?? null) : null,
+          status: s.processing_status,
+          created_at: s.created_at,
+        })),
+      );
+    }
+
+    // Fetch lesson submissions
+    if (filterType === 'all' || filterType === 'lesson') {
+      const lessonSubs = await this.prisma.lessonSubmission.findMany({
+        include: {
+          user: { select: { display_name: true } },
+          lesson: { select: { title: true } },
+        },
+        orderBy: { created_at: 'desc' },
+        take: 100,
+      });
+      results.push(
+        ...lessonSubs.map(s => ({
+          submission_type: 'lesson' as const,
+          id: s.id,
+          title: s.lesson.title,
+          student_name: s.user.display_name,
+          score: s.score,
+          status: s.status,
+          created_at: s.created_at,
+        })),
+      );
+    }
+
+    // Sort combined results by date DESC
+    results.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    // Paginate
+    const total = results.length;
+    const data = results.slice((page - 1) * limit, page * limit);
+
+    return { data, total, page, limit };
+  }
+
   /* ── Instructor Stats ── */
 
   async getInstructorStats() {
