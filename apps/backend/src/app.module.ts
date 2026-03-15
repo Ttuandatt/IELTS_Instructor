@@ -15,6 +15,7 @@ import { ClassroomModule } from './classroom/classroom.module';
 import { TopicModule } from './topic/topic.module';
 import { LessonModule } from './lesson/lesson.module';
 import { UploadModule } from './upload/upload.module';
+import { NotificationModule } from './notification/notification.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { UploadModule } from './upload/upload.module';
     TopicModule,
     LessonModule,
     UploadModule,
+    NotificationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

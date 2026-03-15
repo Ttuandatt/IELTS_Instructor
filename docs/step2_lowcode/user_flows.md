@@ -21,6 +21,7 @@
 | F07 | Profile Settings | All | 2 | Language + theme toggle |
 | F08 | Mode Selection | Learner | 3 | Practice vs Simulation, timer config |
 | F09 | Instructor Review | Instructor | 4 | View AI score, comment, override |
+| F10 | Instructor Notification Flow | Instructor | 6 | Real-time notification on student submission |
 
 ---
 
@@ -215,3 +216,14 @@
 | 3 | (Optional) Enter override score (0–9) | Update score fields | S23 |
 | 4 | (Optional) Add comment | Text area for instructor feedback | S23 |
 | 5 | Click "Save" | PATCH submission with instructor_comment + override_score | S23 |
+
+---
+
+## 11. F10 — Instructor Notification Flow
+
+1. Student submits lesson work or writing essay
+2. System creates notification record for classroom owner / relevant instructor
+3. Notification count updates in real-time (via polling)
+4. Instructor clicks notification bell → sees notification list
+5. Instructor clicks notification → navigates to submission
+6. Notification marked as read

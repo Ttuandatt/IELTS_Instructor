@@ -1,17 +1,21 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException, NotFoundException, Logger } from '@nestjs/common';
 import { LessonService } from './lesson.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
 import { ReorderLessonsDto } from './dto/reorder-lessons.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
+import { NotificationService } from '../notification/notification.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
 export class LessonController {
+    private readonly logger = new Logger(LessonController.name);
+
     constructor(
         private readonly lessonService: LessonService,
-        private readonly prisma: PrismaService
+        private readonly prisma: PrismaService,
+        private readonly notificationService: NotificationService,
     ) { }
 
     @Post('topics/:topicId/lessons')
@@ -59,14 +63,17 @@ export class LessonController {
         @Param('id') lessonId: string,
         @Body() body: { content: string },
     ) {
-        const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+        const lesson = await this.prisma.lesson.findUnique({
+            where: { id: lessonId },
+            include: { topic: { include: { classroom: true } } },
+        });
         if (!lesson) throw new NotFoundException('Lesson not found');
         if (!lesson.allow_submit) throw new ForbiddenException('Submissions are not enabled for this lesson');
         if (!body.content?.trim()) throw new ForbiddenException('Content cannot be empty');
 
         const wordCount = body.content.trim().split(/\s+/).filter(Boolean).length;
 
-        return this.prisma.lessonSubmission.create({
+        const submission = await this.prisma.lessonSubmission.create({
             data: {
                 lesson_id: lessonId,
                 user_id: req.user.sub,
@@ -74,6 +81,29 @@ export class LessonController {
                 word_count: wordCount,
             },
         });
+
+        // Notify classroom owner about the new submission
+        if (lesson.topic?.classroom?.owner_id) {
+            try {
+                const user = await this.prisma.user.findUnique({
+                    where: { id: req.user.sub },
+                    select: { display_name: true },
+                });
+                const displayName = user?.display_name || 'A student';
+                await this.notificationService.create({
+                    userId: lesson.topic.classroom.owner_id,
+                    type: 'lesson_submission',
+                    title: 'Bài nộp mới',
+                    message: `${displayName} đã nộp bài trong "${lesson.title}"`,
+                    link: `/classrooms/${lesson.topic.classroom.id}/lessons/${lessonId}/submissions`,
+                    metadata: { lessonId, submissionId: submission.id },
+                });
+            } catch (err) {
+                this.logger.error('Failed to create submission notification', err);
+            }
+        }
+
+        return submission;
     }
 
     @Get('lessons/:id/submissions')
