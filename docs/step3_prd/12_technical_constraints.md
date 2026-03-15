@@ -94,7 +94,7 @@
 | **Remove on complete** | After 7 days |
 | **Remove on fail** | Never (kept in DLQ for review) |
 | **Job payload** | `{submissionId, userId, promptId, content, modelTier}` |
-| **Stale job cleanup** | Cron: check for stuck `pending` submissions > 10 min; mark `failed` |
+| **Stale job cleanup** | Cron every 5 min: mark submissions with status='pending' AND created_at > 10 min ago as 'failed' | Log warning |
 | **Dashboard** | BullBoard or Arena UI mounted at `/admin/queues` (dev only) |
 
 ---

@@ -4,13 +4,14 @@ import { PrismaModule } from '../prisma';
 import { LlmClientService } from './llm-client.service';
 import { ScoringProducerService, SCORING_QUEUE } from './scoring.producer';
 import { ScoringConsumer } from './scoring.consumer';
+import { ScoringCleanupService } from './scoring-cleanup.service';
 
 @Module({
     imports: [
         PrismaModule,
         BullModule.registerQueue({ name: SCORING_QUEUE }),
     ],
-    providers: [LlmClientService, ScoringProducerService, ScoringConsumer],
+    providers: [LlmClientService, ScoringProducerService, ScoringConsumer, ScoringCleanupService],
     exports: [ScoringProducerService, LlmClientService],
 })
 export class ScoringModule { }
