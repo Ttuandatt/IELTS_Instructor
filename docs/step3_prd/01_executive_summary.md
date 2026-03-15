@@ -78,6 +78,12 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 - Learner: tỷ lệ hoàn thành Reading, accuracy, avg Writing scores, recent submissions, trend charts.
 - Admin: usage stats (submissions count, popular content, failure rates).
 
+### 4.5 Classroom Management
+- Giảng viên (instructor) tạo và quản lý lớp học trực tuyến, mời học viên qua mã mời 8 ký tự hoặc QR code, và tổ chức nội dung giảng dạy theo cấu trúc phân cấp Topic > Lesson.
+- Mỗi Lesson hỗ trợ nhiều loại nội dung (text, video, passage, prompt) và có thể liên kết trực tiếp đến Reading passages hoặc Writing prompts trong hệ thống.
+- Học viên tham gia lớp, xem nội dung đã published, nộp bài viết trong từng lesson, và nhận phản hồi từ giảng viên.
+- Giảng viên theo dõi tiến độ học tập tổng quan của từng học viên (điểm Reading, Writing trung bình) và gửi thông báo cho cả lớp qua hệ thống Announcements.
+
 ---
 
 ## 5. Phạm vi dự án
