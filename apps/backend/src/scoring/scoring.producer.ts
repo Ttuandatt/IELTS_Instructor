@@ -21,6 +21,13 @@ export class ScoringProducerService {
         @InjectQueue(SCORING_QUEUE) private readonly scoringQueue: Queue,
     ) { }
 
+    async checkQueueHealth(): Promise<{ depth: number; healthy: boolean }> {
+        const waiting = await this.scoringQueue.getWaitingCount();
+        const active = await this.scoringQueue.getActiveCount();
+        const depth = waiting + active;
+        return { depth, healthy: depth < 100 };
+    }
+
     async enqueue(data: ScoringJobData): Promise<void> {
         await this.scoringQueue.add('score-essay', data, {
             priority: data.modelTier === 'premium' ? 1 : 5,

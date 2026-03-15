@@ -4,6 +4,7 @@ import {
   BadRequestException,
   HttpException,
   HttpStatus,
+  ServiceUnavailableException,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma';
@@ -96,6 +97,14 @@ export class WritingService {
     }
 
     const modelTier: 'cheap' | 'premium' = dto.model_tier || 'cheap';
+
+    // Queue backpressure check — reject before creating submission
+    const queueHealth = await this.scoringProducer.checkQueueHealth();
+    if (!queueHealth.healthy) {
+      throw new ServiceUnavailableException(
+        `Scoring queue is busy (${queueHealth.depth} jobs). Please try again in a few minutes.`,
+      );
+    }
 
     // Create submission in pending state
     const submission = await this.prisma.writingSubmission.create({

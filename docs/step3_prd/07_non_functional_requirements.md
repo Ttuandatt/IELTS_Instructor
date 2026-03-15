@@ -80,6 +80,7 @@
 | Fallback | If primary model unavailable → try secondary model (Phase 2) |
 | Timeout | Per-job timeout: 60–90s; wall time SLA: 5 min |
 | Graceful degradation | If queue is full → return 503 with retry-after header |
+| Queue backpressure | If queue depth > 100 jobs → reject new submissions with 503 + Retry-After header | ScoringProducer check before enqueue |
 
 ### NFR-R04: Data Integrity
 
