@@ -103,14 +103,20 @@ export class AdminService {
     if (userId && userRole !== 'admin' && passage.created_by !== userId) {
       throw new ForbiddenException('You can only delete your own passages');
     }
+
+    // Block deletion if learners have submitted answers for this passage
+    const submissionCount = await this.prisma.readingSubmission.count({ where: { passage_id: id } });
+    if (submissionCount > 0) {
+      throw new ForbiddenException(
+        `Cannot delete this passage because ${submissionCount} submission(s) exist. Remove or archive it instead.`,
+      );
+    }
+
     if (userId) {
       await this.versionService.record({
         entityId: id, entityType: 'passage', action: 'delete', editorId: userId,
       });
     }
-    // Delete related submissions and questions first (FK constraints)
-    await this.prisma.readingSubmission.deleteMany({ where: { passage_id: id } });
-    await this.prisma.question.deleteMany({ where: { passage_id: id } });
     return this.prisma.passage.delete({ where: { id } });
   }
 
@@ -289,13 +295,20 @@ export class AdminService {
     if (userId && userRole !== 'admin' && prompt.created_by !== userId) {
       throw new ForbiddenException('You can only delete your own prompts');
     }
+
+    // Block deletion if learners have submitted essays for this prompt
+    const submissionCount = await this.prisma.writingSubmission.count({ where: { prompt_id: id } });
+    if (submissionCount > 0) {
+      throw new ForbiddenException(
+        `Cannot delete this prompt because ${submissionCount} submission(s) exist. Remove or archive it instead.`,
+      );
+    }
+
     if (userId) {
       await this.versionService.record({
         entityId: id, entityType: 'prompt', action: 'delete', editorId: userId,
       });
     }
-    // Delete related submissions first (FK constraints)
-    await this.prisma.writingSubmission.deleteMany({ where: { prompt_id: id } });
     return this.prisma.prompt.delete({ where: { id } });
   }
 
