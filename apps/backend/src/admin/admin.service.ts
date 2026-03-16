@@ -108,6 +108,9 @@ export class AdminService {
         entityId: id, entityType: 'passage', action: 'delete', editorId: userId,
       });
     }
+    // Delete related submissions and questions first (FK constraints)
+    await this.prisma.readingSubmission.deleteMany({ where: { passage_id: id } });
+    await this.prisma.question.deleteMany({ where: { passage_id: id } });
     return this.prisma.passage.delete({ where: { id } });
   }
 
@@ -291,6 +294,8 @@ export class AdminService {
         entityId: id, entityType: 'prompt', action: 'delete', editorId: userId,
       });
     }
+    // Delete related submissions first (FK constraints)
+    await this.prisma.writingSubmission.deleteMany({ where: { prompt_id: id } });
     return this.prisma.prompt.delete({ where: { id } });
   }
 
