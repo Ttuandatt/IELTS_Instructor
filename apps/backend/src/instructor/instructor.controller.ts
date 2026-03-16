@@ -111,6 +111,14 @@ export class InstructorController {
     return this.adminService.deletePassage(id, req.user.sub, req.user.role);
   }
 
+  @Get('passages/:id/submissions')
+  getPassageSubmissions(@Param('id') id: string, @Query() query: { page?: string; limit?: string }) {
+    return this.adminService.getPassageSubmissions(id, {
+      page: query.page ? +query.page : undefined,
+      limit: query.limit ? +query.limit : undefined,
+    });
+  }
+
   /* ── Questions ── */
 
   @Post('passages/:passageId/questions')
@@ -144,6 +152,14 @@ export class InstructorController {
   @Get('prompts/:id')
   getPrompt(@Param('id') id: string) {
     return this.adminService.getPrompt(id);
+  }
+
+  @Get('prompts/:id/submissions')
+  getPromptSubmissions(@Param('id') id: string, @Query() query: { page?: string; limit?: string }) {
+    return this.adminService.getPromptSubmissions(id, {
+      page: query.page ? +query.page : undefined,
+      limit: query.limit ? +query.limit : undefined,
+    });
   }
 
   @Post('prompts')

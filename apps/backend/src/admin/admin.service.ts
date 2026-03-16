@@ -202,6 +202,48 @@ export class AdminService {
     return this.prisma.question.delete({ where: { id } });
   }
 
+  /* ── Submissions ── */
+
+  async getPassageSubmissions(passageId: string, query: { page?: number; limit?: number }) {
+    await this.getPassage(passageId); // ensures passage exists
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const where = { passage_id: passageId };
+
+    const [data, total] = await Promise.all([
+      this.prisma.readingSubmission.findMany({
+        where,
+        include: { user: { select: { id: true, display_name: true, email: true } } },
+        orderBy: { completed_at: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.readingSubmission.count({ where }),
+    ]);
+
+    return { data, total, page, limit };
+  }
+
+  async getPromptSubmissions(promptId: string, query: { page?: number; limit?: number }) {
+    await this.getPrompt(promptId); // ensures prompt exists
+    const page = query.page || 1;
+    const limit = query.limit || 20;
+    const where = { prompt_id: promptId };
+
+    const [data, total] = await Promise.all([
+      this.prisma.writingSubmission.findMany({
+        where,
+        include: { user: { select: { id: true, display_name: true, email: true } } },
+        orderBy: { created_at: 'desc' },
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.writingSubmission.count({ where }),
+    ]);
+
+    return { data, total, page, limit };
+  }
+
   /* ── Prompts ── */
 
   async listPrompts(query: { status?: string; level?: string; task_type?: string; page?: number; limit?: number }) {

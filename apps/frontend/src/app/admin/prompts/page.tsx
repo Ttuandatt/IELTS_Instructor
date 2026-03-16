@@ -51,7 +51,7 @@ export default function AdminPromptsPage() {
               <tbody>
                 {data.data.map((p: any) => (
                   <tr key={p.id}>
-                    <td>{p.title}</td>
+                    <td><Link href={`/admin/prompts/${p.id}`}>{p.title}</Link></td>
                     <td><span className="badge">{p.task_type}</span></td>
                     <td><span className={`badge badge-${p.level}`}>{p.level}</span></td>
                     <td><span className={`badge badge-${p.status}`}>{p.status}</span></td>

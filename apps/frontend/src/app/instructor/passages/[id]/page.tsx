@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
 import { useParams, useRouter } from 'next/navigation';
@@ -12,12 +13,19 @@ export default function PassageDetailPage() {
     const { id } = useParams() as { id: string };
     const router = useRouter();
     const { user } = useAuth();
+    const [subPage, setSubPage] = useState(1);
 
     const queryClient = useQueryClient();
 
     const { data, isLoading, error } = useQuery({
         queryKey: ['passage', id],
         queryFn: () => apiClient.get(`/instructor/passages/${id}`).then(r => r.data),
+    });
+
+    const { data: subsData } = useQuery({
+        queryKey: ['passage-submissions', id, subPage],
+        queryFn: () => apiClient.get(`/instructor/passages/${id}/submissions?page=${subPage}&limit=10`).then(r => r.data),
+        enabled: !!data,
     });
 
     const updateQuestionMut = useMutation({
@@ -165,6 +173,56 @@ export default function PassageDetailPage() {
                         )}
                     </div>
                 </div>
+            </div>
+
+            {/* Submissions section */}
+            <div className="mt-8 bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 font-semibold text-gray-800">
+                    Submissions ({subsData?.total || 0})
+                </div>
+                {subsData?.data?.length ? (
+                    <>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm">
+                                <thead className="bg-gray-50 text-gray-600 text-xs uppercase">
+                                    <tr>
+                                        <th className="px-4 py-3 text-left">Learner</th>
+                                        <th className="px-4 py-3 text-left">Score</th>
+                                        <th className="px-4 py-3 text-left">Correct</th>
+                                        <th className="px-4 py-3 text-left">Duration</th>
+                                        <th className="px-4 py-3 text-left">Mode</th>
+                                        <th className="px-4 py-3 text-left">Date</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {subsData.data.map((s: any) => (
+                                        <tr key={s.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-3 font-medium text-gray-800">{s.user?.display_name || s.user?.email || '—'}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`font-bold ${s.score_pct >= 70 ? 'text-emerald-600' : s.score_pct >= 40 ? 'text-amber-600' : 'text-red-600'}`}>
+                                                    {s.score_pct.toFixed(0)}%
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-gray-600">{s.correct_count}/{s.total_questions}</td>
+                                            <td className="px-4 py-3 text-gray-600">{s.duration_sec ? `${Math.floor(s.duration_sec / 60)}m ${s.duration_sec % 60}s` : '—'}</td>
+                                            <td className="px-4 py-3"><span className="text-xs px-2 py-0.5 bg-blue-50 text-blue-600 rounded">{s.test_mode}</span></td>
+                                            <td className="px-4 py-3 text-gray-500">{new Date(s.completed_at).toLocaleDateString()}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                        {subsData.total > 10 && (
+                            <div className="px-4 py-3 border-t border-gray-100 flex items-center justify-between text-sm">
+                                <button disabled={subPage <= 1} onClick={() => setSubPage(p => p - 1)} className="px-3 py-1 border rounded text-gray-600 hover:bg-gray-50 disabled:opacity-40">Previous</button>
+                                <span className="text-gray-500">Page {subPage} / {Math.ceil(subsData.total / 10)}</span>
+                                <button disabled={subPage * 10 >= subsData.total} onClick={() => setSubPage(p => p + 1)} className="px-3 py-1 border rounded text-gray-600 hover:bg-gray-50 disabled:opacity-40">Next</button>
+                            </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="px-6 py-8 text-center text-gray-400 text-sm">No submissions yet.</div>
+                )}
             </div>
         </div>
     );
