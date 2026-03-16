@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useI18n } from '@/providers/I18nProvider';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
+import { toast } from 'react-hot-toast';
 
 export default function AdminPassagesPage() {
   const { t } = useI18n();
@@ -19,6 +20,7 @@ export default function AdminPassagesPage() {
   const deleteMut = useMutation({
     mutationFn: (id: string) => apiClient.delete(`/admin/passages/${id}`),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['admin-passages'] }),
+    onError: (err: any) => toast.error(err.response?.data?.message || 'Failed to delete passage'),
   });
 
   return (
