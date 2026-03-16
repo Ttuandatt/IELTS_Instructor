@@ -74,9 +74,9 @@ export class AdminService {
       throw new ForbiddenException('You can only edit your own passages');
     }
     const updateData: any = { ...dto };
-    if (dto.collection !== undefined) {
-      updateData.collection_id = dto.collection;
-      delete updateData.collection;
+    if ((dto as any).passage !== undefined) { 
+      updateData.body = (dto as any).passage;
+      delete updateData.passage;
     }
     if (dto.topic_tags !== undefined) {
       updateData.tags = {
