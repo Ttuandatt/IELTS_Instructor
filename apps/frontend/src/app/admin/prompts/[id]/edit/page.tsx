@@ -67,7 +67,7 @@ export default function EditPromptPage({ params }: { params: Promise<{ id: strin
 
   return (
     <div>
-      <h1 className="page-title">{t.admin.create_prompt.replace('Create', 'Edit').replace('Tạo', 'Chỉnh sửa') || 'Edit Prompt'}</h1>
+      <h1 className="page-title">{t.admin.edit_prompt}</h1>
       <form className="form-card" onSubmit={handleSubmit}>
         <div className="form-group">
           <label>{t.admin.passage_title}</label>
