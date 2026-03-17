@@ -598,16 +598,22 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
 | GET | /admin/passages | List all passages (incl. drafts) | admin |
 | POST | /admin/passages | Create passage | admin |
 | GET | /admin/passages/:id | Get passage detail (incl. questions + sources) | admin |
-| PATCH | /admin/passages/:id | Update passage | admin |
-| DELETE | /admin/passages/:id | Delete passage | admin |
+| PATCH | /admin/passages/:id | Update passage (accepts `passage` field mapped to `body`) | admin |
+| DELETE | /admin/passages/:id | Delete passage (**blocked if submissions exist — 403**) | admin |
+| GET | /admin/passages/:id/submissions | List reading submissions for this passage (paginated) | admin |
 | POST | /admin/passages/:id/questions | Add question to passage | admin |
-| PATCH | /admin/questions/:id | Update question | admin |
+| PATCH | /admin/questions/:id | Update question (prompt, options, answer_key, explanation, order_index) | admin |
 | DELETE | /admin/questions/:id | Delete question | admin |
 | GET | /admin/prompts | List all prompts | admin |
 | POST | /admin/prompts | Create prompt | admin |
 | GET | /admin/prompts/:id | Get prompt detail | admin |
-| PATCH | /admin/prompts/:id | Update prompt | admin |
-| DELETE | /admin/prompts/:id | Delete prompt | admin |
+| PATCH | /admin/prompts/:id | Update prompt (excludes task_type — immutable after creation) | admin |
+| DELETE | /admin/prompts/:id | Delete prompt (**blocked if submissions exist — 403**) | admin |
+| GET | /admin/prompts/:id/submissions | List writing submissions for this prompt (paginated) | admin |
+
+**DELETE protection:** `DELETE /admin/passages/:id` and `DELETE /admin/prompts/:id` return **403 Forbidden** with message `"Cannot delete this passage/prompt because N submission(s) exist. Remove or archive it instead."` when learner submissions reference the entity. This protects student data from accidental deletion.
+
+**Per-entity submissions:** `GET /admin/passages/:id/submissions` and `GET /admin/prompts/:id/submissions` accept `?page=1&limit=10` and return `{data, total, page, limit}` with user info included.
 
 ### Publish/Unpublish
 
@@ -635,7 +641,29 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
 | GET | /admin/users | List users (paginated, filterable) |
 | PATCH | /admin/users/:id/role | Change user role |
 
-### Unified Submission View (Sprint 5)
+### Instructor Content Management
+
+Instructors have the same content CRUD as admins, mirrored under `/instructor/` prefix. The instructor backend delegates to AdminService with creator-based authorization: instructors can only edit/delete their own content, while admins can edit any.
+
+| Method | Path | Description | Auth |
+|--------|------|-------------|------|
+| GET | /instructor/passages | List all passages | instructor |
+| POST | /instructor/passages | Create passage | instructor |
+| GET | /instructor/passages/:id | Get passage detail | instructor |
+| PATCH | /instructor/passages/:id | Update passage (own only) | instructor |
+| DELETE | /instructor/passages/:id | Delete passage (own only, **blocked if submissions exist**) | instructor |
+| GET | /instructor/passages/:id/submissions | List reading submissions for this passage | instructor |
+| POST | /instructor/passages/:passageId/questions | Add question | instructor |
+| PATCH | /instructor/questions/:id | Update question | instructor |
+| DELETE | /instructor/questions/:id | Delete question | instructor |
+| GET | /instructor/prompts | List all prompts | instructor |
+| POST | /instructor/prompts | Create prompt | instructor |
+| GET | /instructor/prompts/:id | Get prompt detail | instructor |
+| PATCH | /instructor/prompts/:id | Update prompt (own only) | instructor |
+| DELETE | /instructor/prompts/:id | Delete prompt (own only, **blocked if submissions exist**) | instructor |
+| GET | /instructor/prompts/:id/submissions | List writing submissions for this prompt | instructor |
+
+### Unified Submission View
 
 | Method | Path | Description | Auth |
 |--------|------|-------------|------|
@@ -663,7 +691,7 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
 }
 ```
 
-### Instructor Review (Sprint 5)
+### Instructor Review
 
 | Method | Path | Description | Auth |
 |--------|------|-------------|------|

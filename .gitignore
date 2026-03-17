@@ -40,6 +40,12 @@ coverage/
 # Docker
 docker-compose.override.yml
 
+# Claude Code
+.claude/
+
+# Superpowers brainstorm sessions
+.superpowers/
+
 # Misc
 *.pid
 *.seed
