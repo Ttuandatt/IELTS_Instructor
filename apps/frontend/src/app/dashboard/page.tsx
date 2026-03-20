@@ -27,8 +27,8 @@ import {
 function StatIcon({ Icon }: { Icon: LucideIcon }) {
   return (
     <div style={{
-      width: 42, height: 42, borderRadius: 12,
-      background: 'var(--color-bg-tertiary)',
+      width: 44, height: 44, borderRadius: 12,
+      background: 'linear-gradient(135deg, var(--color-primary-light), rgba(95,75,139,0.04))',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       flexShrink: 0,
     }}>
@@ -39,14 +39,23 @@ function StatIcon({ Icon }: { Icon: LucideIcon }) {
 
 /* ───────────── Welcome banner ───────────── */
 function WelcomeBanner({ name, subtitle }: { name: string; subtitle: string }) {
+  const { t } = useI18n();
+
+  function getGreeting(): string {
+    const hour = new Date().getHours();
+    if (hour < 12) return t.greeting.morning;
+    if (hour < 18) return t.greeting.afternoon;
+    return t.greeting.evening;
+  }
+
   return (
     <div style={{ marginBottom: '2rem' }}>
       <h1 style={{
-        fontSize: '1.5rem', fontWeight: 800, margin: '0 0 0.25rem',
+        fontSize: '1.75rem', fontWeight: 800, margin: '0 0 0.25rem',
         color: 'var(--color-text-primary)',
-        letterSpacing: '-0.02em',
+        letterSpacing: '-0.03em',
       }}>
-        Welcome back, {name}
+        {getGreeting()}, {name}
       </h1>
       <p style={{
         fontSize: '0.9rem', margin: 0,
@@ -63,9 +72,7 @@ function QuickAction({ href, Icon, label, desc }: {
   href: string; Icon: LucideIcon; label: string; desc: string;
 }) {
   return (
-    <Link href={href} className="stat-card" style={{
-      textDecoration: 'none', display: 'flex', alignItems: 'center', gap: '0.85rem',
-    }}>
+    <Link href={href} className="quick-action-card" style={{ textDecoration: 'none' }}>
       <StatIcon Icon={Icon} />
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-text-primary)' }}>
@@ -75,7 +82,7 @@ function QuickAction({ href, Icon, label, desc }: {
           {desc}
         </div>
       </div>
-      <ArrowRight size={16} style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
+      <ArrowRight size={16} className="quick-action-arrow" style={{ color: 'var(--color-text-muted)', flexShrink: 0 }} />
     </Link>
   );
 }
@@ -92,7 +99,7 @@ function CriteriaBar({ label, value, max = 9 }: { label: string; value: number; 
       }}>
         <div style={{
           width: `${pct}%`, height: '100%', borderRadius: 3,
-          background: pct > 66 ? '#10b981' : pct > 33 ? '#f59e0b' : '#ef4444',
+          background: pct > 66 ? '#10b981' : pct > 33 ? '#e69a8d' : '#ef4444',
           transition: 'width 0.3s ease',
         }} />
       </div>
@@ -226,7 +233,13 @@ function LearnerDashboard() {
                     {new Date(sub.date).toLocaleDateString()}
                   </div>
                 </div>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--color-primary)' }}>
+                <div style={{
+                  fontWeight: 600, fontSize: '0.85rem',
+                  color: 'var(--color-primary)',
+                  background: 'var(--color-primary-light)',
+                  padding: '0.2rem 0.6rem',
+                  borderRadius: 'var(--radius-full)',
+                }}>
                   {sub.type === 'reading' ? `${sub.score}%` : `${sub.score}/9`}
                 </div>
               </Link>
