@@ -27,7 +27,9 @@
     "role": "Role",
     "role_learner": "Learner",
     "role_instructor": "Instructor",
-    "role_admin": "Admin"
+    "role_admin": "Admin",
+    "login_subtitle": "Sign in to continue learning",
+    "register_subtitle": "Start your IELTS journey today"
   },
   "common": {
     "loading": "Loading...",

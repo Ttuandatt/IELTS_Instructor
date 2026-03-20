@@ -27,7 +27,9 @@
     "role": "Vai trò",
     "role_learner": "Người học",
     "role_instructor": "Giảng viên",
-    "role_admin": "Quản trị viên"
+    "role_admin": "Quản trị viên",
+    "login_subtitle": "Đăng nhập để tiếp tục học",
+    "register_subtitle": "Bắt đầu hành trình IELTS ngay hôm nay"
   },
   "common": {
     "loading": "Đang tải...",
