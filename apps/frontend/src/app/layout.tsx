@@ -15,8 +15,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: 'IELTS Helper',
-  description: 'Practice IELTS Reading & Writing with AI-powered feedback',
+  title: 'Teachy — IELTS Preparation Platform',
+  description: 'Practice IELTS Reading & Writing with AI-powered feedback. Track progress and achieve your goals.',
 };
 
 export default function RootLayout({

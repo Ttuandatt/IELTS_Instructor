@@ -1,5 +1,5 @@
 {
-  "app_name": "IELTS Helper",
+  "app_name": "Teachy",
   "nav": {
     "dashboard": "Tổng quan",
     "reading": "Luyện đọc",
@@ -140,5 +140,26 @@
     "score": "Điểm",
     "prompt_title": "Đề bài",
     "passage_title": "Bài đọc"
+  },
+  "landing": {
+    "hero_badge": "IELTS Preparation Platform",
+    "hero_title": "Nang cao ky nang IELTS cua ban",
+    "hero_subtitle": "Luyen tap Reading & Writing voi phan hoi tu AI. Theo doi tien do va dat muc tieu IELTS cua ban.",
+    "cta_start": "Bat dau mien phi",
+    "cta_contact": "Lien he tu van",
+    "feature_reading": "Luyen doc",
+    "feature_reading_desc": "Luyen tap voi cac bai doc IELTS thuc te, cau hoi da dang va cham diem tu dong.",
+    "feature_writing": "Luyen viet",
+    "feature_writing_desc": "Nhan phan hoi chi tiet tu AI theo 4 tieu chi IELTS: TR, CC, LR, GRA.",
+    "feature_classroom": "Lop hoc truc tuyen",
+    "feature_classroom_desc": "Tham gia lop hoc, nhan bai tap va theo doi tien do cung giao vien.",
+    "nav_home": "Trang chu",
+    "nav_features": "Tinh nang",
+    "nav_about": "Ve chung toi"
+  },
+  "greeting": {
+    "morning": "Chao buoi sang",
+    "afternoon": "Chao buoi chieu",
+    "evening": "Chao buoi toi"
   }
 }

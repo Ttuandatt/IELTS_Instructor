@@ -1,5 +1,5 @@
 {
-  "app_name": "IELTS Helper",
+  "app_name": "Teachy",
   "nav": {
     "dashboard": "Dashboard",
     "reading": "Reading",
@@ -140,5 +140,26 @@
     "score": "Score",
     "prompt_title": "Prompt",
     "passage_title": "Passage"
+  },
+  "landing": {
+    "hero_badge": "IELTS Preparation Platform",
+    "hero_title": "Boost your IELTS skills",
+    "hero_subtitle": "Practice Reading & Writing with AI-powered feedback. Track progress and achieve your IELTS goals.",
+    "cta_start": "Get started free",
+    "cta_contact": "Contact us",
+    "feature_reading": "Reading Practice",
+    "feature_reading_desc": "Practice with real IELTS reading passages, diverse questions, and auto-scoring.",
+    "feature_writing": "Writing Practice",
+    "feature_writing_desc": "Get detailed AI feedback on all 4 IELTS criteria: TR, CC, LR, GRA.",
+    "feature_classroom": "Online Classroom",
+    "feature_classroom_desc": "Join classes, receive assignments, and track progress with your instructor.",
+    "nav_home": "Home",
+    "nav_features": "Features",
+    "nav_about": "About"
+  },
+  "greeting": {
+    "morning": "Good morning",
+    "afternoon": "Good afternoon",
+    "evening": "Good evening"
   }
 }
