@@ -2880,6 +2880,19 @@ select option {
   font-weight: 600;
 }
 
+/* ── Hybrid Layout ── */
+.app-layout-hybrid {
+  min-height: 100vh;
+  background: var(--color-bg-page);
+}
+
+.app-content-hybrid {
+  margin-left: var(--sidebar-width);
+  margin-top: 0;
+  padding: var(--space-xl) var(--space-xl) var(--space-2xl);
+  max-width: 1400px;
+}
+
 /* ── Icon Sidebar ── */
 .icon-sidebar {
   position: fixed;
@@ -2983,4 +2996,8 @@ select option {
   .avatar-name { display: none; }
   .navbar-brand-text { display: none; }
   .icon-sidebar { display: none; }
+  .app-content-hybrid {
+    margin-left: 0;
+    padding: var(--space-lg);
+  }
 }

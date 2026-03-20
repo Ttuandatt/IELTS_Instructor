@@ -1,19 +1,17 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useAuth } from '@/providers/AuthProvider';
-import { Sidebar } from './Sidebar';
-import { Header } from './Header';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Navbar } from './Navbar';
+import { IconSidebar } from './IconSidebar';
 
-const PUBLIC_PATHS = new Set(['/login', '/register']);
+const PUBLIC_PATHS = new Set(['/', '/login', '/register']);
 
 export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) {
   const { user, loading } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const isPublic = PUBLIC_PATHS.has(pathname);
 
@@ -29,7 +27,6 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
     }
   }, [user, loading, isPublic, router]);
 
-  // Loading state
   if (loading) {
     return (
       <div className="app-loading">
@@ -38,29 +35,19 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
     );
   }
 
-  // Public pages (login, register) — no shell
+  // Public pages — no shell
   if (isPublic) {
     return <>{children}</>;
   }
 
-  // Authenticated layout
+  // Authenticated layout — hybrid navbar + icon sidebar
   if (!user) return null;
 
   return (
-    <div className={`app-layout ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <Sidebar collapsed={sidebarCollapsed} />
-      <div className="app-main">
-        <Header>
-          <button
-            className="sidebar-toggle-btn"
-            onClick={() => setSidebarCollapsed(c => !c)}
-            title={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            {sidebarCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
-          </button>
-        </Header>
-        <main className="app-content">{children}</main>
-      </div>
+    <div className="app-layout-hybrid">
+      <Navbar />
+      <IconSidebar />
+      <main className="app-content-hybrid">{children}</main>
     </div>
   );
 }
