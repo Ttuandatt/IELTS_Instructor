@@ -2670,10 +2670,10 @@ select option {
 }
 
 .app-content-hybrid {
-  margin-left: var(--sidebar-width);
-  margin-top: 0;
+  max-width: calc(1400px + var(--sidebar-width));
+  margin: 0 auto;
   padding: var(--space-xl) var(--space-xl) var(--space-2xl);
-  max-width: 1400px;
+  padding-left: calc(var(--sidebar-width) + var(--space-xl));
 }
 
 /* ── Icon Sidebar ── */
@@ -3030,8 +3030,9 @@ select option {
   .navbar-brand-text { display: none; }
   .icon-sidebar { display: none; }
   .app-content-hybrid {
-    margin-left: 0;
     padding: var(--space-lg);
+    padding-left: var(--space-lg);
+    max-width: 100%;
   }
   .landing-hero-title { font-size: 2rem; }
   .landing-features-grid { grid-template-columns: 1fr; }
