@@ -160,24 +160,30 @@ paths:
               schema:
                 $ref: '#/components/schemas/WritingSubmissionResponse'
         '401': {description: Unauthorized}
-  /admin/sources/import:
+  /reading/parse-docx:
     post:
-      summary: Import NotebookLM source
+      summary: Parse DOCX/PDF passage via Gemini Multimodal
+      description: |
+        Admin/Instructor uploads a .docx or .pdf file; backend calls Gemini Multimodal
+        to extract passage body (sanitized HTML) + structured questions (13 IELTS types).
+        Creates a SourceDocument and returns parsed content for review before publish.
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/ImportSourceRequest'
+              $ref: '#/components/schemas/ParseDocxRequest'
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImportSourceResponse'
+                $ref: '#/components/schemas/ParseDocxResponse'
+        '400': {description: Unsupported file type or parse failure}
         '401': {description: Unauthorized}
         '403': {description: Forbidden}
+        '413': {description: File too large (>10MB)}
   /admin/content/{entity}/{id}/publish:
     post:
       summary: Publish entity
@@ -499,26 +505,38 @@ components:
         feedback: {$ref: '#/components/schemas/Feedback'}
         turnaround_ms: {type: integer}
         error: {type: string}
-    ImportSourceRequest:
+    ParseDocxRequest:
       type: object
-      required: [url]
+      required: [file]
       properties:
-        url: {type: string}
-        metadata: {type: object}
-    ImportSourceResponse:
+        file:
+          type: string
+          format: binary
+          description: .docx or .pdf file (max 10MB)
+    ParseDocxResponse:
       type: object
       properties:
-        source_id: {type: string, format: uuid}
-        snippets:
+        source_document_id: {type: string, format: uuid}
+        passage:
+          type: object
+          properties:
+            title: {type: string}
+            body_html: {type: string, description: Sanitized HTML}
+            suggested_level: {type: string, enum: [A1, A2, B1, B2, C1, C2]}
+            suggested_tags:
+              type: array
+              items: {type: string}
+        questions:
           type: array
           items:
             type: object
             properties:
-              id: {type: string, format: uuid}
-              text: {type: string}
-              tags:
+              type:
+                type: string
+                enum: [mcq, true_false_notgiven, yes_no_notgiven, matching_headings, matching_information, matching_features, matching_sentence_endings, sentence_completion, summary_completion, table_completion, flowchart_completion, diagram_label_completion, short]
+              stem: {type: string}
+              options:
                 type: array
                 items: {type: string}
-              level: {type: string}
-              linked_entity: {type: string, format: uuid}
-              linked_type: {type: string}
+              correct_answer: {}
+        parse_duration_ms: {type: integer}

@@ -45,7 +45,7 @@ Mỗi User Story theo format:
 | E3: Writing Practice | Luyện viết với AI scoring | 8 | 34 |
 | E4: Dashboard | Theo dõi tiến bộ | 3 | 8 |
 | E5: Admin CMS | Quản lý nội dung | 6 | 21 |
-| E6: Admin NotebookLM Import | Import nguồn từ NotebookLM | 3 | 10 |
+| E6: Admin DOCX/PDF Import | Import passage + questions từ file DOCX/PDF qua Gemini parser | 3 | 10 |
 | E7: Instructor Review | Instructor review & override Writing | 2 | 8 |
 | E8: Classroom Management | Lớp học, quản lý thành viên, Topics, Lessons | 10 | 37 |
 | E8 Extended: Classroom Enhancements | Video Embed, Announcements, Duplicate, Progress, Dashboard | 7 | 24 |
@@ -652,7 +652,7 @@ Mỗi User Story theo format:
 
 ---
 
-## 8. Epic 6: Admin NotebookLM Import
+## 8. Epic 6: Admin DOCX/PDF Import
 
 ### US-601: Upload source document tệp tin
 

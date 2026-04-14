@@ -1,9 +1,10 @@
 # 📋 Executive Summary — IELTS Helper
 
 > **Mã tài liệu:** PRD-01  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
-> **Trạng thái:** Draft  
+> **Ngày cập nhật:** 2026-04-13  
+> **Trạng thái:** Revised  
 > **Tác giả:** IELTS Helper Team  
 
 ---
@@ -12,7 +13,7 @@
 
 ### 1.1 Tầm nhìn (Vision)
 
-> Xây dựng nền tảng luyện thi IELTS Reading & Writing thông minh, giúp người học nhận phản hồi nhanh, chính xác theo rubric, và hỗ trợ giảng viên/admin quản lý nội dung hiệu quả thông qua tích hợp NotebookLM.
+> Xây dựng nền tảng luyện thi IELTS Reading & Writing thông minh, giúp người học nhận phản hồi nhanh, chính xác theo rubric, và hỗ trợ giảng viên/admin quản lý nội dung hiệu quả thông qua tự động import từ file DOCX/PDF qua AI parser.
 
 ### 1.2 Mô tả ngắn gọn
 
@@ -35,7 +36,7 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 |---------|-----------|---------------|----------|
 | **Learner** (tự học / trung tâm) | Học sinh, sinh viên, người đi làm chuẩn bị thi IELTS | Luyện Reading có timer, nhận feedback Writing nhanh theo rubric, theo dõi tiến bộ | Web (desktop & mobile) |
 | **Instructor/Marker** | Giảng viên, người chấm bài tại trung tâm | Xem bài nộp, thống kê learner, comment/override score (tương lai) | Web (desktop) |
-| **Admin/Content Ops** | Quản trị viên nội dung | Import/curate tài liệu từ NotebookLM, publish content, quản lý provenance, theo dõi usage | Web (desktop) |
+| **Admin/Content Ops** | Quản trị viên nội dung | Import/curate tài liệu từ DOCX/PDF, publish content, quản lý source documents, theo dõi usage | Web (desktop) |
 
 ---
 
@@ -45,7 +46,7 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 |---|---------------------|------------------------|--------|-------------------|
 | P-01 | Phản hồi Writing chậm (1–3 ngày) | Learner | 🔴 Cao | Hybrid scoring (rule + LLM) trả kết quả < 5 phút |
 | P-02 | Tỷ lệ hoàn thành Reading thấp | Learner | 🟡 Trung bình | Timer, auto-grade, giải thích tức thì, lịch sử attempts |
-| P-03 | Nội dung phân tán, thiếu nguồn gốc | Admin | 🟡 Trung bình | CMS tích hợp NotebookLM import với provenance tracking |
+| P-03 | Nội dung phân tán, thiếu nguồn gốc | Admin | 🟡 Trung bình | CMS với DOCX/PDF auto-import qua AI parser và source document tracking |
 | P-04 | Chấm điểm không nhất quán | Learner, Instructor | 🔴 Cao | Rubric-based scoring pipeline với calibration + guardrails |
 | P-05 | Thiếu theo dõi tiến bộ | Learner | 🟡 Trung bình | Dashboard với metrics (accuracy, scores, trends) |
 
@@ -68,10 +69,10 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 - Default tier "cheap" (GPT-4o-mini/o3-mini/Gemini Flash); premium optional (GPT-4o/Claude 3.5 Sonnet).
 - Async processing qua BullMQ với SLA < 5 phút cho 90% bài.
 
-### 4.3 Admin CMS & NotebookLM Integration
+### 4.3 Admin CMS & Document Import
 - CRUD passages, questions, prompts với version control.
-- Import/sync sources & snippets từ NotebookLM.
-- Provenance tracking (source_id, snippet_ids, admin_id, timestamp).
+- Import passages + questions tự động từ DOCX/PDF qua Gemini multimodal parser. Upload file → AI trích xuất passage body + question groups (13 loại IELTS) → admin review → publish.
+- Source document tracking (file upload → SourceDocument record → linked passages).
 - Publish/unpublish workflow; drafts ẩn khỏi learners.
 
 ### 4.4 Dashboard & Analytics
@@ -93,7 +94,7 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 | Reading practice | ✅ MCQ + short answer, timer, auto-grade, explanations | Matching, diagram labeling, True/False/Not Given |
 | Writing practice | ✅ Task 1 & 2, hybrid scoring, feedback | Speaking/Listening, plagiarism detection |
 | Dashboard | ✅ Progress summary, recent submissions | Advanced analytics, cohort comparison |
-| Admin CMS | ✅ CRUD, NotebookLM import, provenance | Bulk import, version diff view |
+| Admin CMS | ✅ CRUD, DOCX/PDF auto-import, source document tracking | Bulk import, version diff view |
 | Auth & roles | ✅ JWT, learner/instructor/admin | OAuth (Google), 2FA |
 | i18n & theme | ✅ vi/en, dark/light | Thêm ngôn ngữ (JP, KR) |
 | Instructor features | ❌ Chỉ view submissions (optional) | Manual override, detailed comments |
@@ -110,7 +111,7 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 | Frontend | Next.js / React + TypeScript | SSR/SSG, responsive, dark/light, vi/en |
 | Backend | NestJS / Node.js + TypeScript | REST API, modular architecture |
 | Database | PostgreSQL | UUID PK, JSONB columns, migrations |
-| Cache & Queue | Redis + BullMQ | Cache NotebookLM 15–60 min, rate-limit, async scoring queue |
+| Cache & Queue | Redis + BullMQ | Rate-limit, async scoring queue, pub/sub for scoring status |
 | AI / LLM | OpenAI (GPT-4o-mini) / Google (Gemini Flash) | Default cheap tier; premium optional |
 | Auth | JWT + Refresh Token | RBAC middleware |
 | Dev Sharing | VS Code Dev Tunnels / Port Forward | Local-first development |
@@ -124,7 +125,7 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 |---------|-------------|---------|
 | Product Owner | Định hướng sản phẩm, ưu tiên backlog, phê duyệt PRD | — |
 | Developer(s) | Thiết kế, implement, test, deploy | Full-stack |
-| Content Ops (Admin) | Nhập liệu, curate content, QA nội dung | Sử dụng Admin CMS |
+| Content Ops (Admin) | Nhập liệu (manual hoặc DOCX/PDF auto-import), curate content, QA nội dung | Sử dụng Admin CMS |
 | Instructor (optional) | Review submissions, feedback bổ sung | MVP-lite: chỉ view |
 
 ---
@@ -150,7 +151,7 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 | M2 | Reading Module (list, detail, submit, auto-grade, history) | 5–7 ngày |
 | M3 | Writing Module (submit, hybrid scoring pipeline, feedback UI) | 7–10 ngày |
 | M4 | Dashboard (progress summary, recent, trends) | 3–5 ngày |
-| M5 | Admin CMS + NotebookLM Import | 5–7 ngày |
+| M5 | Admin CMS + DOCX/PDF Auto-Import | 5–7 ngày |
 | M6 | Observability + Rate Limits + Polish | 3–5 ngày |
 | **Tổng** | **MVP Release** | **~26–39 ngày** |
 
@@ -162,7 +163,7 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 |---|--------|----------|----------|----------------------|
 | R-01 | Chi phí model vượt ngân sách | Trung bình | Trung bình | Default cheap tier; rate-limit 5–10/day/user; token caps ~600–900; usage logs |
 | R-02 | Scoring không nhất quán giữa models | Trung bình | Cao | JSON schema validation; calibration set; rule-based pre-checks; guardrails |
-| R-03 | Chất lượng nội dung import kém | Thấp | Trung bình | Admin review step; sanitize HTML; provenance tracking; manual QA |
+| R-03 | Chất lượng parsing DOCX/PDF kém (AI hallucinate, sai format) | Trung bình | Trung bình | Admin review bắt buộc trước publish; JSON schema validation cho parser output; sanitize HTML; manual QA |
 | R-04 | Latency scoring vượt SLA | Trung bình | Trung bình | Queue timeout; retry/backoff; DLQ + alerts; monitor SLA metrics |
 | R-05 | Mất dữ liệu dev (local) | Thấp | Thấp | Docker volumes; seed scripts; regular git commits |
 
@@ -180,3 +181,8 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 
 > **Tham chiếu:** Tài liệu này là một phần của bộ PRD theo Vibe Coding Framework v2.0.  
 > Xem thêm: [02_scope_definition](02_scope_definition.md) | [05_functional_requirements](05_functional_requirements.md) | [08_data_requirements](08_data_requirements.md)
+
+---
+
+## Changelog
+- v1.1 (2026-04-13): Bỏ NotebookLM integration, thay bằng DOCX/PDF Auto-Import qua Gemini multimodal. Cập nhật vision, personas, scope, tech stack, risks. Sync với codebase thực tế.

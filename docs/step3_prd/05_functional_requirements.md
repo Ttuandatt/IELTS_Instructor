@@ -1,9 +1,10 @@
 # ⚙️ Functional Requirements — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-05  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
-> **Trạng thái:** Draft  
+> **Ngày cập nhật:** 2026-04-13  
+> **Trạng thái:** Revised  
 > **Tham chiếu:** [04_user_stories](04_user_stories.md) | [11_business_rules](11_business_rules.md)
 
 ---
@@ -31,7 +32,7 @@
 Hệ thống cho phép người dùng mới đăng ký tài khoản bằng email và password. Sau khi đăng ký thành công, user nhận JWT tokens và được redirect vào hệ thống.
 
 **Business Rules:**
-- User chọn role khi đăng ký: `learner` | `instructor` | `admin`; default = `learner` (BR-101)
+- Role mặc định là `learner`; user KHÔNG chọn role khi đăng ký. Chỉ admin có quyền thay đổi role (xem [FR-105](#fr-105-admin-role-promotion)) (BR-101)
 - Password phải ≥ 8 ký tự, chứa ít nhất 1 uppercase, 1 number, 1 special char (BR-102)
 - Email phải unique trên toàn hệ thống (BR-103)
 
@@ -40,7 +41,7 @@ Hệ thống cho phép người dùng mới đăng ký tài khoản bằng email
 - Kết nối network khả dụng.
 
 **Post-conditions:**
-- Record mới trong bảng `users` với role do user chọn (default: learner).
+- Record mới trong bảng `users` với role `learner` (hardcode).
 - JWT access token + refresh token được trả về.
 - User session bắt đầu.
 
@@ -51,7 +52,6 @@ Hệ thống cho phép người dùng mới đăng ký tài khoản bằng email
 | email | string | ✅ | Email format; unique |
 | password | string | ✅ | Min 8 chars, 1 upper, 1 num, 1 special |
 | display_name | string | ❌ | Max 50 chars; default = email prefix |
-| role | enum | ❌ | `learner` \| `instructor` \| `admin`; default `learner` |
 | language | enum | ❌ | `vi` \| `en`; default `vi` |
 | theme | enum | ❌ | `dark` \| `light`; default `light` |
 
@@ -170,6 +170,52 @@ User xem thông tin cá nhân (GET /me) và cập nhật display_name, language,
 | theme | enum | ❌ | `dark` \| `light` |
 
 **Output:** Updated user object.
+
+---
+
+### FR-105: Admin Role Promotion
+
+| Field | Value |
+|-------|-------|
+| **ID** | FR-105 |
+| **Title** | Quản trị viên thay đổi role người dùng |
+| **Priority** | P0 |
+| **User Story** | US-105 |
+
+**Mô tả:**  
+Admin có thể thay đổi role của bất kỳ user nào thông qua API endpoint. Instructor không được tự promote mình. Learner không access được endpoint này.
+
+**Business Rules:**
+- Chỉ role `admin` mới có quyền gọi endpoint ([AU-005](11_business_rules.md#au-005--role-promotiondemotion))
+- Admin không thể demote chính mình (bảo vệ khỏi mất quyền admin cuối cùng)
+- Role hợp lệ: `learner`, `instructor`, `admin`
+
+**Pre-conditions:**
+- Caller có role `admin`.
+- Target user tồn tại.
+
+**Post-conditions:**
+- User target có role mới trong bảng `users`.
+- Ghi audit log vào `content_versions` (entity_type = 'user', action = 'role_change').
+
+**Input:**
+
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| role | enum | ✅ | `learner` \| `instructor` \| `admin` |
+
+**Endpoint:** `PATCH /admin/users/:id/role`  
+**Auth:** Admin only  
+
+**Output (200):** Updated user object (không có `password_hash`)
+
+**Error Responses:**
+
+| Status | Condition |
+|--------|-----------|
+| 403 | Caller không phải admin |
+| 404 | User target không tồn tại |
+| 400 | Cố gắng demote admin duy nhất còn lại trong hệ thống |
 
 ---
 
@@ -601,59 +647,70 @@ Admin có thể Create/Read/Update/Delete passages (với nested questions) và 
 
 ---
 
-## 7. NotebookLM Import
+## 7. DOCX/PDF Auto-Import
 
-### FR-601: Upload Source Document
+### FR-601: Import từ DOCX/PDF
 
 | Field | Value |
 |-------|-------|
 | **ID** | FR-601 |
-| **Title** | Tải lên tài liệu gốc (Source Document) |
+| **Title** | Import passage + questions từ DOCX/PDF qua AI parser |
 | **Priority** | P0 |
 | **User Story** | US-601 |
 | **Business Rules** | SY-001, SY-002, SY-003 |
 
 **Mô tả:**  
-Admin/Instructor tải lên một tệp tài liệu (PDF, DOCX) để sử dụng cho việc trích xuất và tạo bài tập sinh tự động. Tệp sẽ được lưu trữ và tạo một job import.
+Admin/Instructor upload file DOCX hoặc PDF. Hệ thống gửi file đến Gemini multimodal API để trích xuất passage (HTML) và question_groups (JSON). Kết quả trả về cho admin review trước khi lưu.
+
+**Pre-conditions:**
+- User có role `instructor` hoặc `admin`.
+- File ≤ 10MB, extension `.docx` hoặc `.pdf`.
 
 **Input:**
 
-| Field | Type | Required |
-|-------|------|----------|
-| file | multipart | ✅ |
+| Field | Type | Required | Validation |
+|-------|------|----------|------------|
+| file | multipart | ✅ | .docx hoặc .pdf, ≤ 10MB |
 
-**Output (201):**
+**Output (200):**
 
-| Field | Type |
-|-------|------|
-| document_id | uuid |
-| file_name | string |
-| file_url | string |
-| status | string ('pending') |
-| uploaded_by | uuid |
+```json
+{
+  "passage": "<h1>...</h1><p>...</p>",
+  "question_groups": [
+    {
+      "type": "matching_headings",
+      "instruction": "...",
+      "group_options": [...],
+      "questions": [{ "prompt": "...", "answer_key": "..." }]
+    }
+  ]
+}
+```
 
 **Processing:**
-1. Upload file lưu vào hệ thống.
-2. Tạo database record trong bảng `source_documents`.
-3. Trả về thông tin tệp đã upload thành công chờ xử lý tiếp theo.
+1. File upload lưu tạm vào disk (prefix UUID).
+2. Tạo record `source_documents` với status `pending`.
+3. Gọi Gemini multimodal API parse file → trả JSON.
+4. Validate JSON schema (passage string + question_groups array; question type nằm trong enum `QuestionType`).
+5. Cập nhật `source_documents.status` → `done` hoặc `failed`.
+6. Trả về JSON để admin review trong CMS form; admin quyết định có save hay không.
 
 ---
 
-### FR-602: Parse Document & Create Import Job
+### FR-602: Source Document Management
 
 | Field | Value |
 |-------|-------|
 | **ID** | FR-602 |
-| **Title** | Phân tích tài liệu gốc và tạo Import Job |
+| **Title** | Quản lý source document và import job |
 | **Priority** | P0 |
 | **User Story** | US-602 |
 
-**Endpoint:** `POST /import/parse/:documentId`
-
 **Mô tả:**
-Gửi ID của tài liệu vừa upload đễ Backend kích hoạt AI pipeline (Gemini Flash) với DOCX / PDF parser, extract passages and questions. Lưu Raw Data vào `import_jobs`.
+Mỗi file upload tạo `SourceDocument` record. Passages tạo từ file có trường `source_document_id` trỏ về `SourceDocument`. `ImportJob` track trạng thái xử lý (pending → done/failed).
 
-**Rule ADM-002:** Content generated từ file upload phải lưu lại relationship tới `import_jobs` và `source_documents`.
+**Rule ADM-002:** Content tạo từ file upload phải lưu lại relationship tới `source_documents` (qua `passage.source_document_id`) và optional `import_jobs` (qua `passage.import_job_id`).
 
 ---
 
@@ -1212,4 +1269,9 @@ Instructor có đầy đủ chức năng CRUD passages và prompts như Admin, n
 - PATCH/DELETE kiểm tra `entity.created_by === req.user.sub`.
 - Nếu user role = `admin` → bypass.
 - Vi phạm → `403 Forbidden: "You can only edit/delete your own content"`.
+
+---
+
+## Changelog
+- v1.1 (2026-04-13): Fix FR-101 (bỏ role khỏi input); thêm FR-105 (Admin Role Promotion). Đổi section 7 từ "NotebookLM Import" → "DOCX/PDF Auto-Import". Rewrite FR-601 với real file-based flow qua Gemini multimodal. Rewrite FR-602 thành Source Document Management.
 

@@ -1,10 +1,14 @@
 # 🎨 UI/UX Specifications — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-10  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
+> **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [03_user_personas_roles](03_user_personas_roles.md) | [04_user_stories](04_user_stories.md)
+>
+> **Changelog:**
+> - v1.1 (2026-04-14): Đổi Import Modal từ NotebookLM URL → DOCX/PDF file upload. Cập nhật nav tree, modal trigger label, section 4.11.
 
 ---
 
@@ -117,7 +121,7 @@
 | Progress Bar | Scoring in progress (indeterminate) |
 | Empty State | No data (illustration + message + CTA) |
 | Confirm Dialog | Destructive actions (delete, log out) |
-| Modal | Import from NotebookLM, create content |
+| Modal | Import DOCX/PDF, create content |
 | Mode Selector | Practice vs Simulation mode modal (S22) |
 
 ### 2.5 Navigation
@@ -164,7 +168,7 @@ IELTS Helper
 │   │   ├── /admin/prompts/new ...... Create prompt
 │   │   └── /admin/prompts/:id ...... Edit prompt
 │   ├── /admin/sources .............. Imported sources
-│   │   └── /admin/sources/import ... Import from NotebookLM
+│   │   └── /admin/sources/import ... Upload DOCX/PDF (Gemini parser)
 │   ├── /admin/users ................ User management
 │   ├── /admin/stats ................ Usage statistics
 ├── 👨‍🏫 /instructor ................... Instructor panel (instructor role)
@@ -310,15 +314,15 @@ IELTS Helper
 | Sources section | Attached sources with "Search & attach" autocomplete |
 | Actions | Save (draft), Publish, Cancel |
 
-### 4.11 Admin — Import Modal
+### 4.11 Admin — DOCX/PDF Import Modal
 
 | Element | Spec |
 |---------|------|
-| Trigger | "Import from NotebookLM" button in sources section |
-| Modal content | URL input, Title input, Tags multi-select, Level dropdown |
-| Import button | Primary; loading state during fetch |
-| Success | List of imported snippets (text preview); "Done" to close |
-| Error | Error message with retry option |
+| Trigger | "Upload DOCX/PDF" button in sources section |
+| Modal content | File picker (accept `.docx,.pdf`, max 10MB), Title input, Tags multi-select, Level dropdown |
+| Parse button | Primary; loading state with progress indicator during Gemini call (~5–15s) |
+| Success | Preview panel: parsed passage body (sanitized HTML) + extracted questions (by type). Buttons: "Save as Draft", "Discard" |
+| Error | Inline error (unsupported type / file too large / parse failure) with retry option |
 
 ---
 

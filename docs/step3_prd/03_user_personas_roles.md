@@ -75,17 +75,17 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 | **Tên đại diện** | Chị Hà Lê |
 | **Tuổi** | 28 |
 | **Nghề nghiệp** | Content Manager tại trung tâm, quản lý ngân hàng đề IELTS |
-| **Trình độ kỹ thuật** | Trung bình; quen dùng CMS cơ bản; biết dùng NotebookLM |
+| **Trình độ kỹ thuật** | Trung bình; quen dùng CMS cơ bản; biết soạn nội dung IELTS trên DOCX/PDF |
 | **Thiết bị** | Desktop |
 | **Tần suất sử dụng** | Hàng ngày, mỗi lần 1–2 giờ |
 | **Mục tiêu** | Xây dựng ngân hàng content chất lượng; đảm bảo provenance; publish content đúng thời hạn |
-| **Nhu cầu** | Import tài liệu từ NotebookLM nhanh; quản lý passage/question/prompt dễ dàng; track source gốc |
+| **Nhu cầu** | Upload DOCX/PDF và tự động trích xuất passage + questions; quản lý passage/question/prompt dễ dàng; track source document gốc |
 | **Pain points** | - Copy-paste content từ nhiều nguồn → mất provenance<br>- Không biết content nào được dùng nhiều/ít<br>- Quản lý version content thủ công |
-| **Kỳ vọng với IELTS Helper** | Import 1-click từ NotebookLM; auto-attach provenance; CMS trực quan; usage stats |
+| **Kỳ vọng với IELTS Helper** | Upload file 1-click → AI parse → review → publish; auto-link source document; CMS trực quan; usage stats |
 
 **User Journey (typical session):**
 1. Login admin → đi đến Admin CMS.
-2. Click "Import from NotebookLM" → nhập URL → review snippets → confirm import.
+2. Click "Import DOCX/PDF" → chọn file → AI parse → review passage + questions → confirm save.
 3. Tạo passage mới → paste body → attach imported snippets → add questions (MCQ + short).
 4. Set level = B2, tags = ["environment", "science"] → Save draft.
 5. Review → Publish → passage xuất hiện cho learners.
@@ -129,7 +129,7 @@ Mô tả chi tiết các persona (nhóm người dùng mục tiêu), vai trò (r
 | CRUD questions | ❌ | ❌ | ✅ |
 | CRUD prompts | ❌ | ❌ | ✅ |
 | Publish / unpublish content | ❌ | ❌ | ✅ |
-| Import from NotebookLM | ❌ | ❌ | ✅ |
+| Import DOCX/PDF | ❌ | ✅ | ✅ |
 | View usage stats | ❌ | ❌ | ✅ |
 | Manage user roles | ❌ | ❌ | ✅ |
 | View audit log (content versions) | ❌ | ❌ | ✅ |

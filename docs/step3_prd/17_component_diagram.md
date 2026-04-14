@@ -1,10 +1,14 @@
 # 🏗️ Component Diagram — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-17  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
+> **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [12_technical_constraints](12_technical_constraints.md) | [15_sequence_diagrams](15_sequence_diagrams.md)
+>
+> **Changelog:**
+> - v1.1 (2026-04-14): External Services node NLM → Gemini Multimodal. Dataflow "Import source" → "Import DOCX/PDF". External services table cập nhật.
 
 ---
 
@@ -63,7 +67,7 @@ graph TB
 
     subgraph "External Services"
         LLM_API[🤖 LLM API<br/>OpenAI / Google / Anthropic]
-        NLM[📓 NotebookLM]
+        GEM[📄 Gemini Multimodal]
     end
 
     Browser --> FE_Pages
@@ -98,7 +102,7 @@ graph TB
     W_Consumer --> PG
 
     SVC_Grading --> PG
-    SVC_Import --> NLM
+    SVC_Import --> GEM
     SVC_Import --> RD
     SVC_Version --> PG
     MOD_Auth --> PG
@@ -258,7 +262,7 @@ graph TB
 | Submit writing | FE | BE → Redis → Worker → PG | HTTP POST + Queue | Essay → scores (async) |
 | Poll status | FE | BE → PG | HTTP GET | Submission status |
 | Admin CRUD | FE | BE → PG | HTTP POST/PATCH/DELETE | Content mutations |
-| Import source | FE | BE → NLM → Redis → PG | HTTP POST | URL → content → snippets |
+| Import DOCX/PDF | FE | BE → Gemini Multimodal → PG | HTTP POST (multipart) | File → passage + questions JSON |
 | LLM scoring | Worker | LLM API | HTTPS | Rubric prompt → JSON scores |
 | Rate limiting | BE | Redis | Redis commands | INCR/GET counters |
 | Caching | BE | Redis | Redis commands | GET/SET with TTL |
@@ -300,7 +304,7 @@ graph TB
         ┌────────────────────┐
         │  External APIs     │
         │  - OpenAI/Google   │
-        │  - NotebookLM      │
+        │  - Gemini Multimodal│
         └────────────────────┘
 ```
 
@@ -316,7 +320,7 @@ graph TB
 | Database | PostgreSQL 15 | 5432 | Yes (Docker) |
 | Cache/Queue | Redis 7 | 6379 | Yes (Docker) |
 | LLM | OpenAI / Google / Anthropic SDK | — | External API |
-| NotebookLM | Google NotebookLM | — | External service |
+| DOCX/PDF Parser | Google Gemini Multimodal API | — | External API |
 
 ---
 

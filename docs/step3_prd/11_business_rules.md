@@ -1,9 +1,10 @@
 # 📏 Business Rules — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-11  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
-> **Trạng thái:** Draft  
+> **Ngày cập nhật:** 2026-04-13  
+> **Trạng thái:** Revised  
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [06_acceptance_criteria](06_acceptance_criteria.md)
 
 ---
@@ -209,6 +210,34 @@
 
 ---
 
+### WR-008 — Band Consistency Check
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | WR-008 |
+| **Title** | Kiểm tra tính hợp lý giữa các criterion scores |
+| **Description** | Sau khi LLM trả scores, hệ thống kiểm tra: nếu `max(TR,CC,LR,GRA) - min(TR,CC,LR,GRA) > 3.0`, submission được flag `needs_review`. Trong thực tế IELTS, các criteria hiếm khi chênh hơn 2–3 band. Chênh lệch lớn có thể là dấu hiệu LLM hallucinate. Submission vẫn được lưu với score; metadata flag để instructor ưu tiên review. |
+| **Enforcement Point** | `scoring.consumer.ts` — sau khi `validateFeedbackSchema`, trước khi save |
+| **Action khi flag** | Vẫn lưu score, set `metadata.needs_review = true`. Instructor UI highlight submission có flag này. |
+| **FR Ref** | FR-302, WR-002 |
+| **Test Scenario** | LLM trả TR=8, CC=8, LR=4, GRA=8 → diff = 4 > 3 → flag set. TR=6, CC=6.5, LR=5.5, GRA=6 → diff = 1 < 3 → no flag. |
+
+---
+
+### WR-010 — Writing Submit Idempotency
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | WR-010 |
+| **Title** | Chống duplicate submission trong 30 giây |
+| **Description** | Trước khi tạo `WritingSubmission` mới, hệ thống check: có submission nào cùng `user_id + prompt_id + processing_status='pending' + created_at` trong 30 giây gần nhất không? Nếu có → trả lại submission cũ, KHÔNG tạo mới, KHÔNG enqueue job mới. Tránh double-submit khi user click nút 2 lần hoặc network retry. |
+| **Enforcement Point** | `writing.service.ts` → `submitEssay()`, trước `prisma.writingSubmission.create()` |
+| **Response** | Trả existing submission `{ id, processing_status: 'pending' }` |
+| **FR Ref** | FR-302, NFR-R04 |
+| **Test Scenario** | User POST `/writing/prompts/:id/submit` 2 lần trong 5s → lần thứ 2 trả về `id` của submission đầu, không có job mới trong BullMQ. |
+
+---
+
 ## 3. Admin/Content Domain (ADM)
 
 ### ADM-001 — Content Visibility Control
@@ -224,16 +253,16 @@
 
 ---
 
-### ADM-002 — Source Reference Requirement
+### ADM-002 — Source Document Reference Requirement
 
 | Attribute | Detail |
 |-----------|--------|
 | **ID** | ADM-002 |
-| **Title** | NotebookLM-imported content must reference source |
-| **Description** | When content (passage or prompt) is created from an imported source, it **must** have at least one entry in `source_ids[]`. This ensures content provenance and traceability. Manually created content may have empty `source_ids`. |
-| **Enforcement Point** | Admin import flow → validate `source_ids.length > 0` for auto-generated content |
+| **Title** | File-imported content must reference source document |
+| **Description** | When content (passage or prompt) is created from a DOCX/PDF upload, it **must** have a `source_document_id` pointing to a valid `SourceDocument` record and optionally an `import_job_id`. Manually created content via CMS forms may leave these fields null. |
+| **Enforcement Point** | Admin import flow → validate `source_document_id` is set when content originates from file upload |
 | **FR Ref** | FR-601, FR-602 |
-| **Test Scenario** | Import passage from NotebookLM with no source attached → validation error. Import with source → success. |
+| **Test Scenario** | Parse DOCX via `/reading/parse-docx` → admin saves output as passage → passage.source_document_id must be non-null. Passage created via `POST /admin/passages` without upload → source_document_id null (allowed). |
 
 ---
 
@@ -251,44 +280,59 @@
 
 ---
 
+## 3.5 Auth/Authorization Domain (AU)
+
+### AU-005 — Role Promotion/Demotion
+
+| Attribute | Detail |
+|-----------|--------|
+| **ID** | AU-005 |
+| **Title** | Chỉ admin mới thay đổi role user |
+| **Description** | API endpoint `PATCH /admin/users/:id/role` chỉ cho phép user có role `admin`. Admin không thể demote chính mình nếu là admin duy nhất trong hệ thống (bảo vệ khỏi mất quyền admin cuối cùng). Mọi thay đổi role được ghi vào `content_versions` table (entity_type = 'user', action = 'role_change') để audit. |
+| **Enforcement Point** | `PATCH /admin/users/:id/role` — role guard + business logic check (count admins) |
+| **Error Response** | `403 Forbidden` nếu caller không phải admin; `400 Bad Request` nếu cố demote admin cuối cùng. |
+| **FR Ref** | FR-105 |
+| **Test Scenario** | Admin A promote user B từ learner → instructor → 200 OK. User B (instructor) gọi cùng endpoint → 403. Chỉ còn 1 admin, admin đó PATCH role của mình thành learner → 400. |
+
+---
+
 ## 4. System/Sync Domain (SY)
 
-### SY-001 — NotebookLM Cache Policy
+### SY-001 — File Upload Storage & Processing
 
 | Attribute | Detail |
 |-----------|--------|
 | **ID** | SY-001 |
-| **Title** | Cache imported NotebookLM data in Redis |
-| **Description** | When admin imports from NotebookLM URL, the fetched data is cached in Redis with a TTL of 15–60 minutes (configurable via `NOTEBOOKLM_CACHE_TTL`). Subsequent imports of the same URL within TTL return cached data. |
-| **Key Format** | `notebooklm:source:{urlHash}` |
-| **TTL** | 15–60 minutes (default: 30 min) |
-| **Enforcement Point** | Import service: check Redis before fetching |
+| **Title** | DOCX/PDF upload storage and lifecycle |
+| **Description** | File upload được lưu vào disk với UUID prefix filename (tránh collision). File metadata lưu trong `source_documents` table (file_name, file_url, uploaded_by, status). Trạng thái processing: `pending` → `done` / `failed`. File > 10MB bị reject ở middleware. |
+| **Storage Location** | `uploads/` directory (dev); cloud blob storage (prod) |
+| **Status Transitions** | `pending` → `done` (parse thành công) hoặc `failed` (AI error / schema invalid) |
+| **Enforcement Point** | Upload controller → Multer middleware + DB record. Parse service → update status. |
 | **FR Ref** | FR-601 |
 
 ---
 
-### SY-002 — Import Sanitization
+### SY-002 — AI Parser Output Validation
 
 | Attribute | Detail |
 |-----------|--------|
 | **ID** | SY-002 |
-| **Title** | Sanitize imported content |
-| **Description** | All HTML from NotebookLM is sanitized to plain text or safe Markdown. Script tags, iframes, and event handlers are stripped. URLs are preserved for reference. |
-| **Sanitization Steps** | 1. Strip all `<script>`, `<iframe>`, `<object>` tags. 2. Remove `on*` event attributes. 3. Convert remaining HTML to plain text (preserve paragraphs). 4. Store original URL for reference. |
-| **Enforcement Point** | Import service → sanitization utility |
-| **FR Ref** | FR-601 |
+| **Title** | Validate JSON schema của Gemini parser output |
+| **Description** | Output JSON từ Gemini parser phải có đúng format: `passage` (HTML string) + `question_groups` array. Passage HTML được sanitize (strip `<script>`, `<iframe>`, `on*` attributes). Mỗi question type trong `question_groups[].type` phải nằm trong enum `QuestionType` (mcq, true_false_notgiven, yes_no_notgiven, matching_headings, matching_information, matching_features, matching_sentence_endings, sentence_completion, summary_completion, table_completion, flowchart_completion, diagram_label_completion, short). Nếu validation fail → retry 1 lần với prompt nhấn mạnh schema; still fail → status = `failed`. |
+| **Enforcement Point** | `parsing.service.ts`: JSON schema validator sau khi nhận response từ Gemini |
+| **FR Ref** | FR-601, FR-602 |
 
 ---
 
-### SY-003 — Import Audit Trail
+### SY-003 — File Import Audit Trail
 
 | Attribute | Detail |
 |-----------|--------|
 | **ID** | SY-003 |
-| **Title** | Log admin identity for every import action |
-| **Description** | Every import from NotebookLM records the admin's `user_id`, the source URL, timestamp, and outcome (success/error). Stored in `sources.imported_by` field. |
-| **Enforcement Point** | Import service: set `imported_by = currentUser.id` |
-| **FR Ref** | FR-601 |
+| **Title** | Log uploader identity cho mỗi file upload |
+| **Description** | Mỗi file upload ghi nhận `uploaded_by` (user_id), `file_name`, `file_url`, `status`, timestamp trong `source_documents` table. Cho phép truy xuất lại ai import file nào, khi nào, kết quả ra sao. |
+| **Enforcement Point** | Upload controller: set `uploaded_by = req.user.sub` khi tạo SourceDocument record. |
+| **FR Ref** | FR-601, FR-602 |
 
 ---
 
@@ -477,14 +521,15 @@
 | `POST /auth/login` | Credential validation, rate-limit per IP |
 | `POST /reading/passages/:id/submit` | RD-001, RD-002, RD-003, RD-005, RD-006 |
 | `GET /reading/passages` | ADM-001 (filter published only) |
-| `POST /writing/prompts/:id/submit` | WR-001, WR-002, WR-003, WR-004, WR-007 |
+| `POST /writing/prompts/:id/submit` | WR-001, WR-002, WR-003, WR-004, WR-007, WR-010 |
 | `GET /writing/prompts` | ADM-001 (filter published only) |
 | `PATCH /instructor/writing-submissions/:id/review` | WR-006 |
 | `POST /admin/passages` | ADM-002 (if imported), ADM-003 (version) |
 | `PATCH /admin/passages/:id` | ADM-003 (version) |
 | `POST /admin/content/:type/:id/publish` | ADM-001, ADM-003 |
-| `POST /admin/sources/import` | SY-001, SY-002, SY-003 |
-| BullMQ worker (writing scoring) | WR-002, WR-004, WR-005 |
+| `POST /reading/parse-docx` | SY-001, SY-002, SY-003 |
+| `PATCH /admin/users/:id/role` | AU-005 |
+| BullMQ worker (writing scoring) | WR-002, WR-004, WR-005, WR-008 |
 | `POST /classrooms` | CR-001 |
 | `PATCH /classrooms/:id` | CR-002 |
 | `POST /classrooms/:id/members` | CR-002, CR-004, CR-005 |
@@ -516,3 +561,8 @@
 ---
 
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [06_acceptance_criteria](06_acceptance_criteria.md) | [08_data_requirements](08_data_requirements.md)
+
+---
+
+## Changelog
+- v1.1 (2026-04-13): Rewrite SY-001/SY-002/SY-003 và ADM-002 từ NotebookLM context sang DOCX/PDF file upload + Gemini multimodal parser. Thêm AU-005 (Role Promotion/Demotion), WR-008 (Band Consistency Check), WR-010 (Writing Submit Idempotency). Cập nhật Rule Enforcement Map.

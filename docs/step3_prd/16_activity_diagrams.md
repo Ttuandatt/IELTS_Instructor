@@ -1,10 +1,14 @@
 # 🔀 Activity Diagrams — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-16  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
+> **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [04_user_stories](04_user_stories.md) | [14_usecase_diagram](14_usecase_diagram.md)
+>
+> **Changelog:**
+> - v1.1 (2026-04-14): Rewrite AD-05 thành DOCX/PDF Import Flow (file validation → Gemini parse → HTML sanitize → schema validate → draft passage + questions).
 
 ---
 
@@ -175,37 +179,40 @@ flowchart TD
 
 ---
 
-## AD-05: NotebookLM Import Flow
+## AD-05: DOCX/PDF Import Flow (Gemini Multimodal)
 
 ```mermaid
 flowchart TD
-    A([Admin clicks Import]) --> B[Show import modal]
-    B --> C[Enter NotebookLM URL]
+    A([Admin clicks Upload DOCX/PDF]) --> B[Show import modal]
+    B --> C[Select .docx or .pdf file]
     C --> D[Enter title, level, tags]
-    D --> E[Click Import button]
-    E --> F{Check Redis cache}
-    F -->|Cache hit| G[Use cached content]
-    F -->|Cache miss| H[Fetch from NotebookLM URL]
-    H --> I{Fetch successful?}
-    I -->|No - network error| J[Show error in modal]
-    J --> K{Retry?}
-    K -->|Yes| H
-    K -->|No| L[Close modal]
-    I -->|Yes| M[Sanitize HTML content]
-    M --> N[Cache in Redis TTL=30min]
-    N --> G
-    G --> O[Create source record]
-    O --> P[Split content into snippets]
-    P --> Q[Save snippets to DB]
-    Q --> R[Display snippet list in modal]
-    R --> S{Attach to content?}
-    S -->|Yes| T[Select target passage/prompt]
-    T --> U[Attach source + snippets]
-    U --> V[Show confirmation]
-    S -->|No - later| V
-    V --> W[Close modal]
-    W --> X([End])
-    L --> X
+    D --> E[Click Parse button]
+    E --> F{Validate file type & size}
+    F -->|Invalid type| G[Show 400 error]
+    F -->|Too large >10MB| H[Show 413 error]
+    F -->|Valid| I[POST /reading/parse-docx]
+    I --> J[Call Gemini Multimodal with IELTS-aware prompt]
+    J --> K{Parse successful?}
+    K -->|No - API error/timeout| L[Show parse error in modal]
+    L --> M{Retry?}
+    M -->|Yes| I
+    M -->|No| N[Close modal]
+    K -->|Yes| O[Sanitize HTML body]
+    O --> P[Validate JSON schema]
+    P --> Q{Schema valid?}
+    Q -->|No| L
+    Q -->|Yes| R[Create SourceDocument row]
+    R --> S[Create draft Passage + Questions]
+    S --> T[Display preview: passage + questions]
+    T --> U{Admin action}
+    U -->|Save Draft| V[Commit as draft; admin edits later]
+    U -->|Discard| W[Rollback DB inserts]
+    V --> X[Show success toast]
+    W --> X
+    X --> Y([End])
+    G --> Y
+    H --> Y
+    N --> Y
 ```
 
 ---

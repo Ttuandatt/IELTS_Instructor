@@ -18,7 +18,7 @@
 | **AI Scoring** | Hybrid: rule-based pre-checks → LLM rubric scoring |
 | **LLM Default** | GPT-4o-mini / o3-mini / Gemini Flash (cheap tier) |
 | **LLM Premium** | GPT-4o / Claude 3.5 Sonnet (optional) |
-| **Content Source** | NotebookLM — https://notebooklm.google.com/notebook/2009469b-462e-4014-87f5-46f5842fb6db |
+| **Content Import** | DOCX/PDF upload → Gemini Multimodal parser (passage + 13 IELTS question types) |
 | **Dev Mode** | Local (Docker Compose for Postgres+Redis), VS Code Dev Tunnels for sharing |
 | **Framework** | Vibe Coding v2.0 (6 steps with quality gates) |
 | **Repo** | https://github.com/Ttuandatt/IELTS_Instructor |
@@ -30,7 +30,7 @@
 - **Reading:** Passage catalog → practice (split-view) → auto-grading (MCQ + short answer) → results + explanations → history
 - **Writing:** Prompt catalog → essay editor (word count) → async scoring (BullMQ → rule engine → LLM → feedback) → score bars (TR/CC/LR/GRA) → history
 - **Dashboard:** Progress stats (reading + writing), weekly trend chart
-- **Admin CMS:** CRUD passages/questions/prompts, publish/unpublish, import from NotebookLM, user management
+- **Admin CMS:** CRUD passages/questions/prompts, publish/unpublish, DOCX/PDF auto-import (Gemini multimodal), user management
 - **UX:** Dark/light theme, vi/en i18n, responsive (mobile → desktop)
 
 ---
@@ -95,28 +95,33 @@ Essay submit (POST 202)
 | View own history/dashboard | ✅ | ✅ | ✅ |
 | CRUD content | ❌ | ✅ (own) | ✅ (all) |
 | Publish/unpublish | ❌ | ❌ | ✅ |
-| Import from NotebookLM | ❌ | ❌ | ✅ |
+| Import DOCX/PDF | ❌ | ✅ | ✅ |
 | Manage users | ❌ | ❌ | ✅ |
 
 ---
 
-## 6. Database Entities (10 tables)
+## 6. Database Entities (17 tables — Prisma schema)
 
-`users` · `passages` · `questions` · `submissions_reading` · `prompts` · `submissions_writing` · `sources` · `snippets` · `content_versions` · `rate_limits`
+**Core:** `users` · `passages` · `questions` · `submissions_reading` · `prompts` · `submissions_writing`  
+**Content Ops:** `collections` · `topic_tags` · `source_documents` · `import_jobs` · `content_versions`  
+**Classroom:** `classrooms` · `classroom_members` · `topics` · `lessons` · `submissions_lesson` · `announcements`  
+**Ops:** `notifications` · `rate_limits`
 
-Key enums: `user_role`, `content_status`, `question_type`, `cefr_level`, `writing_task_type`, `processing_status`, `model_tier`, `source_type`, `version_action`, `rate_limit_type`
+Key enums: `UserRole`, `ContentStatus`, `QuestionType` (13 values), `CefrLevel`, `WritingTaskType`, `ProcessingStatus`, `ModelTier`, `VersionAction`, `RateLimitType`, `LessonContentType`, `NotificationType`
 
 ---
 
-## 7. API Surface (5 groups)
+## 7. API Surface
 
 | Group | Key Endpoints |
 |-------|---------------|
 | **Auth** | POST register, login, refresh · GET/PATCH /me |
 | **Reading** | GET passages (list, detail) · POST submit · GET history |
 | **Writing** | GET prompts · POST submit (202) · GET submission · GET history |
-| **Dashboard** | GET /me/progress · GET /me/progress/trends |
-| **Admin** | CRUD passages/questions/prompts · publish/unpublish · import · users |
+| **Dashboard** | GET /dashboard/stats · /progress · /progress/trends · /instructor-stats |
+| **Upload / Import** | POST /reading/parse-docx (DOCX/PDF → Gemini parser) · POST /uploads (attachments) |
+| **Admin** | CRUD passages/questions/prompts · publish/unpublish · PATCH /admin/users/:id/role |
+| **Classroom** | CRUD classrooms/topics/lessons · members · announcements · progress · lesson submissions (reading/writing/essay) |
 
 Full specs → [09_api_specifications.md](step3_prd/09_api_specifications.md) + [openapi.yaml](step3_prd/openapi.yaml)
 

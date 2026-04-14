@@ -1,9 +1,10 @@
 # ⚠️ Dependencies & Risks — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-13  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
-> **Trạng thái:** Draft  
+> **Ngày cập nhật:** 2026-04-13  
+> **Trạng thái:** Revised  
 > **Tham chiếu:** [12_technical_constraints](12_technical_constraints.md) | [07_non_functional_requirements](07_non_functional_requirements.md)
 
 ---
@@ -25,18 +26,19 @@
 
 ---
 
-### DEP-02 — NotebookLM Content Source
+### DEP-02 — Google Gemini Multimodal API
 
 | Attribute | Detail |
 |-----------|--------|
-| **Dependency** | NotebookLM (https://notebooklm.google.com/) |
-| **Usage** | Admin imports reading passages and writing prompts |
+| **Dependency** | Google Gemini Multimodal (via `@google/generative-ai` SDK) |
+| **Usage** | Parse DOCX/PDF files → extract passages + questions (13 IELTS question types) |
 | **Criticality** | **Medium** — manual content creation works without it |
-| **Required For** | FR-601, SY-001, SY-002 |
+| **Required For** | FR-601, FR-602, SY-001, SY-002, SY-003 |
 | **SLA Expected** | Best-effort; Google service — no SLA guarantee |
-| **Fallback** | Admin creates content manually via CMS forms. Imported sources are cached in Redis (30 min TTL). |
-| **Risk** | Google may change/restrict NotebookLM access or API format |
-| **Action Items** | Cache fetched data aggressively. Design import as optional feature. |
+| **Fallback** | Admin creates content manually via CMS forms. Retry 1 lần với prompt nhấn mạnh schema nếu parser output invalid. |
+| **Risk** | API pricing changes; model output drift; quota limits |
+| **Cost** | ~$0.01–0.05 per file parse (Gemini Flash pricing at 2026-04) |
+| **Action Items** | Configure `GOOGLE_API_KEY` env var. Monitor parse success rate; validate JSON schema strictly (SY-002). |
 
 ---
 
@@ -139,9 +141,9 @@
 | **Probability** | Medium (3/5) |
 | **Impact** | Medium (3/5) |
 | **Risk Score** | 9/25 |
-| **Description** | Content imported from NotebookLM may be malformed, contain broken HTML, or be unsuitable for IELTS practice. |
-| **Triggers** | NotebookLM format changes, HTML artifacts, non-IELTS content |
-| **Mitigation** | 1. Sanitize HTML on import (SY-002). 2. Admin review before publish (ADM-001). 3. Store source URL for verification. 4. Draft status by default. |
+| **Description** | Content parsed from DOCX/PDF via Gemini multimodal may be malformed, contain broken HTML, invalid question types, or be unsuitable for IELTS practice (hallucinated answers, wrong structure). |
+| **Triggers** | Gemini model output drift, low-quality scanned PDFs, unusual docx formatting |
+| **Mitigation** | 1. JSON schema validation cho parser output (SY-002). 2. Sanitize HTML (strip script/iframe). 3. Admin review before publish (ADM-001). 4. Store SourceDocument for re-parse. 5. Draft status by default. |
 | **Contingency** | Reject malformed imports with clear error. Manual content creation fallback. |
 | **Owner** | Admin/content lead |
 | **Status** | Mitigated by design |
@@ -225,9 +227,14 @@ Prob ↓
 | PostgreSQL | `SELECT 1` via pool | Every 30s | 3 consecutive failures |
 | Redis | `PING` | Every 30s | 3 consecutive failures |
 | LLM API | Test prompt (1 token) | Every 5 min | 2 consecutive failures |
-| NotebookLM | Cached status | On import only | N/A (graceful degrade) |
+| Gemini Multimodal | Parse success rate | On each parse call | Alert if failure rate > 20% over 10 calls |
 | BullMQ | Queue metrics | Every 30s | Depth > 20 or stale > 5 min |
 
 ---
 
 > **Tham chiếu:** [07_non_functional_requirements](07_non_functional_requirements.md) | [12_technical_constraints](12_technical_constraints.md)
+
+---
+
+## Changelog
+- v1.1 (2026-04-13): DEP-02 rewrite từ NotebookLM → Google Gemini Multimodal API. RISK-03 cập nhật triggers và mitigation cho DOCX/PDF parsing. Health check bảng thay NotebookLM row.

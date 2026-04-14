@@ -1,9 +1,10 @@
 # 🗃️ Data Requirements — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-08  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
-> **Trạng thái:** Draft  
+> **Ngày cập nhật:** 2026-04-13  
+> **Trạng thái:** Revised  
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [09_api_specifications](09_api_specifications.md)
 
 ---
@@ -379,7 +380,7 @@ CREATE INDEX idx_prompts_task_type ON prompts(task_type);
 CREATE INDEX idx_prompts_status ON prompts(status);
 ```
 
-### Migration 3: Sources & Snippets
+### Migration 3: Source Documents & Import Jobs
 
 ```sql
 CREATE TABLE collections (
@@ -664,3 +665,8 @@ VALUES (
 ---
 
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [09_api_specifications](09_api_specifications.md) | [openapi.yaml](openapi.yaml)
+
+---
+
+## Changelog
+- v1.1 (2026-04-13): Rename Migration 3 heading từ "Sources & Snippets" → "Source Documents & Import Jobs" cho khớp schema thực tế. (ERD và entity definitions đã đúng từ trước.)

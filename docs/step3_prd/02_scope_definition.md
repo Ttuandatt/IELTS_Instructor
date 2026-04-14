@@ -1,9 +1,10 @@
 # 📐 Scope Definition — IELTS Helper
 
 > **Mã tài liệu:** PRD-02  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
-> **Trạng thái:** Draft  
+> **Ngày cập nhật:** 2026-04-13  
+> **Trạng thái:** Revised  
 > **Tham chiếu:** [01_executive_summary](01_executive_summary.md)
 
 ---
@@ -57,8 +58,8 @@ Xác định rõ ràng ranh giới phạm vi của MVP (Phase 1) để tránh sc
 |-----------|----------------|---------|-------------|
 | Content CRUD | Create/Read/Update/Delete passages, questions, prompts; set level, topic_tags | P0 | FR-007 |
 | Publish/Unpublish | Toggle trạng thái publish; drafts ẩn khỏi learner catalog | P0 | FR-007 |
-| NotebookLM Import | Nhập source URL → fetch snippets → lưu sources & snippets → attach to content | P0 | FR-008 |
-| Provenance Display | Hiển thị source_id, snippet_ids, admin_id, timestamp trên mỗi content item | P0 | FR-008 |
+| DOCX/PDF Import | Upload file DOCX/PDF → Gemini multimodal parse → trích xuất passage + question groups → admin review trước publish | P0 | FR-601 |
+| Source Document Tracking | Mỗi file upload tạo SourceDocument record; passages trỏ về source_document_id; ImportJob track trạng thái parse | P0 | FR-602 |
 | Content Versions | Ghi nhận version, editor_id, timestamp mỗi khi publish/update | P1 | ADM-003 |
 | Usage Stats | Hiển thị submissions count per passage/prompt để admin biết content nào được dùng nhiều | P1 | FR-006 |
 | DOCX Import | Admin import file DOCX → AI parser trích xuất passage + questions → preview → save DB | P0 | FR-716 |
@@ -67,7 +68,7 @@ Xác định rõ ràng ranh giới phạm vi của MVP (Phase 1) để tránh sc
 
 | Tính năng | Mô tả chi tiết | Ưu tiên | Liên kết FR |
 |-----------|----------------|---------|-------------|
-| Register | Email + password; chọn role (learner / instructor / admin, mặc định learner); chọn language/theme | P0 | FR-009 |
+| Register | Email + password; role mặc định là learner (không chọn khi đăng ký); chọn language/theme | P0 | FR-009 |
 | Login | Email + password → JWT access + refresh token | P0 | FR-009 |
 | Refresh Token | Auto-refresh khi access token hết hạn | P0 | FR-009 |
 | Profile | GET/UPDATE display_name, language (vi/en), theme (dark/light) | P0 | FR-009 |
@@ -141,6 +142,7 @@ Xác định rõ ràng ranh giới phạm vi của MVP (Phase 1) để tránh sc
 | Multi-tenant / organization | MVP single-tenant; multi-tenant cần schema redesign | Phase 3 |
 | Bulk content import | Admin import từng source; bulk cần queue + progress tracking riêng | Phase 2 |
 | AR/VR immersive learning | Ngoài scope hoàn toàn | N/A |
+| NotebookLM integration | Không có public API ổn định; đã thay bằng DOCX/PDF auto-import qua Gemini multimodal | N/A |
 
 ---
 
@@ -168,7 +170,7 @@ Xác định rõ ràng ranh giới phạm vi của MVP (Phase 1) để tránh sc
 
 | # | Giả định | Ảnh hưởng nếu sai | Hành động nếu sai |
 |---|----------|-------------------|--------------------|
-| A-01 | NotebookLM cung cấp accessible HTTP endpoints/snippets | Không import được content | Cần manual content entry hoặc alternative source |
+| A-01 | Google Gemini Multimodal API available với accuracy parse DOCX/PDF đủ dùng | Parser output sai format → admin phải nhập manual | Fallback: manual content entry qua CMS forms; tune prompt; thử model khác |
 | A-02 | Users chấp nhận AI-based scoring nếu rubric và nguồn minh bạch | Mất trust → thấp adoption | Thêm instructor review layer sớm hơn |
 | A-03 | Dev environment chạy local; Postgres + Redis available via Docker | Không setup được | Dùng cloud-hosted dev DB (Supabase, Railway) |
 | A-04 | Model API (OpenAI/Google/Anthropic) available với latency < 30s | Scoring chậm hoặc fail | Fallback sang model khác; tăng retry; dùng cache |
@@ -206,3 +208,8 @@ Trước khi bắt đầu implementation, scope cần được lock với các �
 ---
 
 > **Tham chiếu:** [01_executive_summary](01_executive_summary.md) | [05_functional_requirements](05_functional_requirements.md) | [06_acceptance_criteria](06_acceptance_criteria.md)
+
+---
+
+## Changelog
+- v1.1 (2026-04-13): Bỏ NotebookLM Import, thay bằng DOCX/PDF Import + Source Document Tracking. Fix registration role (không chọn khi đăng ký). Cập nhật assumption A-01.

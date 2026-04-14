@@ -1,10 +1,14 @@
 # 🔄 Sequence Diagrams — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-15  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
+> **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [09_api_specifications](09_api_specifications.md)
+>
+> **Changelog:**
+> - v1.1 (2026-04-14): Rewrite SD-07 từ NotebookLM URL fetch → DOCX/PDF upload qua Gemini Multimodal (multipart, parse JSON, sanitize HTML, create draft passage + questions).
 
 ---
 
@@ -221,47 +225,45 @@ sequenceDiagram
 
 ---
 
-## SD-07: Admin Import from NotebookLM
+## SD-07: Admin DOCX/PDF Import via Gemini Multimodal
 
 ```mermaid
 sequenceDiagram
     participant A as 🔧 Admin
     participant FE as 🖥️ Frontend
     participant BE as ⚙️ Backend
-    participant RD as 📦 Redis
-    participant NLM as 📓 NotebookLM
+    participant GEM as 📄 Gemini Multimodal
     participant DB as 🗄️ PostgreSQL
 
-    A->>FE: Click "Import from NotebookLM"
-    FE->>FE: Show import modal (URL input, title, tags)
-    A->>FE: Enter URL + metadata, click Import
-    FE->>BE: POST /admin/sources/import {url, title, tags, level}
+    A->>FE: Click "Upload DOCX/PDF"
+    FE->>FE: Show import modal (file picker, title, tags, level)
+    A->>FE: Choose .docx/.pdf file, click Parse
+    FE->>BE: POST /reading/parse-docx (multipart: file, metadata)
 
-    BE->>RD: GET notebooklm:source:{urlHash}
-    alt Cache hit
-        RD-->>BE: Cached content
-    else Cache miss
-        BE->>NLM: Fetch content from URL
-        NLM-->>BE: Raw HTML/text content
+    BE->>BE: Validate file type (.docx/.pdf) + size (≤10MB)
+    alt Invalid
+        BE-->>FE: 400/413 error
+        FE-->>A: Show error (unsupported type / too large)
+    else Valid
+        BE->>GEM: uploadFile + generateContent(IELTS-aware prompt, file)
+        GEM-->>BE: Structured JSON (passage_html, questions[13 types])
         BE->>BE: Sanitize HTML (strip scripts, events)
-        BE->>RD: SET notebooklm:source:{urlHash} TTL=30min
+        BE->>BE: Validate JSON schema
+        BE->>DB: INSERT INTO source_documents (filename, mime, uploaded_by, parse_status='done')
+        DB-->>BE: source_document_id
+        BE->>DB: INSERT INTO passages (title, body_html, level, status='draft', source_document_id)
+        BE->>DB: INSERT INTO questions (passage_id, type, stem, options, correct_answer)
+        DB-->>BE: passage_id + question_ids
+        BE-->>FE: 200 {source_document_id, passage, questions, parse_duration_ms}
+        FE-->>A: Preview panel: passage + questions
     end
 
-    BE->>DB: INSERT INTO sources (title, url, origin, imported_by=admin.id)
-    DB-->>BE: source_id
-    BE->>BE: Split content into snippets
-    BE->>DB: INSERT INTO snippets (source_id, text, tags, level)
-    DB-->>BE: Snippet IDs
-    BE-->>FE: 201 {source_id, snippets: [{id, text_preview}]}
-    FE-->>A: Show imported snippets list
-
-    %% Attach to content
-    A->>FE: Select snippets → attach to passage
-    FE->>BE: POST /admin/content/passages/{id}/sources {source_id, snippet_ids}
-    BE->>DB: UPDATE passage SET source_ids = array_append(source_ids, ?)
-    BE->>DB: UPDATE snippets SET linked_entity=?, linked_type='passage'
+    %% Save & publish
+    A->>FE: Review, click "Save as Draft"
+    FE->>BE: PATCH /admin/content/passages/{id} (any edits)
+    BE->>DB: UPDATE passage, questions
     BE-->>FE: 200 {updated}
-    FE-->>A: Source attached confirmation
+    FE-->>A: "Draft saved" toast
 ```
 
 ---

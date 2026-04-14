@@ -1,10 +1,14 @@
 # 🔌 API Specifications — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-09  
-> **Phiên bản:** 1.0  
+> **Phiên bản:** 1.1  
 > **Ngày tạo:** 2025-02-21  
+> **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [openapi.yaml](openapi.yaml)
+>
+> **Changelog:**
+> - v1.1 (2026-04-14): Replace `/admin/sources/import` (NotebookLM URL) với `/reading/parse-docx` (multipart DOCX/PDF upload qua Gemini Multimodal). Cập nhật source_refs examples.
 
 ---
 
@@ -225,7 +229,7 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
       "level": "B2",
       "topic_tags": ["energy", "environment"],
       "question_count": 13,
-      "source_refs": [{"source_id": "src-001", "title": "NotebookLM Climate"}],
+      "source_refs": [{"source_id": "src-001", "title": "Climate Change Overview (DOCX)"}],
       "created_at": "2025-02-20T08:00:00Z"
     }
   ],
@@ -269,7 +273,7 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
       }
     ],
     "question_count": 13,
-    "source_refs": [{"source_id": "src-001", "title": "NotebookLM Climate"}]
+    "source_refs": [{"source_id": "src-001", "title": "Climate Change Overview (DOCX)"}]
   }
 }
 ```
@@ -624,14 +628,14 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
 
 `entityType` = `passages` | `prompts`
 
-### Import
+### Import (DOCX/PDF Auto-Import via Gemini Multimodal)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | /admin/sources/import | Import source from NotebookLM URL |
-| GET | /admin/sources | List imported sources |
-| GET | /admin/sources/:id | Source detail with snippets |
-| POST | /admin/content/:entityType/:id/sources | Attach sources/snippets to content |
+| POST | /reading/parse-docx | Upload .docx/.pdf → Gemini parses passage + questions |
+| GET | /admin/sources | List imported source documents |
+| GET | /admin/sources/:id | Source document detail + linked content |
+| POST | /admin/content/:entityType/:id/sources | Attach source to content |
 | DELETE | /admin/content/:entityType/:id/sources/:sourceId | Detach source |
 
 ### User Management

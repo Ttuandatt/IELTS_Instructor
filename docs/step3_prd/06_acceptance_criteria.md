@@ -658,57 +658,64 @@ Feature: Content Publishing
 
 ---
 
-## 7. NotebookLM Import
+## 7. DOCX/PDF Auto-Import
 
-### AC-601: Import source
+### AC-601: Parse DOCX/PDF via AI
 
 ```gherkin
-Feature: NotebookLM Source Import
+Feature: DOCX/PDF Auto-Import
   Ref: US-601, FR-601, SY-001..SY-003
 
-  Scenario: Successful import
-    Given I am logged in as admin
-    When I enter NotebookLM URL and click Import
-    Then the system fetches content and extracts snippets
-    And a source record is created with provenance
-    And I see list of imported snippets
+  Scenario: Successful parse
+    Given I am logged in as admin or instructor
+    When I upload a DOCX file via POST /reading/parse-docx
+    Then the system creates a SourceDocument record (status=pending)
+    And Gemini multimodal parser extracts passage + question_groups
+    And response JSON matches schema (passage string + question_groups array)
+    And SourceDocument.status transitions to 'done'
 
   Scenario: HTML sanitization
-    Given the source content contains HTML tags
-    When imported
-    Then HTML is stripped and plain text is stored
-    And source URL is preserved for reference
+    Given parser output contains <script> or <iframe> tags
+    When validated
+    Then HTML is sanitized (script/iframe stripped)
+    And sanitized passage is returned
 
-  Scenario: Import failure
-    Given the URL is unreachable
-    When I click Import
-    Then I see error "Could not fetch content from this URL"
+  Scenario: Parse failure
+    Given the uploaded file is malformed or unreadable
+    When I trigger parse
+    Then SourceDocument.status = 'failed'
+    And I see error "AI parser could not extract valid content"
 
-  Scenario: Cached import
-    Given I imported this URL 10 minutes ago
-    When I try to import again
-    Then the cached result is returned (no re-fetch)
+  Scenario: Unsupported file type
+    Given I upload a .txt file
+    When I trigger parse
+    Then I see 400 error "Only .docx and .pdf files are allowed"
+
+  Scenario: File too large
+    Given I upload a 15MB PDF
+    When upload attempts
+    Then I see 400 error "File exceeds 10MB limit"
 ```
 
 ---
 
-### AC-602: Attach source to content
+### AC-602: Source document linkage
 
 ```gherkin
-Feature: Source Attachment
+Feature: Source Document Linkage
   Ref: US-602, FR-602, ADM-002
 
-  Scenario: Attach source to passage
-    Given source "NotebookLM Climate" exists
-    When I edit passage and search for source
-    And select and save
-    Then the source is linked to the passage
-    And provenance shows on passage detail
+  Scenario: Passage created from parsed document
+    Given a SourceDocument exists (status=done) from a parsed DOCX
+    When admin saves parsed content as a new passage
+    Then passage.source_document_id references the SourceDocument
+    And source document info shows on passage detail
 
-  Scenario: Required source (ADM-002)
-    Given a passage was created from NotebookLM import
-    When I try to publish without any attached source
-    Then I see warning "Content from NotebookLM must have at least one source attached"
+  Scenario: Manually created passage (no source)
+    Given admin creates a passage via CMS form (no upload)
+    When passage is saved
+    Then passage.source_document_id is null
+    And passage can still be published
 ```
 
 ---
