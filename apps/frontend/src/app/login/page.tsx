@@ -4,13 +4,14 @@ import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/providers/AuthProvider';
 import { useI18n } from '@/providers/I18nProvider';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function LoginPage() {
   const { login } = useAuth();
   const { t } = useI18n();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -55,15 +56,26 @@ export default function LoginPage() {
 
           <div className="form-field">
             <label className="form-label">{t.auth.password}</label>
-            <input
-              type="password"
-              className="form-input"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={8}
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="form-input"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(v => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <button type="submit" className="auth-btn" disabled={loading}>

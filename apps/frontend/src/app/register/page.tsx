@@ -4,16 +4,17 @@ import { useState, FormEvent } from 'react';
 import Link from 'next/link';
 import { useAuth } from '@/providers/AuthProvider';
 import { useI18n } from '@/providers/I18nProvider';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 export default function RegisterPage() {
   const { register } = useAuth();
   const { t } = useI18n();
   const [displayName, setDisplayName] = useState('');
-  const [role, setRole] = useState('learner');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +29,7 @@ export default function RegisterPage() {
 
     setLoading(true);
     try {
-      await register(email, password, displayName, role);
+      await register(email, password, displayName);
     } catch (err: any) {
       setError(err.response?.data?.message || t.common.error);
     } finally {
@@ -65,19 +66,6 @@ export default function RegisterPage() {
           </div>
 
           <div className="form-field">
-            <label className="form-label">{t.auth.role}</label>
-            <select
-              className="form-input"
-              value={role}
-              onChange={e => setRole(e.target.value)}
-            >
-              <option value="learner">{t.auth.role_learner}</option>
-              <option value="instructor">{t.auth.role_instructor}</option>
-              <option value="admin">{t.auth.role_admin}</option>
-            </select>
-          </div>
-
-          <div className="form-field">
             <label className="form-label">{t.auth.email}</label>
             <input
               type="email"
@@ -91,28 +79,50 @@ export default function RegisterPage() {
 
           <div className="form-field">
             <label className="form-label">{t.auth.password}</label>
-            <input
-              type="password"
-              className="form-input"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={8}
-            />
+            <div className="password-wrapper">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                className="form-input"
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword(v => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <div className="form-field">
             <label className="form-label">{t.auth.confirm_password}</label>
-            <input
-              type="password"
-              className="form-input"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="••••••••"
-              required
-              minLength={8}
-            />
+            <div className="password-wrapper">
+              <input
+                type={showConfirmPassword ? 'text' : 'password'}
+                className="form-input"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={8}
+              />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowConfirmPassword(v => !v)}
+                aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
+                tabIndex={-1}
+              >
+                {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <button type="submit" className="auth-btn" disabled={loading}>

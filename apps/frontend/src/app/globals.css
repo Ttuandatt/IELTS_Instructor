@@ -600,6 +600,43 @@ summary {
   color: var(--color-text-muted);
 }
 
+.password-wrapper {
+  position: relative;
+}
+
+.password-wrapper .form-input {
+  padding-right: 2.75rem;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.password-toggle:hover {
+  color: var(--color-text-primary);
+  background-color: var(--color-hover, rgba(95, 75, 139, 0.08));
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid var(--color-border-focus);
+  outline-offset: 2px;
+}
+
 .form-error {
   color: var(--color-error);
   font-size: 0.8125rem;
