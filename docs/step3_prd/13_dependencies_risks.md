@@ -1,9 +1,9 @@
 # ⚠️ Dependencies & Risks — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-13  
-> **Phiên bản:** 1.1  
+> **Phiên bản:** 1.2  
 > **Ngày tạo:** 2025-02-21  
-> **Ngày cập nhật:** 2026-04-13  
+> **Ngày cập nhật:** 2026-04-14  
 > **Trạng thái:** Revised  
 > **Tham chiếu:** [12_technical_constraints](12_technical_constraints.md) | [07_non_functional_requirements](07_non_functional_requirements.md)
 
@@ -26,19 +26,19 @@
 
 ---
 
-### DEP-02 — Google Gemini Multimodal API
+### DEP-02 — DOCX/PDF Parser Stack (Mammoth primary + Gemini fallback)
 
 | Attribute | Detail |
 |-----------|--------|
-| **Dependency** | Google Gemini Multimodal (via `@google/generative-ai` SDK) |
-| **Usage** | Parse DOCX/PDF files → extract passages + questions (13 IELTS question types) |
-| **Criticality** | **Medium** — manual content creation works without it |
+| **Dependency** | **Primary:** `mammoth` + `sanitize-html` (npm). **Fallback:** Google Gemini Multimodal (`@google/generative-ai`) |
+| **Usage** | Parse DOCX/PDF → HTML + structured IELTS questions (13 types). Mammoth xử lý DOCX semantic HTML + inline styles + tables. IELTS post-processor (in-house regex) detect paragraph labels, question groups, blanks. Gemini fallback khi confidence < 0.6, file PDF, hoặc Mammoth fail. |
+| **Criticality** | **Medium** — manual content creation works without it. Mammoth standalone handles 80%+ cases; Gemini optional cho PDF và edge cases. |
 | **Required For** | FR-601, FR-602, SY-001, SY-002, SY-003 |
-| **SLA Expected** | Best-effort; Google service — no SLA guarantee |
-| **Fallback** | Admin creates content manually via CMS forms. Retry 1 lần với prompt nhấn mạnh schema nếu parser output invalid. |
-| **Risk** | API pricing changes; model output drift; quota limits |
-| **Cost** | ~$0.01–0.05 per file parse (Gemini Flash pricing at 2026-04) |
-| **Action Items** | Configure `GOOGLE_API_KEY` env var. Monitor parse success rate; validate JSON schema strictly (SY-002). |
+| **SLA Expected** | Mammoth: local library, no SLA. Gemini: best-effort, no guarantee. |
+| **Fallback** | Hierarchy: Mammoth → Gemini → manual CMS form. Tất cả Gemini calls retry 1 lần với prompt schema-only. |
+| **Risk** | Mammoth: edge-case format breakage → fallback tự động. Gemini: pricing/drift/quota → feature flag `ENABLE_GEMINI_FALLBACK`. |
+| **Cost** | Mammoth: $0. Gemini: ~$0.01–0.05 per fallback parse. |
+| **Action Items** | Install `mammoth` + `sanitize-html`. Configure `GOOGLE_API_KEY` env var cho fallback. Cache parse result theo file hash TTL 24h (Redis). Rate limit 10 Gemini calls/user/hour. Monitor `parser_used` distribution. |
 
 ---
 
@@ -141,10 +141,10 @@
 | **Probability** | Medium (3/5) |
 | **Impact** | Medium (3/5) |
 | **Risk Score** | 9/25 |
-| **Description** | Content parsed from DOCX/PDF via Gemini multimodal may be malformed, contain broken HTML, invalid question types, or be unsuitable for IELTS practice (hallucinated answers, wrong structure). |
-| **Triggers** | Gemini model output drift, low-quality scanned PDFs, unusual docx formatting |
-| **Mitigation** | 1. JSON schema validation cho parser output (SY-002). 2. Sanitize HTML (strip script/iframe). 3. Admin review before publish (ADM-001). 4. Store SourceDocument for re-parse. 5. Draft status by default. |
-| **Contingency** | Reject malformed imports with clear error. Manual content creation fallback. |
+| **Description** | Content parsed từ DOCX/PDF qua hybrid parser (Mammoth + Gemini) may be malformed, contain broken HTML, invalid question types, misdetected paragraph labels, hoặc inline blank placeholders lệch. |
+| **Triggers** | Mammoth: unusual DOCX format (custom styles, embedded objects), corrupt files. Gemini fallback: model output drift, low-quality scanned PDFs. Post-processor: non-standard paragraph labeling, numbering conflicts. |
+| **Mitigation** | 1. JSON schema validation cho parser output (SY-002). 2. Sanitize HTML qua `sanitize-html` (strip script/iframe/events). 3. Confidence score → auto-fallback Mammoth → Gemini khi <0.6. 4. Warnings[] array surface lên UI cho admin review. 5. Draft status by default (ADM-001). 6. Store SourceDocument với raw file for re-parse. |
+| **Contingency** | Reject malformed imports với error chi tiết. Manual content creation fallback qua CMS forms. |
 | **Owner** | Admin/content lead |
 | **Status** | Mitigated by design |
 
@@ -227,7 +227,7 @@ Prob ↓
 | PostgreSQL | `SELECT 1` via pool | Every 30s | 3 consecutive failures |
 | Redis | `PING` | Every 30s | 3 consecutive failures |
 | LLM API | Test prompt (1 token) | Every 5 min | 2 consecutive failures |
-| Gemini Multimodal | Parse success rate | On each parse call | Alert if failure rate > 20% over 10 calls |
+| DOCX/PDF Parser | `parser_used` distribution + confidence avg | On each parse call | Alert nếu Gemini fallback rate > 30% hoặc avg confidence < 0.7 |
 | BullMQ | Queue metrics | Every 30s | Depth > 20 or stale > 5 min |
 
 ---
@@ -237,4 +237,5 @@ Prob ↓
 ---
 
 ## Changelog
+- v1.2 (2026-04-14): DEP-02 chuyển thành hybrid stack (Mammoth primary + Gemini fallback). RISK-03 cập nhật triggers cho cả 2 parsers + confidence-based fallback. Health check metric đổi thành `parser_used` distribution + confidence avg.
 - v1.1 (2026-04-13): DEP-02 rewrite từ NotebookLM → Google Gemini Multimodal API. RISK-03 cập nhật triggers và mitigation cho DOCX/PDF parsing. Health check bảng thay NotebookLM row.

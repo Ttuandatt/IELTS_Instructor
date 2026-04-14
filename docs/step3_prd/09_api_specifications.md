@@ -1,13 +1,14 @@
 # 🔌 API Specifications — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-09  
-> **Phiên bản:** 1.1  
+> **Phiên bản:** 1.2  
 > **Ngày tạo:** 2025-02-21  
 > **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [openapi.yaml](openapi.yaml)
 >
 > **Changelog:**
+> - v1.2 (2026-04-14): `/reading/parse-docx` chuyển sang hybrid parser. Response schema mở rộng: `parser_used`, `confidence`, `warnings[]`, `passage.paragraphs[]`, `questions[].blank_refs[]`, `questions[].group_id`.
 > - v1.1 (2026-04-14): Replace `/admin/sources/import` (NotebookLM URL) với `/reading/parse-docx` (multipart DOCX/PDF upload qua Gemini Multimodal). Cập nhật source_refs examples.
 
 ---
@@ -628,11 +629,11 @@ Dev Tunnel:  https://<tunnel-id>.devtunnels.ms/api
 
 `entityType` = `passages` | `prompts`
 
-### Import (DOCX/PDF Auto-Import via Gemini Multimodal)
+### Import (DOCX/PDF Auto-Import via Hybrid Parser)
 
 | Method | Path | Description |
 |--------|------|-------------|
-| POST | /reading/parse-docx | Upload .docx/.pdf → Gemini parses passage + questions |
+| POST | /reading/parse-docx | Upload .docx/.pdf → Mammoth primary (+IELTS post-processor), Gemini fallback. Response includes `parser_used`, `confidence`, `warnings`, structured `passage.paragraphs`, `questions[].blank_refs`. |
 | GET | /admin/sources | List imported source documents |
 | GET | /admin/sources/:id | Source document detail + linked content |
 | POST | /admin/content/:entityType/:id/sources | Attach source to content |

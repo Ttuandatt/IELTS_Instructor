@@ -1,13 +1,14 @@
 # 📐 Use Case Diagram — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-14  
-> **Phiên bản:** 1.1  
+> **Phiên bản:** 1.2  
 > **Ngày tạo:** 2025-02-21  
 > **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [03_user_personas_roles](03_user_personas_roles.md) | [04_user_stories](04_user_stories.md)
 >
 > **Changelog:**
+> - v1.2 (2026-04-14): UC-44 chuyển thành hybrid parser: Mammoth + IELTS post-processor primary, Gemini fallback. Actors thêm Mammoth; Gemini hạ xuống fallback-only với dotted arrow.
 > - v1.1 (2026-04-14): Đổi actor NLM → Gemini Multimodal. Rewrite UC-44 thành DOCX/PDF Import via Gemini.
 
 ---
@@ -21,7 +22,8 @@
 | Admin | Primary | Manages content, imports DOCX/PDF, manages users |
 | System (BullMQ Worker) | Internal | Async process that scores writing submissions |
 | LLM API | External | AI model provider (OpenAI/Google/Anthropic) for Writing scoring |
-| Gemini Multimodal | External | Parses uploaded DOCX/PDF into passage + structured questions |
+| Mammoth + IELTS PostProc | Internal (npm) | Primary DOCX parser — HTML conversion + IELTS structure detection |
+| Gemini Multimodal | External (fallback) | Parses PDF or complex DOCX when Mammoth confidence < 0.6 |
 
 ---
 
@@ -37,7 +39,8 @@ graph TB
 
     subgraph External
         LLM[🤖 LLM API]
-        GEM[📄 Gemini Multimodal]
+        MM[📘 Mammoth + IELTS PostProc]
+        GEM[📄 Gemini Multimodal<br/>fallback]
         Q[⚡ BullMQ Worker]
     end
 
@@ -138,7 +141,8 @@ graph TB
     Q --> UC50
     UC50 --> LLM
     UC50 --> UC51
-    UC44 --> GEM
+    UC44 --> MM
+    UC44 -.fallback.-> GEM
 ```
 
 ---
@@ -232,14 +236,14 @@ graph TB
 | **Business Rules** | ADM-001, ADM-003 |
 | **FR Ref** | FR-501 |
 
-### UC-44: Import DOCX/PDF via Gemini Multimodal
+### UC-44: Import DOCX/PDF via Hybrid Parser
 
 | Attribute | Detail |
 |-----------|--------|
 | **Actor** | Admin, Instructor |
 | **Precondition** | Source file `.docx` or `.pdf` (≤10MB) available |
-| **Flow** | 1. Actor uploads file via `POST /reading/parse-docx`. 2. Backend validates file type & size. 3. Backend calls Gemini Multimodal with file bytes + IELTS-aware prompt. 4. Backend parses structured JSON (passage body + 13 question types). 5. Backend sanitizes HTML. 6. Backend creates `SourceDocument` + draft `Passage` + `Question` rows. 7. Actor reviews and publishes. |
-| **Postcondition** | `SourceDocument` row persisted; passage/questions created as draft |
+| **Flow** | 1. Actor uploads file via `POST /reading/parse-docx`. 2. Backend validates file type & size. 3. Backend hashes file; checks Redis cache. 4. On miss: if DOCX → Mammoth.js + IELTS post-processor (regex detect labels/blanks/question groups) → confidence score. 5. If confidence < 0.6 or file is PDF or Mammoth fails → fallback to Gemini Multimodal. 6. Normalize output to unified schema; sanitize HTML; validate. 7. Cache result (24h). 8. Create `SourceDocument` + draft `Passage` + `Question` rows. 9. Actor reviews warnings (if any) and publishes. |
+| **Postcondition** | `SourceDocument` row persisted với `parser_used` + `confidence`; passage/questions created as draft |
 | **Business Rules** | SY-001, SY-002, SY-003, ADM-002 |
 | **FR Ref** | FR-601 |
 

@@ -162,11 +162,13 @@ paths:
         '401': {description: Unauthorized}
   /reading/parse-docx:
     post:
-      summary: Parse DOCX/PDF passage via Gemini Multimodal
+      summary: Parse DOCX/PDF passage via Hybrid Parser (Mammoth + Gemini fallback)
       description: |
-        Admin/Instructor uploads a .docx or .pdf file; backend calls Gemini Multimodal
-        to extract passage body (sanitized HTML) + structured questions (13 IELTS types).
-        Creates a SourceDocument and returns parsed content for review before publish.
+        Admin/Instructor uploads a .docx or .pdf file. Backend uses Mammoth.js + IELTS
+        post-processor as primary parser for DOCX (preserves HTML structure, tables,
+        inline styles, paragraph labels, question groups, inline blank placeholders).
+        Falls back to Gemini Multimodal when confidence < 0.6, file is PDF, or Mammoth
+        fails. Creates a SourceDocument and returns parsed content for review before publish.
       requestBody:
         required: true
         content:
@@ -517,11 +519,33 @@ components:
       type: object
       properties:
         source_document_id: {type: string, format: uuid}
+        parser_used:
+          type: string
+          enum: [mammoth, gemini]
+          description: Which parser produced this output
+        confidence:
+          type: number
+          format: float
+          minimum: 0
+          maximum: 1
+          description: Heuristic confidence score (Mammoth path). Gemini path always ≥ 0.8.
+        warnings:
+          type: array
+          items: {type: string}
+          description: Non-fatal issues detected during parsing (e.g. missing paragraph labels)
         passage:
           type: object
           properties:
             title: {type: string}
-            body_html: {type: string, description: Sanitized HTML}
+            body_html: {type: string, description: Sanitized HTML with data-label paragraph markers and ielts-blank spans}
+            paragraphs:
+              type: array
+              items:
+                type: object
+                properties:
+                  label: {type: string, nullable: true, description: Paragraph letter A-H if detected}
+                  offset: {type: integer, description: Character offset in body_html}
+                  html: {type: string}
             suggested_level: {type: string, enum: [A1, A2, B1, B2, C1, C2]}
             suggested_tags:
               type: array
@@ -534,9 +558,15 @@ components:
               type:
                 type: string
                 enum: [mcq, true_false_notgiven, yes_no_notgiven, matching_headings, matching_information, matching_features, matching_sentence_endings, sentence_completion, summary_completion, table_completion, flowchart_completion, diagram_label_completion, short]
+              group_id: {type: string, description: Groups questions under same instruction block, e.g. "q1-5"}
+              group_instruction: {type: string}
               stem: {type: string}
               options:
                 type: array
                 items: {type: string}
               correct_answer: {}
+              blank_refs:
+                type: array
+                items: {type: string}
+                description: IDs of ielts-blank spans this question fills, e.g. ["blank_q7"]
         parse_duration_ms: {type: integer}

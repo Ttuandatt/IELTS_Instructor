@@ -1,4 +1,5 @@
 import { IsString, IsOptional, IsUrl, IsInt, Min, Max, MaxLength } from 'class-validator';
+import { Transform } from 'class-transformer';
 
 export class CreateClassroomDto {
     @IsString()
@@ -10,6 +11,7 @@ export class CreateClassroomDto {
     @MaxLength(1000)
     description?: string;
 
+    @Transform(({ value }) => (value === '' ? undefined : value))
     @IsOptional()
     @IsUrl()
     cover_image_url?: string;

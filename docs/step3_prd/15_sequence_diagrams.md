@@ -1,13 +1,14 @@
 # 🔄 Sequence Diagrams — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-15  
-> **Phiên bản:** 1.1  
+> **Phiên bản:** 1.2  
 > **Ngày tạo:** 2025-02-21  
 > **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [09_api_specifications](09_api_specifications.md)
 >
 > **Changelog:**
+> - v1.2 (2026-04-14): SD-07 chuyển sang hybrid parser flow: hash-based Redis cache → Mammoth primary + IELTS post-processor → Gemini fallback khi confidence < 0.6 hoặc PDF. Lưu `parser_used`, `confidence`, `warnings`.
 > - v1.1 (2026-04-14): Rewrite SD-07 từ NotebookLM URL fetch → DOCX/PDF upload qua Gemini Multimodal (multipart, parse JSON, sanitize HTML, create draft passage + questions).
 
 ---
@@ -225,13 +226,15 @@ sequenceDiagram
 
 ---
 
-## SD-07: Admin DOCX/PDF Import via Gemini Multimodal
+## SD-07: Admin DOCX/PDF Import via Hybrid Parser (Mammoth primary + Gemini fallback)
 
 ```mermaid
 sequenceDiagram
     participant A as 🔧 Admin
     participant FE as 🖥️ Frontend
     participant BE as ⚙️ Backend
+    participant MM as 📘 Mammoth + IELTS PostProc
+    participant RD as 📦 Redis Cache
     participant GEM as 📄 Gemini Multimodal
     participant DB as 🗄️ PostgreSQL
 
@@ -239,28 +242,47 @@ sequenceDiagram
     FE->>FE: Show import modal (file picker, title, tags, level)
     A->>FE: Choose .docx/.pdf file, click Parse
     FE->>BE: POST /reading/parse-docx (multipart: file, metadata)
-
     BE->>BE: Validate file type (.docx/.pdf) + size (≤10MB)
+
     alt Invalid
         BE-->>FE: 400/413 error
-        FE-->>A: Show error (unsupported type / too large)
+        FE-->>A: Show error
     else Valid
-        BE->>GEM: uploadFile + generateContent(IELTS-aware prompt, file)
-        GEM-->>BE: Structured JSON (passage_html, questions[13 types])
-        BE->>BE: Sanitize HTML (strip scripts, events)
-        BE->>BE: Validate JSON schema
-        BE->>DB: INSERT INTO source_documents (filename, mime, uploaded_by, parse_status='done')
+        BE->>BE: Compute SHA-256 hash of file
+        BE->>RD: GET parse:{hash}
+        alt Cache hit
+            RD-->>BE: Cached parse result
+        else Cache miss
+            alt File is DOCX
+                BE->>MM: mammoth.convertToHtml(buffer) + IELTS post-process
+                MM-->>BE: {body_html, paragraphs, questions, confidence, warnings}
+                alt confidence ≥ 0.6
+                    Note over BE: parser_used = "mammoth"
+                else confidence < 0.6
+                    BE->>GEM: uploadFile + generateContent(IELTS prompt, file)
+                    GEM-->>BE: Normalized JSON (same schema)
+                    Note over BE: parser_used = "gemini"
+                end
+            else File is PDF
+                BE->>GEM: uploadFile + generateContent(IELTS prompt, file)
+                GEM-->>BE: Normalized JSON
+                Note over BE: parser_used = "gemini"
+            end
+            BE->>BE: sanitize-html(body_html); validate schema; check blank_refs
+            BE->>RD: SET parse:{hash} TTL=24h
+        end
+
+        BE->>DB: INSERT source_documents (filename, mime, uploaded_by, parser_used, confidence, parse_status='done')
         DB-->>BE: source_document_id
-        BE->>DB: INSERT INTO passages (title, body_html, level, status='draft', source_document_id)
-        BE->>DB: INSERT INTO questions (passage_id, type, stem, options, correct_answer)
+        BE->>DB: INSERT passages (title, body_html, level, status='draft', source_document_id)
+        BE->>DB: INSERT questions (passage_id, type, stem, options, correct_answer, group_id, blank_refs)
         DB-->>BE: passage_id + question_ids
-        BE-->>FE: 200 {source_document_id, passage, questions, parse_duration_ms}
-        FE-->>A: Preview panel: passage + questions
+        BE-->>FE: 200 {source_document_id, parser_used, confidence, warnings, passage, questions}
+        FE-->>A: Preview panel: passage (full split-view) + questions + warnings banner
     end
 
-    %% Save & publish
     A->>FE: Review, click "Save as Draft"
-    FE->>BE: PATCH /admin/content/passages/{id} (any edits)
+    FE->>BE: PATCH /admin/content/passages/{id} (edits)
     BE->>DB: UPDATE passage, questions
     BE-->>FE: 200 {updated}
     FE-->>A: "Draft saved" toast

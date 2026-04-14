@@ -1,13 +1,14 @@
 # 🏗️ Component Diagram — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-17  
-> **Phiên bản:** 1.1  
+> **Phiên bản:** 1.2  
 > **Ngày tạo:** 2025-02-21  
 > **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [12_technical_constraints](12_technical_constraints.md) | [15_sequence_diagrams](15_sequence_diagrams.md)
 >
 > **Changelog:**
+> - v1.2 (2026-04-14): Thêm "Parse Subsystem" subgraph (Mammoth + IELTS Post-Processor + Parse Cache). Gemini hạ xuống fallback-only. Dataflow Import cập nhật. External services table thêm Mammoth primary.
 > - v1.1 (2026-04-14): External Services node NLM → Gemini Multimodal. Dataflow "Import source" → "Import DOCX/PDF". External services table cập nhật.
 
 ---
@@ -67,7 +68,13 @@ graph TB
 
     subgraph "External Services"
         LLM_API[🤖 LLM API<br/>OpenAI / Google / Anthropic]
-        GEM[📄 Gemini Multimodal]
+        GEM[📄 Gemini Multimodal<br/>fallback only]
+    end
+
+    subgraph "Parse Subsystem"
+        MAMMOTH[📘 Mammoth.js<br/>DOCX → HTML]
+        IELTS_PP[🔍 IELTS Post-Processor<br/>paragraph labels, blanks, types]
+        PARSE_CACHE[(🗃️ Parse Cache<br/>Redis, TTL 24h)]
     end
 
     Browser --> FE_Pages
@@ -102,7 +109,11 @@ graph TB
     W_Consumer --> PG
 
     SVC_Grading --> PG
-    SVC_Import --> GEM
+    SVC_Import --> PARSE_CACHE
+    SVC_Import --> MAMMOTH
+    MAMMOTH --> IELTS_PP
+    IELTS_PP -->|confidence < 0.6| GEM
+    SVC_Import -->|PDF only| GEM
     SVC_Import --> RD
     SVC_Version --> PG
     MOD_Auth --> PG
@@ -262,7 +273,7 @@ graph TB
 | Submit writing | FE | BE → Redis → Worker → PG | HTTP POST + Queue | Essay → scores (async) |
 | Poll status | FE | BE → PG | HTTP GET | Submission status |
 | Admin CRUD | FE | BE → PG | HTTP POST/PATCH/DELETE | Content mutations |
-| Import DOCX/PDF | FE | BE → Gemini Multimodal → PG | HTTP POST (multipart) | File → passage + questions JSON |
+| Import DOCX/PDF | FE | BE → Mammoth + IELTS PostProc → (fallback Gemini) → PG | HTTP POST (multipart) | File → passage_html + paragraphs + questions JSON |
 | LLM scoring | Worker | LLM API | HTTPS | Rubric prompt → JSON scores |
 | Rate limiting | BE | Redis | Redis commands | INCR/GET counters |
 | Caching | BE | Redis | Redis commands | GET/SET with TTL |
@@ -320,7 +331,8 @@ graph TB
 | Database | PostgreSQL 15 | 5432 | Yes (Docker) |
 | Cache/Queue | Redis 7 | 6379 | Yes (Docker) |
 | LLM | OpenAI / Google / Anthropic SDK | — | External API |
-| DOCX/PDF Parser | Google Gemini Multimodal API | — | External API |
+| DOCX/PDF Parser (Primary) | Mammoth.js + sanitize-html (npm libs) | — | Local library |
+| DOCX/PDF Parser (Fallback) | Google Gemini Multimodal API | — | External API |
 
 ---
 

@@ -660,7 +660,7 @@ Admin có thể Create/Read/Update/Delete passages (với nested questions) và 
 | **Business Rules** | SY-001, SY-002, SY-003 |
 
 **Mô tả:**  
-Admin/Instructor upload file DOCX hoặc PDF. Hệ thống gửi file đến Gemini multimodal API để trích xuất passage (HTML) và question_groups (JSON). Kết quả trả về cho admin review trước khi lưu.
+Admin/Instructor upload file DOCX hoặc PDF. Hệ thống dùng **hybrid parser**: Mammoth.js (primary, DOCX) trích HTML + IELTS post-processor phát hiện paragraph labels / question groups / inline blanks. Nếu Mammoth fail hoặc confidence thấp hoặc file là PDF → fallback Gemini Multimodal. Kết quả chuẩn hóa về cùng schema, trả về cho admin review trước khi save.
 
 **Pre-conditions:**
 - User có role `instructor` hoặc `admin`.
@@ -672,29 +672,52 @@ Admin/Instructor upload file DOCX hoặc PDF. Hệ thống gửi file đến Gem
 |-------|------|----------|------------|
 | file | multipart | ✅ | .docx hoặc .pdf, ≤ 10MB |
 
-**Output (200):**
+**Output (200) — unified schema:**
 
 ```json
 {
-  "passage": "<h1>...</h1><p>...</p>",
-  "question_groups": [
+  "source_document_id": "uuid",
+  "parser_used": "mammoth",
+  "confidence": 0.92,
+  "warnings": [],
+  "passage": {
+    "title": "The History of Glass",
+    "body_html": "<h2>...</h2><p data-label=\"A\">...</p>...",
+    "paragraphs": [
+      { "label": "A", "offset": 0, "html": "<p>...</p>" }
+    ],
+    "suggested_level": "B2",
+    "suggested_tags": ["history", "technology"]
+  },
+  "questions": [
     {
       "type": "matching_headings",
-      "instruction": "...",
-      "group_options": [...],
-      "questions": [{ "prompt": "...", "answer_key": "..." }]
+      "group_id": "q1-5",
+      "group_instruction": "Choose the correct heading...",
+      "stem": "Paragraph A",
+      "options": ["i", "ii", "iii", ...],
+      "correct_answer": "iii",
+      "blank_refs": []
     }
   ]
 }
 ```
 
 **Processing:**
-1. File upload lưu tạm vào disk (prefix UUID).
-2. Tạo record `source_documents` với status `pending`.
-3. Gọi Gemini multimodal API parse file → trả JSON.
-4. Validate JSON schema (passage string + question_groups array; question type nằm trong enum `QuestionType`).
-5. Cập nhật `source_documents.status` → `done` hoặc `failed`.
-6. Trả về JSON để admin review trong CMS form; admin quyết định có save hay không.
+1. File upload lưu tạm vào disk (prefix UUID); tạo `source_documents` record với `parse_status='pending'`.
+2. **Primary:** Gọi `MammothParserService` → HTML + inline styles + tables. Chạy `IeltsPostProcessor` detect paragraph labels (regex `^[A-H]\s`), question sections (regex `Questions\s+\d+[–-]\d+`), blank placeholders, map type per section.
+3. Tính `confidence` score (0..1) dựa trên: detect được đủ paragraph labels, question count match, blank refs hợp lệ.
+4. **Fallback:** Nếu `confidence < 0.6` OR file là PDF OR Mammoth throw → gọi `GeminiParserService` với IELTS-aware system prompt. Normalize output về cùng schema.
+5. Sanitize `body_html` (strip script/event handlers qua `sanitize-html`).
+6. Validate JSON schema (question type ∈ enum `QuestionType`, blank_refs tồn tại trong body_html).
+7. Cập nhật `source_documents.parse_status` → `done` hoặc `failed`; lưu `parser_used`, `confidence`, `warnings`.
+8. Trả về payload cho admin review; admin có thể edit trước khi save as draft passage.
+
+**Non-functional:**
+- Mammoth parse latency: p95 < 2s cho file 10MB.
+- Gemini fallback latency: p95 < 20s.
+- Rate limit Gemini: 10 calls/user/hour (sliding window via Redis).
+- Cache parse result theo SHA-256 hash file, TTL 24h.
 
 ---
 
@@ -1273,5 +1296,6 @@ Instructor có đầy đủ chức năng CRUD passages và prompts như Admin, n
 ---
 
 ## Changelog
+- v1.2 (2026-04-14): FR-601 → hybrid parser (Mammoth primary + IELTS post-processor; Gemini fallback cho PDF/complex DOCX). Unified output schema với `parser_used`, `confidence`, `warnings`, paragraph structure, blank_refs. Thêm non-functional targets (latency, cache, rate limit).
 - v1.1 (2026-04-13): Fix FR-101 (bỏ role khỏi input); thêm FR-105 (Admin Role Promotion). Đổi section 7 từ "NotebookLM Import" → "DOCX/PDF Auto-Import". Rewrite FR-601 với real file-based flow qua Gemini multimodal. Rewrite FR-602 thành Source Document Management.
 

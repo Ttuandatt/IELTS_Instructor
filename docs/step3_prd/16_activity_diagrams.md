@@ -1,13 +1,14 @@
 # 🔀 Activity Diagrams — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-16  
-> **Phiên bản:** 1.1  
+> **Phiên bản:** 1.2  
 > **Ngày tạo:** 2025-02-21  
 > **Cập nhật:** 2026-04-14  
 > **Trạng thái:** Draft  
 > **Tham chiếu:** [04_user_stories](04_user_stories.md) | [14_usecase_diagram](14_usecase_diagram.md)
 >
 > **Changelog:**
+> - v1.2 (2026-04-14): AD-05 cập nhật hybrid flow: Redis cache → Mammoth primary + IELTS post-processor → confidence gate → Gemini fallback. Thêm nhánh PDF tự động vào Gemini. Preview panel có warnings banner.
 > - v1.1 (2026-04-14): Rewrite AD-05 thành DOCX/PDF Import Flow (file validation → Gemini parse → HTML sanitize → schema validate → draft passage + questions).
 
 ---
@@ -179,7 +180,7 @@ flowchart TD
 
 ---
 
-## AD-05: DOCX/PDF Import Flow (Gemini Multimodal)
+## AD-05: DOCX/PDF Import Flow (Hybrid Mammoth + Gemini Fallback)
 
 ```mermaid
 flowchart TD
@@ -191,28 +192,38 @@ flowchart TD
     F -->|Invalid type| G[Show 400 error]
     F -->|Too large >10MB| H[Show 413 error]
     F -->|Valid| I[POST /reading/parse-docx]
-    I --> J[Call Gemini Multimodal with IELTS-aware prompt]
-    J --> K{Parse successful?}
-    K -->|No - API error/timeout| L[Show parse error in modal]
-    L --> M{Retry?}
-    M -->|Yes| I
-    M -->|No| N[Close modal]
-    K -->|Yes| O[Sanitize HTML body]
-    O --> P[Validate JSON schema]
-    P --> Q{Schema valid?}
-    Q -->|No| L
-    Q -->|Yes| R[Create SourceDocument row]
-    R --> S[Create draft Passage + Questions]
-    S --> T[Display preview: passage + questions]
-    T --> U{Admin action}
-    U -->|Save Draft| V[Commit as draft; admin edits later]
-    U -->|Discard| W[Rollback DB inserts]
-    V --> X[Show success toast]
-    W --> X
-    X --> Y([End])
-    G --> Y
-    H --> Y
-    N --> Y
+    I --> J[Compute SHA-256 file hash]
+    J --> K{Redis cache hit?}
+    K -->|Yes| S[Use cached parse result]
+    K -->|No| L{File type?}
+    L -->|DOCX| M[Mammoth convert → HTML + styles]
+    M --> N[IELTS post-processor:<br/>paragraph labels, question groups, blanks]
+    N --> O{Confidence ≥ 0.6?}
+    O -->|Yes| P[parser_used = mammoth]
+    O -->|No| Q[Gemini fallback]
+    L -->|PDF| Q
+    Q --> R[parser_used = gemini; normalize schema]
+    P --> T[sanitize-html body_html]
+    R --> T
+    T --> U[Validate schema + blank_refs]
+    U --> V{Valid?}
+    V -->|No| W[Show parse error + warnings]
+    V -->|Yes| X[Cache result in Redis TTL=24h]
+    X --> S
+    S --> Y[Create SourceDocument row]
+    Y --> Z[Create draft Passage + Questions]
+    Z --> AA[Display preview: passage split-view + questions + warnings banner]
+    AA --> AB{Admin action}
+    AB -->|Save Draft| AC[Commit as draft]
+    AB -->|Edit & Save| AD[PATCH passage/questions]
+    AB -->|Discard| AE[Rollback DB inserts]
+    AC --> AF[Success toast]
+    AD --> AF
+    AE --> AF
+    AF --> AG([End])
+    G --> AG
+    H --> AG
+    W --> AG
 ```
 
 ---
