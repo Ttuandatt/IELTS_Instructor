@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma';
+import { getGradingStrategy } from './grading/grading-factory.js';
 
 @Injectable()
 export class ReadingService {
@@ -56,23 +57,15 @@ export class ReadingService {
       const question = passage.questions.find(q => q.id === answer.question_id);
       if (!question) continue;
 
-      let isCorrect = false;
-      const key = question.answer_key;
-      if (typeof key === 'string' && answer.value.toLowerCase() === key.toLowerCase()) {
-        isCorrect = true;
-      } else if (Array.isArray(key)) {
-        if (key.some((k: string) => answer.value.toLowerCase().includes(k.toLowerCase()))) {
-          isCorrect = true;
-        }
-      }
-
-      if (isCorrect) correct++;
+      const strategy = getGradingStrategy(question.type);
+      const result = strategy.grade(answer.value, question.answer_key);
+      if (result.isCorrect) correct++;
 
       details.push({
         question_id: question.id,
-        correct: isCorrect,
-        your_answer: answer.value,
-        correct_answer: key,
+        correct: result.isCorrect,
+        your_answer: result.userAnswer,
+        correct_answer: result.correctAnswer,
         explanation: question.explanation,
       });
     }
