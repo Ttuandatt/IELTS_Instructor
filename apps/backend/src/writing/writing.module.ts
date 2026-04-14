@@ -8,5 +8,6 @@ import { PrismaModule } from '../prisma';
   imports: [PrismaModule, ScoringModule],
   controllers: [WritingController],
   providers: [WritingService],
+  exports: [WritingService],
 })
 export class WritingModule { }

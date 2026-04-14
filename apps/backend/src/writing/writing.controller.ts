@@ -57,6 +57,7 @@ export class WritingController {
             duration_sec?: number;
             word_count?: number;
             model_tier?: 'cheap' | 'premium';
+            lesson_id?: string;
         },
     ) {
         return this.writingService.submitEssay(req.user.sub, promptId, body);

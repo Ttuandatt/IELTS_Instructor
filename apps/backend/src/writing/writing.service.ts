@@ -67,6 +67,7 @@ export class WritingService {
       duration_sec?: number;
       word_count?: number;
       model_tier?: 'cheap' | 'premium';
+      lesson_id?: string;
     },
   ) {
     const prompt = await this.prisma.prompt.findUnique({
@@ -115,6 +116,7 @@ export class WritingService {
         word_count: wordCount,
         model_tier: modelTier,
         processing_status: 'pending',
+        lesson_id: dto.lesson_id ?? null,
       },
     });
 

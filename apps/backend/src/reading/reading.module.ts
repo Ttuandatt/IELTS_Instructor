@@ -8,5 +8,6 @@ import { ScoringModule } from '../scoring/scoring.module';
   imports: [ScoringModule],
   controllers: [ReadingController],
   providers: [ReadingService, ParsingService],
+  exports: [ReadingService],
 })
 export class ReadingModule { }

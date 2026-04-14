@@ -42,7 +42,7 @@ export class ReadingService {
     return passage;
   }
 
-  async submitAnswers(userId: string, passageId: string, dto: { answers: Array<{ question_id: string; value: string }>; duration_sec?: number; timed_out?: boolean; test_mode?: string }) {
+  async submitAnswers(userId: string, passageId: string, dto: { answers: Array<{ question_id: string; value: string }>; duration_sec?: number; timed_out?: boolean; test_mode?: string; lesson_id?: string }) {
     const passage = await this.prisma.passage.findUnique({
       where: { id: passageId, status: 'published' },
       include: { questions: true },
@@ -83,6 +83,7 @@ export class ReadingService {
         duration_sec: dto.duration_sec,
         timed_out: dto.timed_out || false,
         test_mode: dto.test_mode || 'practice',
+        lesson_id: dto.lesson_id ?? null,
       },
     });
 

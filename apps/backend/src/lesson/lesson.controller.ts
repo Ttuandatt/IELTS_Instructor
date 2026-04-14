@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException, NotFoundException, Logger } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Req, ForbiddenException, NotFoundException, BadRequestException, Logger, HttpCode, HttpStatus } from '@nestjs/common';
 import { LessonService } from './lesson.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
@@ -6,6 +6,8 @@ import { ReorderLessonsDto } from './dto/reorder-lessons.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationService } from '../notification/notification.service';
+import { ReadingService } from '../reading/reading.service';
+import { WritingService } from '../writing/writing.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller()
@@ -16,6 +18,8 @@ export class LessonController {
         private readonly lessonService: LessonService,
         private readonly prisma: PrismaService,
         private readonly notificationService: NotificationService,
+        private readonly readingService: ReadingService,
+        private readonly writingService: WritingService,
     ) { }
 
     @Post('topics/:topicId/lessons')
@@ -121,6 +125,81 @@ export class LessonController {
             where: { lesson_id: lessonId, user_id: req.user.sub },
             orderBy: { created_at: 'desc' },
         });
+    }
+
+    @Post('lessons/:id/submit-reading')
+    async submitReading(
+        @Req() req: any,
+        @Param('id') lessonId: string,
+        @Body() body: { answers: Array<{ question_id: string; value: string }>; duration_sec?: number; timed_out?: boolean; test_mode?: string },
+    ) {
+        const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+        if (!lesson) throw new NotFoundException('Lesson not found');
+        if (lesson.content_type !== 'passage' || !lesson.linked_entity_id) {
+            throw new BadRequestException('Lesson is not linked to a reading passage');
+        }
+        if (!lesson.allow_submit) throw new ForbiddenException('Submissions are not enabled for this lesson');
+
+        return this.readingService.submitAnswers(req.user.sub, lesson.linked_entity_id, {
+            ...body,
+            lesson_id: lesson.id,
+        });
+    }
+
+    @Post('lessons/:id/submit-writing')
+    @HttpCode(HttpStatus.ACCEPTED)
+    async submitWriting(
+        @Req() req: any,
+        @Param('id') lessonId: string,
+        @Body() body: { essay_text: string; duration_sec?: number; word_count?: number; model_tier?: 'cheap' | 'premium' },
+    ) {
+        const lesson = await this.prisma.lesson.findUnique({ where: { id: lessonId } });
+        if (!lesson) throw new NotFoundException('Lesson not found');
+        if (lesson.content_type !== 'prompt' || !lesson.linked_entity_id) {
+            throw new BadRequestException('Lesson is not linked to a writing prompt');
+        }
+        if (!lesson.allow_submit) throw new ForbiddenException('Submissions are not enabled for this lesson');
+
+        return this.writingService.submitEssay(req.user.sub, lesson.linked_entity_id, {
+            ...body,
+            lesson_id: lesson.id,
+        });
+    }
+
+    @Get('lessons/:id/reading-submissions')
+    async getReadingSubmissions(@Req() req: any, @Param('id') lessonId: string) {
+        const isOwner = await this.isLessonClassroomOwner(req.user, lessonId);
+        const where = isOwner
+            ? { lesson_id: lessonId }
+            : { lesson_id: lessonId, user_id: req.user.sub };
+        return this.prisma.readingSubmission.findMany({
+            where,
+            orderBy: { completed_at: 'desc' },
+            include: { user: { select: { id: true, display_name: true, email: true } } },
+        });
+    }
+
+    @Get('lessons/:id/writing-submissions')
+    async getWritingSubmissions(@Req() req: any, @Param('id') lessonId: string) {
+        const isOwner = await this.isLessonClassroomOwner(req.user, lessonId);
+        const where = isOwner
+            ? { lesson_id: lessonId }
+            : { lesson_id: lessonId, user_id: req.user.sub };
+        return this.prisma.writingSubmission.findMany({
+            where,
+            orderBy: { created_at: 'desc' },
+            include: { user: { select: { id: true, display_name: true, email: true } } },
+        });
+    }
+
+    private async isLessonClassroomOwner(user: any, lessonId: string): Promise<boolean> {
+        if (user.role === 'admin') return true;
+        const lesson = await this.prisma.lesson.findUnique({
+            where: { id: lessonId },
+            include: { topic: { include: { classroom: true } } },
+        });
+        if (!lesson) throw new NotFoundException('Lesson not found');
+        return lesson.topic?.classroom?.owner_id === user.sub;
     }
 
     private async checkTopicOwnership(user: any, topicId: string) {

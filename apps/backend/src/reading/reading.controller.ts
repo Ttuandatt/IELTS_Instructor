@@ -43,7 +43,7 @@ export class ReadingController {
   }
 
   @Post('passages/:id/submit')
-  submitAnswers(@Request() req: any, @Param('id') passageId: string, @Body() body: { answers: Array<{ question_id: string; value: string }>; duration_sec?: number; timed_out?: boolean }) {
+  submitAnswers(@Request() req: any, @Param('id') passageId: string, @Body() body: { answers: Array<{ question_id: string; value: string }>; duration_sec?: number; timed_out?: boolean; lesson_id?: string }) {
     return this.readingService.submitAnswers(req.user.sub, passageId, body);
   }
 

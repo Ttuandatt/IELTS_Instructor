@@ -199,13 +199,16 @@ model ReadingSubmission {
   timed_out       Boolean  @default(false)
   test_mode       String   @default("practice") @db.VarChar(20)
   completed_at    DateTime @default(now()) @db.Timestamptz()
+  lesson_id       String?  // optional FK — null when submitted outside classroom
 
   // Relations
   user    User    @relation(fields: [user_id], references: [id])
   passage Passage @relation(fields: [passage_id], references: [id])
+  lesson  Lesson? @relation(fields: [lesson_id], references: [id])
 
   @@index([user_id, completed_at(sort: Desc)])
   @@index([passage_id])
+  @@index([lesson_id])
   @@map("submissions_reading")
 }
 
@@ -230,16 +233,19 @@ model WritingSubmission {
   instructor_comment        String?   @db.Text
   reviewed_by               String?
   reviewed_at               DateTime? @db.Timestamptz()
+  lesson_id                 String?   // optional FK — null when submitted outside classroom
 
   // Relations
   user     User   @relation(fields: [user_id], references: [id])
   prompt   Prompt @relation(fields: [prompt_id], references: [id])
   reviewer User?  @relation("InstructorReviewer", fields: [reviewed_by], references: [id])
+  lesson   Lesson? @relation(fields: [lesson_id], references: [id])
 
   @@index([user_id, created_at(sort: Desc)])
   @@index([prompt_id])
   @@index([processing_status])
   @@index([reviewed_by])
+  @@index([lesson_id])
   @@map("submissions_writing")
 }
 
@@ -317,8 +323,10 @@ model Lesson {
   created_at       DateTime          @default(now()) @db.Timestamptz()
 
   // Relations
-  topic       Topic              @relation(fields: [topic_id], references: [id], onDelete: Cascade)
-  submissions LessonSubmission[]
+  topic               Topic              @relation(fields: [topic_id], references: [id], onDelete: Cascade)
+  submissions         LessonSubmission[]
+  reading_submissions ReadingSubmission[]
+  writing_submissions WritingSubmission[]
 
   @@index([topic_id, order_index])
   @@map("lessons")
