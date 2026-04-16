@@ -3,7 +3,7 @@
 import { use, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
-import { Loader2, ArrowLeft, Paperclip, BookOpen, PenTool, Send, Sparkles, Clock, User, ChevronDown, ChevronUp, FileText } from 'lucide-react';
+import { Loader2, ArrowLeft, Paperclip, BookOpen, PenTool, Send, Sparkles, Clock, User, ChevronDown, ChevronUp, FileText, PlayCircle } from 'lucide-react';
 import Link from 'next/link';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '@/providers/AuthProvider';
@@ -162,6 +162,27 @@ export default function LessonDetailPage({ params }: { params: Promise<{ id: str
                     </div>
 
                     <hr className="border-gray-200 mb-8" />
+
+                    {/* Reading: View full test CTA */}
+                    {isReading && lesson.linked_entity_id && (
+                        <div className="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl p-6 flex items-center justify-between gap-4 flex-wrap">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center shrink-0">
+                                    <BookOpen className="w-6 h-6" />
+                                </div>
+                                <div>
+                                    <h3 className="font-semibold text-gray-900">Take the full reading test</h3>
+                                    <p className="text-sm text-gray-600">Open the passage and questions in split-view practice mode.</p>
+                                </div>
+                            </div>
+                            <Link href={`/reading/${lesson.linked_entity_id}`}>
+                                <button className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-semibold shadow-sm transition-colors">
+                                    <PlayCircle className="w-5 h-5" />
+                                    View full test
+                                </button>
+                            </Link>
+                        </div>
+                    )}
 
                     {/* ALWAYS show image from attachment_url if content doesn't already embed it */}
                     {showStandaloneImage && (

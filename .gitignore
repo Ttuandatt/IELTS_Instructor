@@ -49,3 +49,6 @@ docker-compose.override.yml
 # Misc
 *.pid
 *.seed
+
+# Uploaded files
+apps/backend/uploads/

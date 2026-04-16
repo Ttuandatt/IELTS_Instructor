@@ -5,6 +5,8 @@ import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
 import apiClient from "@/lib/api-client";
 import { Loader2, X, BookOpen, PenTool, Video, FileText, Trash2, Search, Library, Upload, Link2, File } from "lucide-react";
 import { toast } from "react-hot-toast";
+import TestRunner from "@/components/reading/TestRunner";
+import type { HybridParseResult } from "@/types/hybrid-parser";
 
 interface LessonDialogProps {
     isOpen: boolean;
@@ -42,7 +44,8 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
     const [uploadMethod, setUploadMethod] = useState<UploadMethod>('file');
     const [uploadedFileName, setUploadedFileName] = useState('');
     const [isUploading, setIsUploading] = useState(false);
-    const [readingPayload, setReadingPayload] = useState<any | null>(null);
+    const [readingPayload, setReadingPayload] = useState<HybridParseResult | null>(null);
+    const [showPreview, setShowPreview] = useState(false);
 
     useEffect(() => {
         if (lesson) {
@@ -81,12 +84,14 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
     useEffect(() => {
         if (formData.content_type !== 'passage') {
             setReadingPayload(null);
+            setShowPreview(false);
         }
     }, [formData.content_type]);
 
     useEffect(() => {
         if (linkMode !== 'upload') {
             setReadingPayload(null);
+            setShowPreview(false);
         }
     }, [linkMode]);
 
@@ -113,8 +118,9 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
             fd.append('file', file);
             const lowerName = file.name.toLowerCase();
             const isDocx = lowerName.endsWith('.docx');
+            const isPdf = lowerName.endsWith('.pdf');
             const isTxt = lowerName.endsWith('.txt');
-            const shouldParseReading = formData.content_type === 'passage' && (isDocx || isTxt);
+            const shouldParseReading = formData.content_type === 'passage' && (isDocx || isPdf || isTxt);
             const endpoint = shouldParseReading ? '/uploads?parse=reading' : '/uploads';
             const res = await apiClient.post(endpoint, fd, {
                 headers: { 'Content-Type': 'multipart/form-data' },
@@ -130,8 +136,9 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
             }));
             setUploadedFileName(res.data.originalName);
             if (shouldParseReading && res.data.parsedReading) {
-                setReadingPayload(res.data.parsedReading);
-                toast.success('DOCX parsed into a reading test!');
+                setReadingPayload(res.data.parsedReading as HybridParseResult);
+                const qCount = res.data.parsedReading.questions?.length ?? 0;
+                toast.success(`Parsed reading test (${qCount} questions)`);
             } else {
                 setReadingPayload(null);
                 toast.success(res.data.extractedHtml ? 'File uploaded & content extracted!' : 'File uploaded!');
@@ -194,6 +201,34 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
     );
 
     return (
+        <>
+        {showPreview && readingPayload && (
+            <div
+                className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+                onClick={() => setShowPreview(false)}
+            >
+                <div
+                    className="bg-white rounded-xl shadow-2xl w-full max-w-6xl h-[90vh] overflow-hidden flex flex-col"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="flex items-center justify-between px-5 py-3 border-b bg-gray-50">
+                        <h3 className="font-bold text-gray-900 flex items-center gap-2">
+                            <BookOpen className="w-4 h-4 text-purple-600" />
+                            Reading Test Preview
+                        </h3>
+                        <button
+                            onClick={() => setShowPreview(false)}
+                            className="text-gray-400 hover:text-gray-600 p-1 rounded-full hover:bg-gray-200 transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        <TestRunner data={readingPayload} reviewMode titleOverride="Preview" />
+                    </div>
+                </div>
+            </div>
+        )}
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={onClose}>
             <div
                 className="bg-white rounded-xl shadow-xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]"
@@ -439,9 +474,30 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                                             <span className="text-sm font-medium">
                                                 {isUploading ? 'Uploading...' : 'Click to choose file'}
                                             </span>
-                                            <span className="text-xs text-gray-400">PDF, DOC, DOCX, TXT, images — Max 10MB</span>
+                                            <span className="text-xs text-gray-400">
+                                                PDF, DOC, DOCX, TXT, images — Max 10MB
+                                                {formData.content_type === 'passage' && ' · Reading tests auto-parsed'}
+                                            </span>
                                         </button>
                                     )}
+                                </div>
+                            )}
+
+                            {/* Reading test parse summary + preview */}
+                            {uploadMethod === 'file' && readingPayload && (
+                                <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 flex items-center justify-between gap-3 flex-wrap">
+                                    <div className="text-sm text-purple-900">
+                                        <span className="font-semibold">Reading test parsed:</span>{' '}
+                                        {readingPayload.questions.length} questions · parser {readingPayload.parser_used} · {(readingPayload.confidence * 100).toFixed(0)}% confidence
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowPreview(true)}
+                                        className="px-3 py-1.5 bg-purple-600 text-white rounded-lg text-xs font-semibold hover:bg-purple-700 transition-colors flex items-center gap-1.5"
+                                    >
+                                        <BookOpen className="w-3.5 h-3.5" />
+                                        Preview test
+                                    </button>
                                 </div>
                             )}
 
@@ -598,5 +654,6 @@ export function LessonDialog({ isOpen, onClose, topicId, classroomId, lesson }: 
                 </div>
             </div>
         </div>
+        </>
     );
 }

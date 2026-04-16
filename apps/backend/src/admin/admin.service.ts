@@ -1,7 +1,25 @@
 import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
 import { PrismaService } from '../prisma';
-import { ContentStatus, CefrLevel, UserRole } from '@prisma/client';
+import { ContentStatus, CefrLevel, UserRole, Prisma } from '@prisma/client';
 import { ContentVersionService } from './content-version.service';
+import type { ParsedPassage, ParsedQuestion, IeltsQuestionType } from '../reading/hybrid-parser.types';
+
+interface ImportPassageDto {
+  title: string;
+  level: CefrLevel;
+  status?: ContentStatus;
+  passage: ParsedPassage;
+  questions: ParsedQuestion[];
+  parser_used?: 'mammoth' | 'gemini';
+  confidence?: number;
+}
+
+const VALID_QUESTION_TYPES = new Set<IeltsQuestionType>([
+  'matching_headings', 'true_false_notgiven', 'yes_no_notgiven', 'mcq',
+  'matching_information', 'matching_features', 'matching_sentence_endings',
+  'sentence_completion', 'summary_completion', 'table_completion',
+  'flowchart_completion', 'diagram_label_completion', 'short',
+]);
 
 @Injectable()
 export class AdminService {
@@ -120,54 +138,43 @@ export class AdminService {
     return this.prisma.passage.delete({ where: { id } });
   }
 
-  async importPassage(adminId: string, dto: { title: string; level: CefrLevel; status: ContentStatus; passage: string; question_groups: any[] }) {
-    const VALID_TYPES = new Set(['matching_headings', 'true_false_notgiven', 'yes_no_notgiven', 'mcq', 'matching_information', 'matching_features', 'matching_sentence_endings', 'sentence_completion', 'summary_completion', 'table_completion', 'flowchart_completion', 'diagram_label_completion', 'short']);
-
+  async importPassage(adminId: string, dto: ImportPassageDto) {
     return this.prisma.$transaction(async (tx) => {
       const newPassage = await tx.passage.create({
         data: {
           title: dto.title,
-          body: dto.passage,
+          body: dto.passage.body_html,
           level: dto.level,
-          status: dto.status || 'draft' as any,
+          status: dto.status ?? ContentStatus.draft,
           created_by: adminId,
         }
       });
 
+      const groupFirstSeen = new Set<string>();
       let order_index = 0;
-      for (const group of dto.question_groups) {
-        const safeType = VALID_TYPES.has(group.type) ? group.type : 'short';
 
-        for (let i = 0; i < group.questions?.length; i++) {
-          const q = group.questions[i];
-          let formattedPrompt = q.prompt;
+      for (const q of dto.questions) {
+        const safeType = VALID_QUESTION_TYPES.has(q.type) ? q.type : 'short';
+        const isFirstInGroup = !groupFirstSeen.has(q.group_id);
+        if (isFirstInGroup) groupFirstSeen.add(q.group_id);
 
-          if (i === 0) {
-            let prefix = '';
-            if (group.instruction) {
-              prefix += `<div class="mb-3 text-gray-800 font-semibold italic border-l-4 border-blue-400 pl-3 text-sm">${group.instruction}</div>`;
-            }
-            if (group.group_options && Array.isArray(group.group_options) && group.group_options.length > 0) {
-              prefix += `<div class="mb-4 p-4 border border-gray-300 rounded-lg bg-white shadow-sm font-medium text-gray-800">
-                <ul class="list-none space-y-1">
-                  ${group.group_options.map((opt: string) => `<li>${opt}</li>`).join('')}
-                </ul>
-              </div>`;
-            }
-            formattedPrompt = prefix + q.prompt;
-          }
-
-          await tx.question.create({
-            data: {
-              passage_id: newPassage.id,
-              type: safeType as any,
-              prompt: formattedPrompt,
-              options: q.options && q.options.length > 0 ? q.options : undefined,
-              answer_key: q.answer_key || null,
-              order_index: order_index++,
-            }
-          });
+        let formattedPrompt = q.stem || '';
+        if (isFirstInGroup && q.group_instruction) {
+          formattedPrompt =
+            `<div class="mb-3 text-gray-800 font-semibold italic border-l-4 border-blue-400 pl-3 text-sm">${q.group_instruction}</div>`
+            + formattedPrompt;
         }
+
+        await tx.question.create({
+          data: {
+            passage_id: newPassage.id,
+            type: safeType as any,
+            prompt: formattedPrompt,
+            options: q.options && q.options.length > 0 ? q.options : undefined,
+            answer_key: q.correct_answer ?? Prisma.JsonNull,
+            order_index: order_index++,
+          }
+        });
       }
       return newPassage;
     });

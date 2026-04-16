@@ -3,7 +3,14 @@ import { CefrLevel, LessonContentType, Prisma, QuestionType } from '@prisma/clie
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateLessonDto } from './dto/create-lesson.dto';
 import { UpdateLessonDto } from './dto/update-lesson.dto';
-import { buildReadingHtml } from '../reading/reading-html.util';
+import type { HybridParseResult, IeltsQuestionType, ParsedQuestion } from '../reading/hybrid-parser.types';
+
+const VALID_QUESTION_TYPES = new Set<IeltsQuestionType>([
+    'matching_headings', 'true_false_notgiven', 'yes_no_notgiven', 'mcq',
+    'matching_information', 'matching_features', 'matching_sentence_endings',
+    'sentence_completion', 'summary_completion', 'table_completion',
+    'flowchart_completion', 'diagram_label_completion', 'short',
+]);
 
 @Injectable()
 export class LessonService {
@@ -27,7 +34,7 @@ export class LessonService {
         const lessonTitle: string = data.title || 'Reading Lesson';
 
         if (reading_payload) {
-            const { passageId, lessonHtml } = await this.upsertPassageFromPayload({
+            const { passageId } = await this.upsertPassageFromPayload({
                 userId,
                 lessonTitle,
                 payload: reading_payload,
@@ -35,9 +42,6 @@ export class LessonService {
             });
             data.linked_entity_id = passageId;
             data.content_type = data.content_type || LessonContentType.passage;
-            if (lessonHtml) {
-                data.content = lessonHtml;
-            }
         }
 
         return this.prisma.lesson.create({ data });
@@ -72,7 +76,7 @@ export class LessonService {
 
         if (reading_payload) {
             const lessonTitle: string = (data.title as string) || lesson.title;
-            const { passageId, lessonHtml } = await this.upsertPassageFromPayload({
+            const { passageId } = await this.upsertPassageFromPayload({
                 userId,
                 lessonTitle,
                 payload: reading_payload,
@@ -81,9 +85,6 @@ export class LessonService {
             });
             data.linked_entity_id = passageId;
             data.content_type = data.content_type || LessonContentType.passage;
-            if (lessonHtml) {
-                data.content = lessonHtml;
-            }
         }
 
         return this.prisma.lesson.update({
@@ -104,79 +105,56 @@ export class LessonService {
     private async upsertPassageFromPayload(params: {
         userId: string;
         lessonTitle: string;
-        payload: any;
+        payload: HybridParseResult;
         targetLevel?: CefrLevel;
         existingPassageId?: string;
-    }): Promise<{ passageId: string; lessonHtml: string }> {
+    }): Promise<{ passageId: string }> {
         const { userId, lessonTitle, payload, targetLevel, existingPassageId } = params;
         const level = targetLevel || CefrLevel.B2;
-        const passageHtml = (payload?.passage?.html || '').trim();
-        const passageText = (payload?.passage?.text || '').trim();
-        const body = passageHtml || passageText || '';
-        const safeBody = body || '<p></p>';
+
+        const pdfUrl = payload?.passage?.source_pdf_url;
+        const bodyHtml = (payload?.passage?.body_html || '').trim();
+        const body = pdfUrl
+            ? `<iframe src="${pdfUrl}" style="width:100%;height:100%;border:0" data-source-pdf="${pdfUrl}"></iframe>`
+            : bodyHtml || '<p></p>';
 
         let passageId = existingPassageId;
         if (passageId) {
             await this.prisma.question.deleteMany({ where: { passage_id: passageId } });
             await this.prisma.passage.update({
                 where: { id: passageId },
-                data: {
-                    title: lessonTitle,
-                    body: safeBody,
-                    level,
-                },
+                data: { title: lessonTitle, body, level, status: 'published' },
             });
         } else {
             const passage = await this.prisma.passage.create({
-                data: {
-                    title: lessonTitle,
-                    body: safeBody,
-                    level,
-                    created_by: userId,
-                },
+                data: { title: lessonTitle, body, level, status: 'published', created_by: userId },
             });
             passageId = passage.id;
         }
 
-        const questionRecords = this.buildQuestionRecords(payload?.questions, passageId);
-        if (questionRecords.length) {
-            await this.prisma.question.createMany({ data: questionRecords });
-        }
-
-        return {
-            passageId,
-            lessonHtml: buildReadingHtml(payload),
-        };
-    }
-
-    private buildQuestionRecords(rawQuestions: any, passageId: string): Prisma.QuestionCreateManyInput[] {
-        if (!Array.isArray(rawQuestions)) return [];
-
-        return rawQuestions
-            .map((item: any, index: number): Prisma.QuestionCreateManyInput | null => {
-                const kind = (item?.type || 'question').toLowerCase();
-                if (kind !== 'question') return null;
-                const prompt = (item?.html || item?.text || '').trim();
-                if (!prompt) return null;
-                const options = Array.isArray(item?.options) ? item.options : null;
-                const answerKey = this.normalizeAnswerKey(item);
+        const questions = Array.isArray(payload?.questions) ? payload.questions : [];
+        if (questions.length) {
+            const groupFirstSeen = new Set<string>();
+            const records: Prisma.QuestionCreateManyInput[] = questions.map((q: ParsedQuestion, idx) => {
+                const safeType = (VALID_QUESTION_TYPES.has(q.type) ? q.type : 'short') as QuestionType;
+                const isFirstInGroup = !groupFirstSeen.has(q.group_id);
+                if (isFirstInGroup) groupFirstSeen.add(q.group_id);
+                const prompt = isFirstInGroup && q.group_instruction
+                    ? `<div class="mb-3 text-gray-800 font-semibold italic border-l-4 border-blue-400 pl-3 text-sm">${q.group_instruction}</div>${q.stem || ''}`
+                    : (q.stem || '');
                 return {
                     passage_id: passageId,
-                    type: QuestionType.short,
+                    type: safeType,
                     prompt,
-                    options,
-                    answer_key: answerKey,
-                    order_index: index,
+                    options: q.options && q.options.length > 0 ? q.options : Prisma.JsonNull,
+                    answer_key: q.correct_answer ?? Prisma.JsonNull,
+                    order_index: idx,
                 };
-            })
-            .filter((record): record is Prisma.QuestionCreateManyInput => Boolean(record));
-    }
+            });
+            await this.prisma.question.createMany({ data: records });
+        }
 
-    private normalizeAnswerKey(item: any) {
-        const raw = item?.answer_key ?? item?.answers ?? item?.answer ?? [];
-        if (Array.isArray(raw)) return raw;
-        if (typeof raw === 'string' && raw.trim()) return [raw.trim()];
-        return [];
+        return { passageId };
     }
 
     async reorder(topicId: string, lessonIds: string[]) {

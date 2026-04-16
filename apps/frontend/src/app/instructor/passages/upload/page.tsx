@@ -7,11 +7,19 @@ import apiClient from '@/lib/api-client';
 import { toast } from 'react-hot-toast';
 import { UploadCloud, FileText, Loader2, Save, ArrowLeft, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
+import TestRunner from '@/components/reading/TestRunner';
+import type { HybridParseResult } from '@/types/hybrid-parser';
+
+function confidenceClass(confidence: number): string {
+    if (confidence >= 0.8) return 'bg-emerald-100 text-emerald-700';
+    if (confidence >= 0.6) return 'bg-amber-100 text-amber-700';
+    return 'bg-red-100 text-red-700';
+}
 
 export default function UploadPassagePage() {
     const router = useRouter();
     const [file, setFile] = useState<File | null>(null);
-    const [parsedData, setParsedData] = useState<any>(null);
+    const [parsedData, setParsedData] = useState<HybridParseResult | null>(null);
 
     const parseMut = useMutation({
         mutationFn: async (f: File) => {
@@ -59,13 +67,14 @@ export default function UploadPassagePage() {
 
     const handleSave = () => {
         if (!parsedData) return;
-        // In actual implementation, we'll send title, level, etc.
         const payload = {
-            title: file?.name.replace(/\.(docx|pdf)$/i, '') || 'Imported Passage',
-            level: 'B2',
+            title: parsedData.passage.title || file?.name.replace(/\.(docx|pdf)$/i, '') || 'Imported Passage',
+            level: parsedData.passage.suggested_level ?? 'B2',
             status: 'draft',
             passage: parsedData.passage,
-            question_groups: parsedData.question_groups,
+            questions: parsedData.questions,
+            parser_used: parsedData.parser_used,
+            confidence: parsedData.confidence,
         };
         saveMut.mutate(payload);
     };
@@ -115,77 +124,40 @@ export default function UploadPassagePage() {
                     </div>
                 </div>
             ) : (
-                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[75vh]">
+                <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden flex flex-col h-[80vh]">
                     {/* Header */}
-                    <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between">
-                        <div className="flex items-center gap-2 text-emerald-600 font-semibold">
-                            <CheckCircle2 className="w-5 h-5" />
-                            Document Parsed Successfully
-                        </div>
-                        <button
-                            onClick={handleSave}
-                            disabled={saveMut.isPending}
-                            className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition disabled:opacity-50"
-                        >
-                            {saveMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                            Save to Database
-                        </button>
-                    </div>
-
-                    {/* 2-Column Preview */}
-                    <div className="flex flex-1 overflow-hidden">
-                        {/* Left: Passage Preview */}
-                        <div className="w-1/2 p-6 overflow-y-auto border-r border-gray-200">
-                            <h3 className="font-bold text-lg mb-4 text-gray-800">Passage Preview</h3>
-                            <div
-                                className="prose prose-sm max-w-none text-gray-700 leading-relaxed bg-gray-50 p-6 rounded-lg border border-gray-100"
-                                dangerouslySetInnerHTML={{ __html: parsedData.passage }}
-                            />
-                        </div>
-
-                        {/* Right: Questions Preview */}
-                        <div className="w-1/2 p-6 overflow-y-auto bg-gray-50/50">
-                            <h3 className="font-bold text-lg mb-4 text-gray-800">Parsed Questions ({parsedData.question_groups?.length || 0} groups)</h3>
-
-                            <div className="space-y-6">
-                                {parsedData.question_groups?.map((group: any, gIdx: number) => (
-                                    <div key={gIdx} className="bg-white p-5 rounded-lg border border-gray-200 shadow-sm relative">
-                                        <div className="absolute top-4 right-4 text-xs font-bold px-2 py-1 bg-blue-100 text-blue-700 rounded uppercase">
-                                            {group.type}
-                                        </div>
-                                        <div className="font-semibold text-gray-800 pr-20 mb-3">{group.instruction}</div>
-
-                                        <div className="space-y-4">
-                                            {group.questions?.map((q: any, qIdx: number) => (
-                                                <div key={qIdx} className="pl-4 border-l-2 border-blue-100 text-sm">
-                                                    <div className="flex gap-2 text-gray-800">
-                                                        <span className="font-bold shrink-0">{q.order_index}.</span>
-                                                        <span>{q.prompt}</span>
-                                                    </div>
-
-                                                    {q.options && q.options.length > 0 && (
-                                                        <div className="mt-2 ml-6 text-gray-600">
-                                                            <p className="font-medium text-xs mb-1 text-gray-400 uppercase">Options:</p>
-                                                            <ul className="list-disc pl-4 space-y-0.5">
-                                                                {q.options.map((opt: string, i: number) => (
-                                                                    <li key={i}>{opt}</li>
-                                                                ))}
-                                                            </ul>
-                                                        </div>
-                                                    )}
-
-                                                    <div className="mt-2 ml-6">
-                                                        <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded">
-                                                            Key: {Array.isArray(q.answer_key) ? q.answer_key.join(', ') : q.answer_key || 'N/A'}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                ))}
+                    <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex items-center justify-between flex-wrap gap-3">
+                        <div className="flex items-center gap-3 flex-wrap">
+                            <div className="flex items-center gap-2 text-emerald-600 font-semibold">
+                                <CheckCircle2 className="w-5 h-5" />
+                                Parsed via <span className="uppercase">{parsedData.parser_used}</span>
                             </div>
+                            <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full ${confidenceClass(parsedData.confidence)}`}>
+                                Confidence {(parsedData.confidence * 100).toFixed(0)}%
+                            </span>
+                            <span className="text-xs text-gray-500">
+                                {parsedData.questions.length} questions · {parsedData.parse_duration_ms}ms
+                            </span>
                         </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => setParsedData(null)}
+                                className="text-sm text-gray-600 hover:text-gray-900 px-3 py-2"
+                            >
+                                Re-upload
+                            </button>
+                            <button
+                                onClick={handleSave}
+                                disabled={saveMut.isPending}
+                                className="flex items-center gap-2 px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-700 transition disabled:opacity-50"
+                            >
+                                {saveMut.isPending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                Save to Database
+                            </button>
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-hidden">
+                        <TestRunner data={parsedData} reviewMode titleOverride="Parser preview (review mode)" />
                     </div>
                 </div>
             )}
