@@ -2,7 +2,7 @@ import { IsEmail, IsString, MinLength, MaxLength, IsOptional, IsIn } from 'class
 
 export class RegisterDto {
   @IsEmail()
-  email: string;
+  email: string; 
 
   @IsString()
   @MinLength(8)

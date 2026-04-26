@@ -8,10 +8,21 @@ import apiClient from '@/lib/api-client';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import {
   ArrowLeft, Clock, Send, CheckCircle2, XCircle, ChevronDown, ChevronUp,
-  Highlighter, RotateCcw,
+  Highlighter, RotateCcw, NotebookPen, Target,
 } from 'lucide-react';
 
 const BACKEND_ORIGIN = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001').replace(/\/api$/, '');
+const SIM_DURATION = 60 * 60;
+
+function stripOptionPrefix(opt: string): string {
+  return opt.replace(/^\s*[A-Ea-e]\s*[.)]\s*/, '');
+}
+
+function extractGroupInstruction(prompt: string): { instruction: string | null; body: string } {
+  const match = prompt.match(/^<div\s+class="[^"]*border-l-4[^"]*">([\s\S]*?)<\/div>/);
+  if (!match) return { instruction: null, body: prompt };
+  return { instruction: match[1], body: prompt.slice(match[0].length).trimStart() };
+}
 
 export default function ReadingPracticePage() {
   const { id } = useParams<{ id: string }>();
@@ -27,7 +38,8 @@ export default function ReadingPracticePage() {
   const [testMode, setTestMode] = useState<'practice' | 'simulation' | null>(null);
 
   const [startTime, setStartTime] = useState<number | null>(null);
-  const [timeLeft, setTimeLeft] = useState<number>(60 * 60);
+  const [timeLeft, setTimeLeft] = useState<number>(SIM_DURATION);
+  const [currentQid, setCurrentQid] = useState<string | null>(null);
 
   const { restored: restoredAnswers, clear: clearSavedAnswers } = useAutoSave(
     `reading-answers-${id}`,
@@ -70,7 +82,7 @@ export default function ReadingPracticePage() {
     if (testMode !== 'simulation' || !startTime || result || submitMut.isPending) return;
     const interval = setInterval(() => {
       const elapsed = Math.round((Date.now() - startTime) / 1000);
-      const remaining = Math.max(0, 60 * 60 - elapsed);
+      const remaining = Math.max(0, SIM_DURATION - elapsed);
       setTimeLeft(remaining);
       if (remaining === 0) {
         clearInterval(interval);
@@ -88,58 +100,62 @@ export default function ReadingPracticePage() {
 
   const scrollToQuestion = (qId: string) => {
     questionRefs.current[qId]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    setCurrentQid(qId);
   };
 
   if (isLoading) return (
-    <div className="flex items-center justify-center h-[60vh]">
+    <div style={{ display: 'grid', placeItems: 'center', height: '60vh' }}>
       <div className="app-loading-spinner" />
     </div>
   );
   if (!passage) return <p>{t.common.error}</p>;
 
-  /* ── Mode selector ── */
+  /* ─────────── Mode selector ─────────── */
   if (showModeModal) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-var(--header-height,64px))] bg-gray-50 px-4">
-        <div className="w-full max-w-2xl">
-          <h1 className="text-2xl font-bold text-center mb-8 text-gray-900">{passage.title}</h1>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            <button
-              type="button"
-              onClick={() => handleModeSelect('practice')}
-              className="bg-white rounded-2xl border-2 border-gray-200 hover:border-blue-400 hover:shadow-lg p-8 text-left transition-all group"
-            >
-              <div className="text-4xl mb-4">📝</div>
-              <h3 className="text-lg font-bold text-gray-900 mb-3">Practice Mode</h3>
-              <ul className="text-sm text-gray-600 space-y-1.5 mb-6 list-disc pl-5">
+      <div className="test-mode-wrap">
+        <div style={{ width: '100%', maxWidth: 720 }}>
+          <div style={{ textAlign: 'center', marginBottom: 28 }}>
+            <div className="eyebrow">IELTS Reading</div>
+            <h1 className="page-title" style={{ fontSize: 32 }}>
+              {passage.title}
+            </h1>
+            <p className="page-subtitle" style={{ margin: '8px auto 0' }}>
+              Choose how you want to approach this passage.
+            </p>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
+            <button type="button" onClick={() => handleModeSelect('practice')} className="test-mode-card">
+              <div className="icon"><NotebookPen size={20} /></div>
+              <h3>Practice mode</h3>
+              <ul>
                 <li>No time limit</li>
                 <li>Pause and resume anytime</li>
                 <li>Focus on accuracy</li>
               </ul>
-              <div className="w-full py-2.5 rounded-lg bg-gray-100 group-hover:bg-blue-600 group-hover:text-white text-center font-semibold text-sm transition-colors">
-                Start Practice
+              <div className="cd-btn" style={{ width: '100%', justifyContent: 'center' }}>
+                Start practice
               </div>
             </button>
-            <button
-              type="button"
-              onClick={() => handleModeSelect('simulation')}
-              className="bg-white rounded-2xl border-2 border-gray-200 hover:border-purple-400 hover:shadow-lg p-8 text-left transition-all group"
-            >
-              <div className="text-4xl mb-4">🎯</div>
-              <h3 className="text-lg font-bold text-gray-900 mb-3">Simulation Mode</h3>
-              <ul className="text-sm text-gray-600 space-y-1.5 mb-6 list-disc pl-5">
+
+            <button type="button" onClick={() => handleModeSelect('simulation')} className="test-mode-card">
+              <div className="icon"><Target size={20} /></div>
+              <h3>Simulation mode</h3>
+              <ul>
                 <li>Strict 60-minute timer</li>
                 <li>Auto-submits when time is up</li>
-                <li>Simulates actual IELTS test</li>
+                <li>Simulates an actual IELTS sitting</li>
               </ul>
-              <div className="w-full py-2.5 rounded-lg bg-purple-600 text-white group-hover:bg-purple-700 text-center font-semibold text-sm transition-colors">
-                Start Simulation
+              <div className="cd-btn cd-btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
+                Start simulation
               </div>
             </button>
           </div>
-          <div className="text-center mt-6">
-            <button className="text-gray-500 hover:text-gray-700 text-sm font-medium" onClick={() => router.back()}>
-              ← Go back
+
+          <div style={{ textAlign: 'center', marginTop: 20 }}>
+            <button className="cd-btn cd-btn-ghost" onClick={() => router.back()}>
+              <ArrowLeft size={14} /> Go back
             </button>
           </div>
         </div>
@@ -154,177 +170,285 @@ export default function ReadingPracticePage() {
   const isPdf = passage.body?.includes('data-source-pdf');
   const pdfSrc = isPdf ? `${BACKEND_ORIGIN}${passage.body.match(/data-source-pdf="([^"]+)"/)?.[1] || ''}` : '';
 
-  return (
-    <div className="rp-fullscreen">
-      {/* ── Header Bar ── */}
-      <div className="rp-bar">
-        <div className="rp-bar-left">
-          <button onClick={() => router.back()} className="rp-bar-back">
+  /* ─────────── Result view ─────────── */
+  if (result) {
+    return (
+      <div className="test-fullscreen">
+        <header className="test-head">
+          <button className="icon-btn" onClick={() => router.push('/reading')} title="Back to catalog">
             <ArrowLeft size={16} />
           </button>
-          <h1 className="rp-bar-title">{passage.title}</h1>
-          <span className={`rp-bar-badge ${testMode === 'simulation' ? 'rp-bar-badge--sim' : 'rp-bar-badge--prac'}`}>
-            {testMode === 'simulation' ? 'Simulation' : 'Practice'}
-          </span>
-        </div>
-
-        <div className="rp-bar-center">
-          <label className="rp-bar-highlight">
-            <input type="checkbox" checked={highlightEnabled} onChange={e => setHighlightEnabled(e.target.checked)} />
-            <Highlighter size={14} />
-            Highlight
-          </label>
-          <span className="rp-bar-progress">{answeredCount}/{questions.length} answered</span>
-        </div>
-
-        <div className="rp-bar-right">
-          {testMode === 'simulation' && !result && (
-            <div className={`rp-bar-timer ${isTimerDanger ? 'rp-bar-timer--danger' : ''}`}>
-              <Clock size={14} />
-              <span>{formatTime(timeLeft)}</span>
-            </div>
-          )}
-          {!result && (
-            <button
-              className="rp-bar-submit"
-              onClick={() => handleSubmit(false)}
-              disabled={submitMut.isPending || !isReadyToSubmit}
-            >
-              <Send size={14} />
-              {submitMut.isPending ? 'Submitting...' : 'Submit'}
+          <div style={{ fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em' }}>
+            {passage.title}
+          </div>
+          <span className="cd-badge cd-badge-primary">{testMode === 'simulation' ? 'Simulation' : 'Practice'}</span>
+          {result.timed_out && <span className="cd-badge cd-badge-warn">Timed out</span>}
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+            <button className="cd-btn" onClick={() => { setResult(null); setAnswers({}); setStartTime(Date.now()); }}>
+              <RotateCcw size={14} /> Retry
             </button>
-          )}
-          {result && (
-            <div className="rp-bar-score">
-              {result.score_pct?.toFixed(0)}% · {result.correct_count}/{result.total_questions}
+            <button className="cd-btn cd-btn-primary" onClick={() => router.push('/reading')}>
+              Back to catalog
+            </button>
+          </div>
+        </header>
+
+        <div className="test-body">
+          <div className="test-passage">
+            {isPdf ? (
+              <iframe src={`${pdfSrc}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} style={{ width: '100%', height: '100%', border: 0, background: 'var(--bg-raised)' }} title={passage.title} />
+            ) : (
+              <div className="passage-body" dangerouslySetInnerHTML={{ __html: passage.body?.replace(/\n/g, '<br/>') || '' }} />
+            )}
+          </div>
+
+          <div className="test-questions">
+            <div className="eyebrow">Your result</div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
+              <span style={{ fontFamily: 'var(--ff-display)', fontSize: 56, fontWeight: 400, letterSpacing: '-0.03em', lineHeight: 1, color: 'var(--ink)' }}>
+                {result.score_pct?.toFixed(0)}
+              </span>
+              <span className="mono" style={{ fontSize: 14, color: 'var(--ink-3)' }}>%</span>
+              <span className="italic-serif" style={{ fontSize: 13, color: 'var(--ink-3)', marginLeft: 8 }}>
+                {result.correct_count} of {result.total_questions} correct
+              </span>
             </div>
-          )}
-        </div>
-      </div>
 
-      {/* ── 2-Panel Body ── */}
-      <div className="rp-panels">
-        {/* LEFT: Passage */}
-        <div className={`rp-panel-passage ${highlightEnabled ? 'rp-panel-passage--highlight' : ''}`}>
-          {isPdf ? (
-            <iframe src={`${pdfSrc}#toolbar=0`} className="rp-pdf-iframe" title={passage.title} />
-          ) : (
-            <div className="rp-passage-content" dangerouslySetInnerHTML={{ __html: passage.body?.replace(/\n/g, '<br/>') || '' }} />
-          )}
-        </div>
+            <div className="hr" />
 
-        {/* RIGHT: Questions / Results */}
-        <div className="rp-panel-questions">
-          {result ? (
-            <div className="rp-result-wrap">
-              <div className="rp-result-header">
-                <div className="rp-result-score">
-                  <span className="rp-result-pct">{result.score_pct?.toFixed(0)}%</span>
-                  <span className="rp-result-count">{result.correct_count}/{result.total_questions} correct</span>
-                </div>
-                {result.timed_out && <span className="rp-badge-timeout">Timed Out</span>}
-              </div>
+            <button className="cd-btn cd-btn-ghost cd-btn-sm" onClick={() => setShowResultDetail(v => !v)}>
+              {showResultDetail ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              {showResultDetail ? 'Hide details' : 'Show details'}
+            </button>
 
-              <button className="rp-toggle-detail" onClick={() => setShowResultDetail(!showResultDetail)}>
-                {showResultDetail ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                {showResultDetail ? 'Hide Details' : 'Show Details'}
-              </button>
-
-              {showResultDetail && (
-                <div className="rp-result-list">
-                  {result.details?.map((d: any, idx: number) => (
-                    <div key={d.question_id} className={`rp-result-item ${d.correct ? 'rp-result-correct' : 'rp-result-wrong'}`}>
-                      <div className="rp-result-item-head">
-                        {d.correct ? <CheckCircle2 size={16} className="rp-icon-correct" /> : <XCircle size={16} className="rp-icon-wrong" />}
-                        <strong>Q{idx + 1}</strong>
-                      </div>
-                      <div className="rp-result-item-body">
-                        <p>Your answer: <span className={d.correct ? 'rp-text-correct' : 'rp-text-wrong'}>{d.your_answer || '(blank)'}</span></p>
-                        {!d.correct && <p>Correct: <strong>{typeof d.correct_answer === 'object' ? JSON.stringify(d.correct_answer) : d.correct_answer}</strong></p>}
-                        {d.explanation && <p className="rp-explanation">{d.explanation}</p>}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              <div className="rp-result-actions">
-                <button className="rp-btn rp-btn-primary" onClick={() => { setResult(null); setAnswers({}); setStartTime(Date.now()); }}>
-                  <RotateCcw size={16} /> Retry
-                </button>
-                <button className="rp-btn rp-btn-secondary" onClick={() => router.push('/reading')}>
-                  Back to Catalog
-                </button>
-              </div>
-            </div>
-          ) : (
-            <>
-              {/* Mini answer sheet */}
-              <div className="rp-mini-sheet">
-                {questions.map((q: any, idx: number) => {
-                  const answered = !!answers[q.id]?.trim();
-                  let status = answered ? 'answered' : '';
-                  if (result) {
-                    const detail = (result as any).details?.find((d: any) => d.question_id === q.id);
-                    status = detail?.correct ? 'correct' : detail ? 'wrong' : '';
-                  }
-                  return (
-                    <button
-                      key={q.id}
-                      className={`rp-mini-cell rp-mini-cell--${status}`}
-                      onClick={() => scrollToQuestion(q.id)}
-                      title={`Q${idx + 1}`}
-                    >
-                      {idx + 1}
-                    </button>
-                  );
-                })}
-              </div>
-
-              {/* Questions */}
-              <div className="rp-qlist">
-                {questions.map((q: any, idx: number) => (
+            {showResultDetail && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
+                {result.details?.map((d: any, idx: number) => (
                   <div
-                    key={q.id}
-                    className="rp-qcard"
-                    ref={el => { questionRefs.current[q.id] = el; }}
+                    key={d.question_id}
+                    className="card card-tight"
+                    style={{
+                      borderLeft: `3px solid ${d.correct ? 'var(--success)' : 'var(--danger)'}`,
+                    }}
                   >
-                    <p className="rp-qprompt">
-                      <strong>{idx + 1}.</strong>{' '}
-                      <span dangerouslySetInnerHTML={{ __html: q.prompt }} />
-                    </p>
-                    {q.options?.length > 0 ? (
-                      <div className="rp-opts">
-                        {q.options.map((opt: string, oi: number) => (
-                          <label key={oi} className={`rp-opt ${answers[q.id] === opt ? 'rp-opt--sel' : ''}`}>
-                            <input
-                              type="radio"
-                              name={q.id}
-                              value={opt}
-                              checked={answers[q.id] === opt}
-                              onChange={() => setAnswers(a => ({ ...a, [q.id]: opt }))}
-                            />
-                            <span className="rp-opt-letter">{String.fromCharCode(65 + oi)}</span>
-                            <span>{opt}</span>
-                          </label>
-                        ))}
-                      </div>
-                    ) : (
-                      <input
-                        type="text"
-                        className="rp-qinput"
-                        value={answers[q.id] || ''}
-                        onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}
-                        placeholder="Your answer..."
-                      />
-                    )}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                      {d.correct
+                        ? <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
+                        : <XCircle size={15} style={{ color: 'var(--danger)' }} />}
+                      <strong style={{ fontSize: 13 }}>Q{idx + 1}</strong>
+                    </div>
+                    <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
+                      <p style={{ margin: '2px 0' }}>
+                        Your answer:{' '}
+                        <span style={{ color: d.correct ? 'var(--success)' : 'var(--danger)', fontWeight: 500 }}>
+                          {d.your_answer || '(blank)'}
+                        </span>
+                      </p>
+                      {!d.correct && (
+                        <p style={{ margin: '2px 0' }}>
+                          Correct: <strong>{typeof d.correct_answer === 'object' ? JSON.stringify(d.correct_answer) : d.correct_answer}</strong>
+                        </p>
+                      )}
+                      {d.explanation && (
+                        <p className="italic-serif" style={{ margin: '6px 0 0', color: 'var(--ink-3)', fontSize: 12 }}>
+                          {d.explanation}
+                        </p>
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
-            </>
+            )}
+          </div>
+        </div>
+
+        <footer className="test-footer">
+          <div className="q-pal">
+            {questions.map((q: any, idx: number) => {
+              const detail = result.details?.find((d: any) => d.question_id === q.id);
+              const cls = detail?.correct ? 'is-answered' : '';
+              return (
+                <button
+                  key={q.id}
+                  className={`q-pal-cell ${cls}`}
+                  onClick={() => scrollToQuestion(q.id)}
+                  title={`Q${idx + 1}${detail ? (detail.correct ? ' · correct' : ' · wrong') : ''}`}
+                  style={!detail?.correct && detail ? { borderColor: 'var(--danger)', color: 'var(--danger)' } : undefined}
+                >
+                  {idx + 1}
+                </button>
+              );
+            })}
+          </div>
+        </footer>
+      </div>
+    );
+  }
+
+  /* ─────────── Test-taking view ─────────── */
+  return (
+    <div className="test-fullscreen">
+      <header className="test-head">
+        <button className="icon-btn" onClick={() => router.back()} title="Exit">
+          <ArrowLeft size={16} />
+        </button>
+        <div style={{ fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em' }}>
+          {passage.title}
+        </div>
+        <span className={`cd-badge ${testMode === 'simulation' ? 'cd-badge-warn' : 'cd-badge-primary'}`}>
+          {testMode === 'simulation' ? 'Simulation' : 'Practice'}
+        </span>
+
+        <label
+          style={{
+            display: 'flex', alignItems: 'center', gap: 6, marginLeft: 16, cursor: 'pointer',
+            fontSize: 12, color: 'var(--ink-3)',
+          }}
+        >
+          <input
+            type="checkbox"
+            checked={highlightEnabled}
+            onChange={e => setHighlightEnabled(e.target.checked)}
+            style={{ accentColor: 'var(--primary)' }}
+          />
+          <Highlighter size={13} />
+          Highlight
+        </label>
+
+        <span className="mono" style={{ fontSize: 12, color: 'var(--ink-3)', marginLeft: 12 }}>
+          {answeredCount}/{questions.length} answered
+        </span>
+
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
+          {testMode === 'simulation' && (
+            <div
+              className="mono"
+              style={{
+                display: 'inline-flex', alignItems: 'center', gap: 6,
+                padding: '4px 10px', borderRadius: 999,
+                background: isTimerDanger ? 'var(--danger-soft)' : 'var(--primary-soft)',
+                color: isTimerDanger ? 'var(--danger)' : 'var(--primary)',
+                fontWeight: 500, fontSize: 12,
+              }}
+            >
+              <Clock size={13} />
+              {formatTime(timeLeft)}
+            </div>
+          )}
+          <button
+            className="cd-btn cd-btn-primary"
+            onClick={() => handleSubmit(false)}
+            disabled={submitMut.isPending || !isReadyToSubmit}
+          >
+            <Send size={13} />
+            {submitMut.isPending ? 'Submitting…' : 'Submit'}
+          </button>
+        </div>
+      </header>
+
+      <div className="test-body">
+        <div className="test-passage" style={{ userSelect: highlightEnabled ? 'text' : 'auto' }}>
+          {isPdf ? (
+            <iframe src={`${pdfSrc}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} style={{ width: '100%', height: '100%', border: 0, background: 'var(--bg-raised)' }} title={passage.title} />
+          ) : (
+            <div className="passage-body" dangerouslySetInnerHTML={{ __html: passage.body?.replace(/\n/g, '<br/>') || '' }} />
           )}
         </div>
+
+        <div className="test-questions">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {questions.map((q: any, idx: number) => {
+              const { instruction, body } = extractGroupInstruction(q.prompt);
+              return (
+              <div
+                key={q.id}
+                ref={el => { questionRefs.current[q.id] = el; }}
+                onFocus={() => setCurrentQid(q.id)}
+                style={{ scrollMarginTop: 16 }}
+              >
+                {instruction && (
+                  <div
+                    style={{
+                      borderLeft: '3px solid var(--primary)',
+                      paddingLeft: 12,
+                      margin: idx > 0 ? '20px 0 12px' : '0 0 12px',
+                      fontSize: 13,
+                      fontWeight: 500,
+                      fontStyle: 'italic',
+                      color: 'var(--ink-2)',
+                      lineHeight: 1.5,
+                    }}
+                    dangerouslySetInnerHTML={{ __html: instruction }}
+                  />
+                )}
+                <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+                  <span className="mono" style={{ color: 'var(--ink-4)', fontSize: 12, minWidth: 24 }}>
+                    {String(idx + 1).padStart(2, '0')}
+                  </span>
+                  <p style={{ margin: 0, fontSize: 14, color: 'var(--ink)', lineHeight: 1.5 }}>
+                    <span dangerouslySetInnerHTML={{ __html: body }} />
+                  </p>
+                </div>
+
+                {q.options?.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginLeft: 32 }}>
+                    {q.options.map((opt: string, oi: number) => {
+                      const selected = answers[q.id] === opt;
+                      return (
+                        <label
+                          key={oi}
+                          className={`mcq-option ${selected ? 'is-selected' : ''}`}
+                        >
+                          <input
+                            type="radio"
+                            name={q.id}
+                            value={opt}
+                            checked={selected}
+                            onChange={() => setAnswers(a => ({ ...a, [q.id]: opt }))}
+                            style={{ display: 'none' }}
+                          />
+                          <span className="mcq-option-marker">{String.fromCharCode(65 + oi)}</span>
+                          <span className="mcq-option-text">{stripOptionPrefix(opt)}</span>
+                        </label>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <input
+                    type="text"
+                    className="cd-input"
+                    style={{ marginLeft: 32, width: 'calc(100% - 32px)' }}
+                    value={answers[q.id] || ''}
+                    onChange={e => setAnswers(a => ({ ...a, [q.id]: e.target.value }))}
+                    placeholder="Your answer…"
+                  />
+                )}
+              </div>
+              );
+            })}
+          </div>
+        </div>
       </div>
+
+      <footer className="test-footer">
+        <span className="section-label" style={{ marginRight: 12 }}>Questions</span>
+        <div className="q-pal">
+          {questions.map((q: any, idx: number) => {
+            const answered = !!answers[q.id]?.trim();
+            const current = currentQid === q.id;
+            return (
+              <button
+                key={q.id}
+                className={`q-pal-cell ${answered ? 'is-answered' : ''} ${current ? 'is-current' : ''}`}
+                onClick={() => scrollToQuestion(q.id)}
+                title={`Q${idx + 1}${answered ? ' · answered' : ''}`}
+              >
+                {idx + 1}
+              </button>
+            );
+          })}
+        </div>
+      </footer>
     </div>
   );
 }

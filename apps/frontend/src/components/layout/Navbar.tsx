@@ -21,6 +21,7 @@ interface NavTab {
 }
 
 function getNavTabs(role: string | undefined, t: any): NavTab[] {
+  // Navbar tabs exclude Dashboard (logo links there) and Settings (in avatar dropdown)
   switch (role) {
     case 'admin':
       return [
@@ -56,6 +57,7 @@ export function Navbar() {
 
   const tabs = getNavTabs(user?.role, t);
 
+  // Ctrl+K / Cmd+K shortcut
   const handleGlobalKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
       e.preventDefault();
@@ -68,6 +70,7 @@ export function Navbar() {
     return () => document.removeEventListener('keydown', handleGlobalKeyDown);
   }, [handleGlobalKeyDown]);
 
+  // Close mobile menu on route change
   useEffect(() => {
     setMobileMenuOpen(false);
   }, [pathname]);
@@ -115,7 +118,7 @@ export function Navbar() {
           <button
             className="navbar-action-btn"
             onClick={() => setLang(lang === 'vi' ? 'en' : 'vi')}
-            title={lang === 'vi' ? 'English' : 'Tieng Viet'}
+            title={lang === 'vi' ? 'English' : 'Tiếng Việt'}
           >
             <Globe size={18} />
           </button>

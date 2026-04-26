@@ -29,7 +29,7 @@ export default function PassageViewer({ passage, answers = {}, onBlankChange, re
           <h2 className="text-xl font-bold mb-3 px-1 shrink-0">{passage.title}</h2>
         )}
         <iframe
-          src={resolveAssetUrl(passage.source_pdf_url)}
+          src={`${resolveAssetUrl(passage.source_pdf_url)}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`}
           title={passage.title || 'Passage PDF'}
           className="flex-1 w-full border border-gray-200 rounded-lg bg-white"
         />

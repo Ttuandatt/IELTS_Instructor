@@ -17,6 +17,7 @@ interface SidebarItem {
 }
 
 function getSidebarItems(role: string | undefined, t: any): SidebarItem[] {
+  // Sidebar always includes Dashboard (unlike navbar)
   switch (role) {
     case 'admin':
       return [
@@ -54,6 +55,7 @@ export function IconSidebar() {
 
   const items = getSidebarItems(user?.role, t);
 
+  // Detect touch device on first interaction
   const handlePointerEnter = useCallback((e: React.PointerEvent) => {
     if (e.pointerType === 'touch') {
       setIsTouchDevice(true);
