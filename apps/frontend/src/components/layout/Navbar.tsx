@@ -10,7 +10,7 @@ import { AvatarDropdown } from './AvatarDropdown';
 import { SearchOverlay } from './SearchOverlay';
 import {
   Search, Globe, Moon, Sun, Bell, Menu, X,
-  BookOpen, PenLine, School, Users, FileText, ClipboardList,
+  BookOpen, PenLine, School, Users, FileText, ClipboardList, Library,
   type LucideIcon,
 } from 'lucide-react';
 
@@ -40,6 +40,7 @@ function getNavTabs(role: string | undefined, t: any): NavTab[] {
       ];
     default: // learner
       return [
+        { href: '/library', label: t.nav.library, Icon: Library },
         { href: '/reading', label: t.nav.reading, Icon: BookOpen },
         { href: '/writing', label: t.nav.writing, Icon: PenLine },
         { href: '/classrooms', label: t.nav.classrooms, Icon: School },

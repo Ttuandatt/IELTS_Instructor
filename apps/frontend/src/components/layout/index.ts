@@ -1,5 +1,5 @@
 export { AppShell } from './AppShell';
-export { Navbar } from './Navbar';
-export { IconSidebar } from './IconSidebar';
+export { Sidebar } from './Sidebar';
+export { Topbar } from './Topbar';
 export { AvatarDropdown } from './AvatarDropdown';
 export { SearchOverlay } from './SearchOverlay';
