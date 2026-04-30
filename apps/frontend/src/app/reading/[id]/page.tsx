@@ -8,8 +8,7 @@ import toast from 'react-hot-toast';
 import apiClient from '@/lib/api-client';
 import { useAutoSave } from '@/hooks/useAutoSave';
 import {
-  ArrowLeft, Clock, Send, CheckCircle2, XCircle, ChevronDown, ChevronUp,
-  RotateCcw, NotebookPen, Target, Eye, NotebookText, Save,
+  ArrowLeft, Clock, Send, NotebookPen, Target, Eye, NotebookText, Save,
 } from 'lucide-react';
 import ConfirmDialog from '@/components/reading/test-controls/ConfirmDialog';
 import NotepadDialog from '@/components/reading/test-controls/NotepadDialog';
@@ -102,8 +101,6 @@ export default function ReadingPracticePage() {
   const router = useRouter();
 
   const [answers, setAnswers] = useState<Record<string, string>>({});
-  const [result, setResult] = useState<any>(null);
-  const [showResultDetail, setShowResultDetail] = useState(true);
 
   const [showModeModal, setShowModeModal] = useState(true);
   const [testMode, setTestMode] = useState<'practice' | 'simulation' | null>(null);
@@ -162,10 +159,28 @@ export default function ReadingPracticePage() {
       clearSavedAnswers();
       clearSavedNotepad();
       setNotepadText('');
-      setResult(data);
       setSubmitConfirmOpen(false);
       setTimeUpOpen(false);
       setReviewOpen(false);
+      // Persist result + render context for /reading/attempts/[id]
+      try {
+        const payload = {
+          ...data,
+          passage_title: passage?.title,
+          questions_meta: (passage?.questions ?? []).map((q: any, idx: number) => ({
+            id: q.id,
+            type: q.type,
+            prompt: q.prompt,
+            options: q.options,
+            order: idx + 1,
+          })),
+          completed_at: new Date().toISOString(),
+        };
+        sessionStorage.setItem(`reading-result-${data.submission_id}`, JSON.stringify(payload));
+      } catch {
+        // ignore quota / serialization errors — page handles missing data
+      }
+      router.push(`/reading/attempts/${data.submission_id}`);
     },
   });
 
@@ -184,7 +199,7 @@ export default function ReadingPracticePage() {
 
   // Timer ticker — both modes
   useEffect(() => {
-    if (!startTime || result || submitMut.isPending) return;
+    if (!startTime || submitMut.isPending) return;
     const interval = setInterval(() => {
       const elapsed = Math.round((Date.now() - startTime) / 1000);
       setElapsedSec(elapsed);
@@ -198,7 +213,7 @@ export default function ReadingPracticePage() {
       }
     }, 1000);
     return () => clearInterval(interval);
-  }, [testMode, startTime, result, submitMut.isPending]);
+  }, [testMode, startTime, submitMut.isPending]);
 
   const formatTime = (seconds: number) => {
     const m = Math.floor(seconds / 60).toString().padStart(2, '0');
@@ -358,121 +373,6 @@ export default function ReadingPracticePage() {
   const pdfSrc = isPdf ? `${BACKEND_ORIGIN}${passage.body.match(/data-source-pdf="([^"]+)"/)?.[1] || ''}` : '';
   const passageFontPx = TEXT_SIZE_PX[textSize];
   const sectionLabel = sections[0]?.label?.startsWith('Part') ? 'Part' : t.test.section;
-
-  /* ─────────── Result view ─────────── */
-  if (result) {
-    return (
-      <div className="test-fullscreen">
-        <header className="test-head">
-          <button className="icon-btn" onClick={() => router.push('/reading')} title="Back to catalog">
-            <ArrowLeft size={16} />
-          </button>
-          <div style={{ fontFamily: 'var(--ff-display)', fontSize: 15, fontWeight: 500, letterSpacing: '-0.01em' }}>
-            {passage.title}
-          </div>
-          <span className="cd-badge cd-badge-primary">{testMode === 'simulation' ? 'Simulation' : 'Practice'}</span>
-          {result.timed_out && <span className="cd-badge cd-badge-warn">Timed out</span>}
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <button className="cd-btn" onClick={() => { setResult(null); setAnswers({}); setStartTime(Date.now()); }}>
-              <RotateCcw size={14} /> Retry
-            </button>
-            <button className="cd-btn cd-btn-primary" onClick={() => router.push('/reading')}>
-              Back to catalog
-            </button>
-          </div>
-        </header>
-
-        <div className="test-body">
-          <div className="test-passage">
-            {isPdf ? (
-              <iframe src={`${pdfSrc}#toolbar=0&navpanes=0&scrollbar=0&view=FitH`} style={{ width: '100%', height: '100%', border: 0, background: 'var(--bg-raised)' }} title={passage.title} />
-            ) : (
-              <div className="passage-body" dangerouslySetInnerHTML={{ __html: passage.body?.replace(/\n/g, '<br/>') || '' }} />
-            )}
-          </div>
-
-          <div className="test-questions">
-            <div className="eyebrow">Your result</div>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, marginBottom: 4 }}>
-              <span style={{ fontFamily: 'var(--ff-display)', fontSize: 56, fontWeight: 400, letterSpacing: '-0.03em', lineHeight: 1, color: 'var(--ink)' }}>
-                {result.score_pct?.toFixed(0)}
-              </span>
-              <span className="mono" style={{ fontSize: 14, color: 'var(--ink-3)' }}>%</span>
-              <span className="italic-serif" style={{ fontSize: 13, color: 'var(--ink-3)', marginLeft: 8 }}>
-                {result.correct_count} of {result.total_questions} correct
-              </span>
-            </div>
-
-            <div className="hr" />
-
-            <button className="cd-btn cd-btn-ghost cd-btn-sm" onClick={() => setShowResultDetail(v => !v)}>
-              {showResultDetail ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-              {showResultDetail ? 'Hide details' : 'Show details'}
-            </button>
-
-            {showResultDetail && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 12 }}>
-                {result.details?.map((d: any, idx: number) => (
-                  <div
-                    key={d.question_id}
-                    className="card card-tight"
-                    style={{
-                      borderLeft: `3px solid ${d.correct ? 'var(--success)' : 'var(--danger)'}`,
-                    }}
-                  >
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                      {d.correct
-                        ? <CheckCircle2 size={15} style={{ color: 'var(--success)' }} />
-                        : <XCircle size={15} style={{ color: 'var(--danger)' }} />}
-                      <strong style={{ fontSize: 13 }}>Q{idx + 1}</strong>
-                    </div>
-                    <div style={{ fontSize: 13, color: 'var(--ink-2)' }}>
-                      <p style={{ margin: '2px 0' }}>
-                        Your answer:{' '}
-                        <span style={{ color: d.correct ? 'var(--success)' : 'var(--danger)', fontWeight: 500 }}>
-                          {d.your_answer || '(blank)'}
-                        </span>
-                      </p>
-                      {!d.correct && (
-                        <p style={{ margin: '2px 0' }}>
-                          Correct: <strong>{typeof d.correct_answer === 'object' ? JSON.stringify(d.correct_answer) : d.correct_answer}</strong>
-                        </p>
-                      )}
-                      {d.explanation && (
-                        <p className="italic-serif" style={{ margin: '6px 0 0', color: 'var(--ink-3)', fontSize: 12 }}>
-                          {d.explanation}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-
-        <footer className="test-footer">
-          <div className="q-pal">
-            {questions.map((q: any, idx: number) => {
-              const detail = result.details?.find((d: any) => d.question_id === q.id);
-              const cls = detail?.correct ? 'is-answered' : '';
-              return (
-                <button
-                  key={q.id}
-                  className={`q-pal-cell ${cls}`}
-                  onClick={() => scrollToQuestion(q.id)}
-                  title={`Q${idx + 1}${detail ? (detail.correct ? ' · correct' : ' · wrong') : ''}`}
-                  style={!detail?.correct && detail ? { borderColor: 'var(--danger)', color: 'var(--danger)' } : undefined}
-                >
-                  {idx + 1}
-                </button>
-              );
-            })}
-          </div>
-        </footer>
-      </div>
-    );
-  }
 
   /* ─────────── Test-taking view ─────────── */
   const timerDisplay = testMode === 'simulation' ? formatTime(timeLeft) : formatTime(elapsedSec);
