@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useI18n } from '@/providers/I18nProvider';
 import { useQuery } from '@tanstack/react-query';
 import apiClient from '@/lib/api-client';
-import { Clock, PenLine, Search } from 'lucide-react';
+import { Clock, PenLine, Search, AlertCircle, RefreshCw } from 'lucide-react';
 
 const LEVELS = ['all', 'A2', 'B1', 'B2', 'C1', 'C2'] as const;
 const TASKS = ['all', 'task1', 'task2'] as const;
@@ -40,7 +40,7 @@ export default function WritingPage() {
   const [task, setTask] = useState<typeof TASKS[number]>('all');
   const [topic, setTopic] = useState('');
 
-  const { data, isLoading } = useQuery({
+  const query = useQuery({
     queryKey: ['writing-prompts', page, level, task, topic],
     queryFn: () => {
       const params = new URLSearchParams({ page: String(page), limit: '12' });
@@ -51,18 +51,18 @@ export default function WritingPage() {
     },
   });
 
-  const prompts: Prompt[] = data?.data ?? [];
+  const prompts: Prompt[] = query.data?.data ?? [];
 
   const groups = useMemo(() => {
     const out: Record<string, Prompt[]> = {};
     for (const p of prompts) {
-      const key = p.collection || 'All prompts';
+      const key = p.collection || 'Standalone prompts';
       (out[key] ||= []).push(p);
     }
     return out;
   }, [prompts]);
 
-  const totalPages = Math.max(1, Math.ceil((data?.total || 1) / 12));
+  const totalPages = Math.max(1, Math.ceil((query.data?.total || 1) / 12));
 
   return (
     <div className="fade-in">
@@ -73,31 +73,32 @@ export default function WritingPage() {
             Writing <em>prompts</em>
           </h1>
           <p className="page-subtitle">
-            Essays and chart descriptions for real IELTS practice. AI feedback lands in minutes; your instructor can override if they're watching.
+            Essays and chart descriptions for real IELTS practice. AI feedback lands in minutes; your instructor can override if they&apos;re watching.
           </p>
         </div>
-        <div className="cd-row" style={{ gap: 8 }}>
-          <Link href="/writing/history" className="cd-btn">
+        <div className="row" style={{ gap: 8 }}>
+          <Link href="/writing/history" className="btn">
             <Clock size={13} /> {t.writing.history}
           </Link>
           <Link
             href={prompts[0] ? `/writing/${prompts[0].id}` : '/writing'}
-            className="cd-btn cd-btn-primary"
+            className="btn btn-primary"
+            aria-disabled={!prompts[0]}
           >
-            <PenLine size={12} /> Start a prompt
+            <PenLine size={12} /> {prompts[0] ? 'Continue draft' : 'Start a prompt'}
           </Link>
         </div>
       </div>
 
       {/* Filters */}
       <div className="card" style={{ padding: 10, marginBottom: 16 }}>
-        <div className="cd-row" style={{ gap: 12, flexWrap: 'wrap' }}>
-          <div className="cd-row" style={{ gap: 6 }}>
+        <div className="row" style={{ gap: 12, flexWrap: 'wrap' }}>
+          <div className="row" style={{ gap: 6 }}>
             <span className="section-label" style={{ marginRight: 4 }}>Task</span>
             {TASKS.map(tk => (
               <button
                 key={tk}
-                className={`cd-btn cd-btn-sm ${task === tk ? 'cd-btn-primary' : ''}`}
+                className={`btn btn-sm ${task === tk ? 'btn-primary' : ''}`}
                 onClick={() => { setTask(tk); setPage(1); }}
               >
                 {tk === 'all' ? 'All' : taskLabel(tk)}
@@ -107,12 +108,12 @@ export default function WritingPage() {
 
           <div style={{ width: 1, height: 24, background: 'var(--border)' }} />
 
-          <div className="cd-row" style={{ gap: 6 }}>
+          <div className="row" style={{ gap: 6 }}>
             <span className="section-label" style={{ marginRight: 4 }}>{t.common.level}</span>
             {LEVELS.map(lvl => (
               <button
                 key={lvl}
-                className={`cd-btn cd-btn-sm ${level === lvl ? 'cd-btn-primary' : ''}`}
+                className={`btn btn-sm ${level === lvl ? 'btn-primary' : ''}`}
                 onClick={() => { setLevel(lvl); setPage(1); }}
               >
                 {lvl === 'all' ? 'All' : lvl}
@@ -133,8 +134,16 @@ export default function WritingPage() {
         </div>
       </div>
 
-      {isLoading ? (
+      {query.isLoading ? (
         <div className="card card-pad" style={{ color: 'var(--ink-3)' }}>{t.common.loading}</div>
+      ) : query.isError ? (
+        <div className="card card-pad" style={{ textAlign: 'center', padding: 48 }}>
+          <AlertCircle size={28} style={{ color: 'var(--danger)', marginBottom: 12 }} />
+          <p style={{ marginBottom: 16, color: 'var(--ink-2)' }}>{t.common.error}</p>
+          <button className="btn btn-primary" onClick={() => query.refetch()}>
+            <RefreshCw size={13} /> {t.common.retry}
+          </button>
+        </div>
       ) : prompts.length === 0 ? (
         <div className="card card-pad" style={{ textAlign: 'center', padding: 48 }}>
           <div className="italic-serif" style={{ color: 'var(--ink-3)', fontSize: 14 }}>
@@ -146,14 +155,14 @@ export default function WritingPage() {
           {Object.entries(groups).map(([coll, items]) => (
             <div key={coll} style={{ marginBottom: 28 }}>
               <div className="row-between" style={{ marginBottom: 10 }}>
-                <div className="cd-row" style={{ gap: 10, alignItems: 'baseline' }}>
+                <div className="row" style={{ gap: 10, alignItems: 'baseline' }}>
                   <h2 className="section-title">{coll}</h2>
                   <span className="italic-serif" style={{ color: 'var(--ink-3)', fontSize: 12 }}>
-                    — {items.length} prompts
+                    — {items.length} prompt{items.length === 1 ? '' : 's'}
                   </span>
                 </div>
               </div>
-              <div className="cd-grid" style={{ gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
+              <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 12 }}>
                 {items.map(p => {
                   const tags = promptTags(p);
                   return (
@@ -161,17 +170,14 @@ export default function WritingPage() {
                       key={p.id}
                       href={`/writing/${p.id}`}
                       className="card"
-                      style={{
-                        padding: 0, overflow: 'hidden',
-                        textDecoration: 'none', color: 'inherit', cursor: 'pointer',
-                      }}
+                      style={{ padding: 0, overflow: 'hidden', textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}
                     >
                       <div style={{ padding: '14px 16px' }}>
                         <div className="row-between" style={{ marginBottom: 8 }}>
-                          <span className={`cd-badge ${p.task_type === 'task1' ? 'cd-badge-outline' : 'cd-badge-primary'}`}>
+                          <span className={`badge ${p.task_type === 'task1' ? 'badge-outline' : 'badge-primary'}`}>
                             {taskLabel(p.task_type)}
                           </span>
-                          <span className={`cd-badge level-${p.level}`}>
+                          <span className={`badge level-${p.level}`}>
                             <span className={`level-dot level-${p.level}`} />
                             {p.level}
                           </span>
@@ -185,7 +191,7 @@ export default function WritingPage() {
                           {p.title}
                         </h3>
                         {tags.length > 0 && (
-                          <div className="cd-row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                          <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
                             {tags.slice(0, 4).map(name => (
                               <span key={name} className="tag">{name}</span>
                             ))}
@@ -222,14 +228,14 @@ export default function WritingPage() {
               <button
                 disabled={page <= 1}
                 onClick={() => setPage(p => p - 1)}
-                className="cd-btn cd-btn-sm"
+                className="btn btn-sm"
               >
                 {t.common.previous}
               </button>
               <button
-                disabled={page * 12 >= (data?.total || 0)}
+                disabled={page * 12 >= (query.data?.total || 0)}
                 onClick={() => setPage(p => p + 1)}
-                className="cd-btn cd-btn-sm"
+                className="btn btn-sm"
               >
                 {t.common.next}
               </button>

@@ -83,7 +83,7 @@ export default function WritingPracticePage() {
       <div className="test-fullscreen" style={{ placeItems: 'center', display: 'grid' }}>
         <div className="card card-pad">
           <div style={{ color: 'var(--danger)', marginBottom: 12 }}>{t.common.error}</div>
-          <button className="cd-btn" onClick={() => router.push('/writing')}>{t.common.back}</button>
+          <button className="btn" onClick={() => router.push('/writing')}>{t.common.back}</button>
         </div>
       </div>
     );
@@ -93,7 +93,7 @@ export default function WritingPracticePage() {
     <div className="test-fullscreen">
       {/* Header bar */}
       <div className="test-head">
-        <button className="cd-btn cd-btn-sm" onClick={() => router.push('/writing')}>
+        <button className="btn btn-sm" onClick={() => router.push('/writing')}>
           <X size={12} /> Exit
         </button>
         <div style={{ width: 1, height: 20, background: 'var(--border)' }} />
@@ -109,12 +109,12 @@ export default function WritingPracticePage() {
           </div>
         </div>
 
-        <div className="ml-auto cd-row" style={{ gap: 10 }}>
+        <div className="ml-auto row" style={{ gap: 10 }}>
           <div className="italic-serif" style={{ fontSize: 12, color: 'var(--ink-3)' }}>
             — autosaved
           </div>
           <div
-            className="cd-row"
+            className="row"
             style={{ gap: 6, padding: '5px 10px', background: 'var(--bg-sunk)', borderRadius: 6 }}
           >
             <Clock size={13} />
@@ -137,7 +137,7 @@ export default function WritingPracticePage() {
             </button>
           </div>
           <button
-            className="cd-btn cd-btn-primary"
+            className="btn btn-primary"
             onClick={handleSubmit}
             disabled={!canSubmit}
           >
@@ -173,8 +173,8 @@ export default function WritingPracticePage() {
           >
             {prompt.prompt_text}
           </div>
-          <div className="cd-row" style={{ gap: 12, marginTop: 10 }}>
-            <span className="cd-badge cd-badge-outline">
+          <div className="row" style={{ gap: 12, marginTop: 10 }}>
+            <span className="badge badge-outline">
               min {prompt.min_words} {t.writing.word_count.toLowerCase()}
             </span>
           </div>
@@ -199,13 +199,13 @@ export default function WritingPracticePage() {
         </div>
 
         <div className="test-footer" style={{ padding: '0 20px' }}>
-          <div className="cd-row" style={{ gap: 16, fontSize: 12, color: 'var(--ink-3)' }}>
+          <div className="row" style={{ gap: 16, fontSize: 12, color: 'var(--ink-3)' }}>
             <span>
               {t.writing.word_count}{' '}
               <span className="mono" style={{ color: 'var(--ink)', fontWeight: 600, fontSize: 13 }}>{wordCount}</span>{' '}
               <span className="italic-serif">/ min {minWords}</span>
             </span>
-            <div className="cd-progress" style={{ width: 120 }}>
+            <div className="progress" style={{ width: 120 }}>
               <div style={{ width: pct + '%', background: wordCount >= minWords ? 'var(--success)' : 'var(--primary)' }} />
             </div>
             <span>Characters <span className="mono">{essay.length}</span></span>
