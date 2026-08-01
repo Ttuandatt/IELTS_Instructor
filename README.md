@@ -141,9 +141,9 @@ docker compose up -d
 # 3. Backend
 cd apps/backend
 npm install
-npx prisma migrate deploy
+npm run db:ddl                  # Tạo bảng — chạy apps/database/ddl/*.sql
+npm run db:dml                  # Seed dữ liệu — chạy apps/database/dml/*.sql (admin user)
 npx prisma generate
-npm run seed                    # Tạo tài khoản admin
 npm run start:dev               # → http://localhost:3001
 
 # 4. Frontend (terminal mới)

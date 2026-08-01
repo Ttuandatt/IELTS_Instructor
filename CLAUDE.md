@@ -49,6 +49,32 @@ Monorepo: NestJS backend + Next.js 14 frontend (App Router, Turbopack).
 - **Status field:** `passage.status` in `{ draft, published }`. Learners only see `published`.
 - **PRD-first workflow:** Update relevant PRD docs before changing implementation (per user feedback memory).
 
+## Git Workflow
+
+**Branches:**
+- `main` — stable, deployable. Never commit directly.
+- `development` — integration branch. Every `feat/*`/`fix/*` branch PRs into `development` first; `development` PRs into `main` once stable.
+- `feat/<short-kebab-name>` — new feature work, e.g. `feat/m1-schema-migration`
+- `fix/<short-kebab-name>` — bug fixes
+- `backup/<description>` — ad hoc snapshot before a risky batch of changes (rare)
+
+**Commit message title** — Conventional Commits, already the convention throughout this repo's history:
+
+```
+<type>(<scope>): <imperative, lowercase summary>
+```
+
+- `type`: `feat` | `fix` | `docs` | `style` | `refactor` | `chore` | `test` | `wip`
+- `scope`: optional — the module/feature touched (`reading`, `writing`, `dashboard`, `auth`, `lesson`, `scoring`, `prd`, `classroom`...). Omit for repo-wide changes.
+- Examples from history: `feat(reading): split result into /reading/attempts/[id]`, `refactor(reading): strategy pattern grading for 13 IELTS question types`, `docs: merge PRD refresh into staged docs/PRD structure`
+
+**Commit message body:**
+- One or two sentences on *why*, not *what* — the diff already shows what changed
+- Call out anything a reviewer must know that isn't obvious from the diff: schema/migration changes, files moved/renamed, breaking API changes
+- **Never add a `Co-Authored-By: Claude` trailer** — explicitly opted out for this repo, don't reintroduce it
+
+**PR flow:** `feat/*`/`fix/*` → PR into `development` → review → PR `development` → `main` when stable. No fixed cadence — merge to `main` at milestone boundaries, not per-commit.
+
 ## Dev environment quirks
 
 - **Shell:** PowerShell (Windows). Use `Remove-Item -Recurse -Force <path>`, not `rm -rf`. Forward slashes work in most paths.

@@ -1,6 +1,3 @@
--- CreateEnum
-CREATE TYPE "UserRole" AS ENUM ('learner', 'instructor', 'admin');
-
 -- CreateTable
 CREATE TABLE "users" (
     "id" TEXT NOT NULL,
