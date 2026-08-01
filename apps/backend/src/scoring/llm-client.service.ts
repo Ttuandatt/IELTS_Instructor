@@ -42,9 +42,11 @@ export class LlmClientService {
                 modelName = model!;
                 raw = await this.callOpenAI(model!, opts.systemPrompt, opts.userPrompt);
             } else if (provider === 'google' && this.google) {
-                const model = opts.modelTier === 'premium' ? 'gemini-2.5-flash' : 'gemini-2.5-flash';
-                modelName = model;
-                raw = await this.callGoogle(model, opts.systemPrompt, opts.userPrompt);
+                const model = opts.modelTier === 'premium'
+                    ? this.config.get<string>('LLM_MODEL_PREMIUM_GOOGLE', 'gemini-2.5-pro')
+                    : this.config.get<string>('LLM_MODEL_CHEAP_GOOGLE', 'gemini-2.5-flash');
+                modelName = model!;
+                raw = await this.callGoogle(model!, opts.systemPrompt, opts.userPrompt);
             }
         } catch (err) {
             this.logger.warn(`Primary provider (${provider}) failed: ${(err as Error).message}`);
