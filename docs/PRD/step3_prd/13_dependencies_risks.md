@@ -1,3 +1,111 @@
+# Dependencies & Risks
+## Dự án Langy — Pre-pilot MVP
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+
+---
+
+## 1. External Dependencies
+
+| ID | Dependency | Type | Impact nếu mất | Mitigation |
+|----|-----------|------|-----------------|------------|
+| DEP-001 | Google Gemini API | LLM scoring (primary) | AI chấm Writing dừng | Fallback sang OpenAI (DEP-002); bài vào ai_failed, GV chấm tay |
+| DEP-002 | OpenAI API | LLM scoring (fallback) | Mất fallback | Chấp nhận — primary + fallback cùng down xác suất rất thấp |
+| DEP-003 | PostgreSQL (managed) | Database | Toàn bộ hệ thống dừng | Backup hàng ngày; chọn provider SLA ≥99.9% |
+| DEP-004 | Redis (managed) | Queue + rate limit | Chấm AI queue ngưng; rate limit vô hiệu | Chấp nhận downtime ngắn; queue recover khi Redis lên |
+| DEP-005 | Email service | Quên mật khẩu, thông báo | Không gửi được email reset | Chấp nhận — GV liên hệ founder trực tiếp trong pilot |
+| DEP-006 | Domain + SSL | Hosting | Không truy cập được | Chọn provider có auto-SSL |
+
+## 2. Internal Dependencies (giữa các module)
+
+```mermaid
+graph TD
+    AUTH --> CLASS
+    AUTH --> WRIT
+    AUTH --> READ
+    AUTH --> DASH
+    CLASS --> WRIT["WRIT (lesson_id)"]
+    CLASS --> DASH
+    WRIT --> SCORING["LLM Scoring Worker"]
+    SCORING --> WRIT
+    IMPORT --> READ
+    IMPORT --> WRIT
+    READ --> DASH
+    WRIT --> DASH
+```
+
+| Dependency | Chi tiết |
+|-----------|----------|
+| WRIT phụ thuộc CLASS | Submission cần lesson_id → cần Classroom + Lesson trước |
+| DASH phụ thuộc WRIT + READ | Dashboard cần data submission thật |
+| IMPORT → READ/WRIT | Import tạo Passage/Prompt mà READ/WRIT sử dụng |
+| SCORING phụ thuộc schema M1 | Worker cần state machine mới trước khi chạy đúng |
+
+**Thứ tự build bắt buộc:** AUTH → M1 (schema) → CLASS → WRIT (core) → SCORING (worker update) → READ (responsive) → IMPORT → DASH → COMPLIANCE
+
+---
+
+## 3. Risk Register
+
+### 3.1 Rủi ro CAO
+
+| # | Rủi ro | Xác suất | Tác động | Mitigation | Owner |
+|---|--------|----------|----------|------------|-------|
+| R1 | **Dữ liệu cá nhân trẻ em** — phần lớn end user dưới 18; essay có thể chứa thông tin riêng tư; gửi qua API ngoài VN. Luật 91/2025 đã có hiệu lực | Trung bình | Cao | Checklist privacy BA Mục 13; consent flow; data minimization; paid tier; tham vấn luật sư trước thu phí | Founder |
+| R2 | **Growth loop chưa tồn tại** — sau 5 đồng nghiệp không có kênh mở rộng | Cao | Cao | Deadline trả lời: tuần 6 pilot; thiết kế referral GV→GV trong sản phẩm | Founder |
+| R3 | **Founder solo, ngoài giờ, không deadline rõ** — số giờ/tuần dao động 10–20; "không gì khiến tôi bỏ cuộc" | Trung bình | Cao | Pilot date 04/11 cố định; milestone 2 tuần/lần; descope-order nếu trễ | Founder |
+
+### 3.2 Rủi ro TRUNG BÌNH
+
+| # | Rủi ro | Xác suất | Tác động | Mitigation |
+|---|--------|----------|----------|------------|
+| R4 | **AI chấm lệch band** → mất niềm tin cả GV lẫn HS | Trung bình | Trung bình | Band AI = "ước lượng" (D3); lưu cặp calibration; test bộ essay chuẩn trước pilot; calibrated few-shot prompt (D9 Pha 1) |
+| R5 | **Bản quyền nội dung** — kho đề seed có nguồn sưu tầm (bao gồm Cambridge) | Trung bình | Trung bình | ToS: GV cam kết quyền với nội dung upload; không seed đề Cambridge vào production; kho chính thức: tự viết/AI sinh + review |
+| R6 | **Giá 50k chưa validate** — người trả (HS) không phải người chọn (GV) | Trung bình | Trung bình | Pilot đo giá trị riêng cho HS; khảo sát willingness-to-pay tuần 6–8 |
+| R7 | **Desktop-only vs chuẩn thị trường mobile** — Azota đã dạy HS nộp bài trên điện thoại | Trung bình | Trung bình | Responsive mobile-web cho luồng HS trong MVP |
+| R8 | **Nợ kỹ thuật ảnh hưởng pilot** — dashboard mock, endpoint thiếu, bug model tier, SDK EOL | Trung bình | Trung bình | Pre-pilot checklist; ưu tiên luồng GV/HS chạm trong pilot |
+| R9 | **HS tự ôn dùng band AI là "điểm cuối"** — không có mạng lưới an toàn GV | Trung bình | Thấp–TB | Nhãn "ước lượng" + gợi ý tham gia lớp GV; ensemble (Pha 2) tăng tin cậy |
+| R10 | **Import docx với đề thật** — định dạng mỗi GV một kiểu | Trung bình | Trung bình | Preview bắt buộc; mục tiêu ≥70% nhận diện đúng; fallback: GV sửa tay |
+
+### 3.3 Rủi ro THẤP
+
+| # | Rủi ro | Mitigation |
+|---|--------|------------|
+| R11 | LLM API tăng giá đột ngột | COGS hiện cực thấp (~120đ/bài); chuyển provider nếu cần |
+| R12 | Tên "Langy" trùng thương hiệu | Kiểm tra trước khi thu phí chính thức |
+| R13 | HS gian lận (essay do AI viết) | Ngoài scope pilot; xét thêm AI detection sau |
+
+---
+
+## 4. Assumptions (cần validate trong pilot)
+
+| # | Giả định | Cách kiểm chứng | Deadline |
+|---|----------|-----------------|----------|
+| A1 | GV không biết code chịu đổi workflow sang Langy | 5 GV onboard không cần founder ngồi cạnh quá buổi đầu | Tuần 3 pilot |
+| A2 | HS cảm nhận giá trị riêng | Tỷ lệ HS mở feedback AI; số HS tự làm bài ngoài giờ giao | Tuần 8 |
+| A3 | HS/phụ huynh chịu trả 50k/tháng | Khảo sát tuần 6–8 + conversion thật khi bật thu phí | Tuần 8 |
+| A4 | AI chấm đủ sát điểm GV | Độ lệch trung bình band AI vs band GV ≤ 0.5 | Tuần 8 |
+| A5 | Import docx hoạt động với đề thật | Tỷ lệ import thành công ≥70% không cần sửa tay | Tuần 4 pilot |
+| A6 | Network 5 GV đủ làm bàn đạp | ≥1 GV chủ động giới thiệu GV khác | Tuần 8 |
+| A7 | HS tự ôn tìm đến organic | ≥30 đăng ký organic trong 8 tuần, ≥20% retention tuần 2 | Tuần 8 |
+| A8 | HS tự ôn chấp nhận band AI là "điểm cuối" | Khảo sát trust tuần 6 | Tuần 6 |
+
+---
+
+## 5. Success / Kill Criteria (nhắc lại từ BA)
+
+**GO:** ≥3/5 GV tự giao ≥1 bài/tuần ở tuần 7–8 mà không cần founder nhắc.
+
+**NO-GO:** ≤1/5 GV còn giao bài ở tuần 8, HOẶC 0 HS tự quay lại làm bài ngoài giờ giao.
+
+---
+
+# ══════════════════════════════════════════════════════
+# NỘI DUNG GỐC TỪ PRD BAN ĐẦU (02/2025)
+# Giữ lại để tham chiếu. Khi mâu thuẫn, phần trên ưu tiên.
+# ══════════════════════════════════════════════════════
+
 # ⚠️ Dependencies & Risks — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-13  

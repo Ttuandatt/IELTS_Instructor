@@ -186,3 +186,127 @@ Hiện tại, người học IELTS gặp nhiều khó khăn:
 
 ## Changelog
 - v1.1 (2026-04-13): Bỏ NotebookLM integration, thay bằng DOCX/PDF Auto-Import qua Gemini multimodal. Cập nhật vision, personas, scope, tech stack, risks. Sync với codebase thực tế.
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# Executive Summary
+## Dự án Langy — Nền tảng giao bài, chấm bài AI cho giáo viên IELTS
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+
+---
+
+## 1. Tổng quan dự án
+
+### 1.1 Mô tả ngắn gọn
+
+**Langy** là ứng dụng web giúp giáo viên IELTS tự do giao bài, thu bài và chấm bài tự động bằng AI trong một hệ thống duy nhất — thay thế workflow thủ công hiện tại (Google Classroom + Zalo + Google Docs + copy-paste từng bài vào ChatGPT + Excel).
+
+Hệ thống gồm ba vai trò:
+- **Giáo viên (Instructor):** Tạo lớp, giao bài Reading/Writing, review feedback AI, chốt điểm, theo dõi tiến độ học sinh
+- **Học sinh trong lớp (Learner):** Làm bài được giao, nhận feedback AI và/hoặc feedback giáo viên, xem tiến bộ band
+- **Học sinh tự ôn (Self-study Learner):** Tự đăng ký, tự chọn đề từ kho, nhận feedback AI trực tiếp
+
+### 1.2 Vision statement
+
+> "Langy giúp giáo viên IELTS tự do giao bài và để AI chấm Writing theo đúng band descriptor — việc mà Azota và Google Classroom bắt họ chấm tay từng bài."
+
+---
+
+## 2. Vấn đề cần giải quyết
+
+| Đối tượng | Vấn đề hiện tại | Hậu quả |
+|-----------|-----------------|---------|
+| **Giáo viên IELTS tự do** | Thu bài qua Zalo/Docs → muốn AI chấm phải copy-paste từng bài vào ChatGPT → báo điểm thủ công | Mất hàng giờ mỗi tuần cho công việc lặp lại; không có dashboard tổng hợp |
+| **Học sinh trong lớp** | Tài liệu phân tán (Zalo, Docs, PDF), không biết mình tiến bộ hay thụt lùi | Mất động lực, khó tự đánh giá |
+| **Học sinh tự ôn** | Paste bài vào ChatGPT → không lưu lịch sử, không có rubric chuẩn IELTS, mỗi lần chấm một kiểu | Không tracking được tiến bộ, không nhất quán |
+| **Phụ huynh** | Không biết con học đến đâu, GV báo điểm qua tin nhắn rời rạc | Thiếu minh bạch |
+
+---
+
+## 3. Giải pháp đề xuất
+
+### 3.1 Killer feature — AI chấm Writing IELTS
+- Chấm theo 4 tiêu chí band descriptor: Task Response, Coherence & Cohesion, Lexical Resource, Grammatical Range & Accuracy
+- Feedback chi tiết: điểm mạnh, cần cải thiện, band từng tiêu chí
+- Band AI hiển thị nhãn "ước lượng" — giáo viên chốt điểm cuối cùng
+- Giáo viên cấu hình per-lớp: chế độ A (HS thấy AI ngay) hoặc B (GV duyệt trước)
+
+### 3.2 Reading tự chấm
+- Test player với timer
+- Chấm tự động khi nộp
+- Giải thích từng câu (đáp án đúng, vì sao)
+
+### 3.3 Classroom Management
+- Tạo lớp, mời HS bằng mã 6 ký tự
+- Giao bài với deadline
+- Dashboard tiến độ từng HS
+
+### 3.4 Import đề từ docx
+- GV upload file Word → hệ thống bóc passage + câu hỏi + đáp án
+- Preview và sửa trước khi publish
+
+---
+
+## 4. Phạm vi MVP (pre-pilot)
+
+### Trong phạm vi
+
+| Component | Priority | Giai đoạn |
+|-----------|----------|-----------|
+| AI chấm Writing 4 tiêu chí + state machine A/B | P0 | M1 |
+| Classroom + mã mời + giao bài | P0 | M2 |
+| GV review flow (review queue, chốt điểm) | P0 | M2 |
+| Responsive luồng HS (điện thoại) | P0 | M3 |
+| Xem lại bài Reading đã làm (attempts/:id) | P0 | M3 |
+| Luồng HS tự ôn (đăng ký tự do, dashboard cá nhân) | P0 | M3 |
+| Import Writing prompts từ docx | P0 | M4 |
+| Import Reading từ docx + preview | P1 | M4 |
+| Consent flow + privacy policy + delete account | P0 | M5 |
+| Dashboard GV thay mock bằng dữ liệu thật | P1 | M5 |
+
+### Ngoài phạm vi (đã chốt cắt)
+Mobile app native, Listening, Speaking, Word lookup, Gamification, Migrate Spring Boot, Đa ngôn ngữ ngoài Việt/Anh, Admin panel hoàn chỉnh, Marketplace đề, Thu phí (pilot miễn phí 8 tuần)
+
+---
+
+## 5. Stakeholders
+
+| Vai trò | Người | Trách nhiệm |
+|---------|-------|--------------|
+| Founder / Developer / GV đầu tiên | Owner | Code, thiết kế, pilot với lớp mình |
+| Giáo viên pilot | 5 đồng nghiệp | Design partner, feedback, onboard lớp |
+| Học sinh pilot | Lớp của 6 GV trên | End user, kiểm chứng giá trị |
+
+---
+
+## 6. Timeline tổng quan
+
+| Mốc | Thời gian | Nội dung |
+|-----|-----------|----------|
+| Bắt đầu pre-pilot dev | 07/2026 | M1: Schema migration + LLM hardening |
+| Pilot Day 1 | 04/11/2026 | Lớp founder chạy trọn vòng đời |
+| Onboard 5 GV | Tuần 3 pilot (~25/11/2026) | Mở rộng pilot |
+| Decision gate | Tuần 8 pilot (~30/12/2026) | Go/no-go dựa trên metrics |
+
+---
+
+## 7. Success metrics
+
+**TIẾP TỤC** nếu ≥3/5 GV tự giao ≥1 bài/tuần ở tuần 7–8 mà không cần founder nhắc.
+
+**DỪNG LẠI** nếu ≤1/5 GV còn giao bài ở tuần 8, hoặc không có HS nào tự quay lại làm bài ngoài giờ bị giao.
+
+---
+
+## 8. Mô hình kinh doanh (dự kiến sau pilot)
+
+- Giáo viên: miễn phí
+- Học sinh: ~50.000đ/tháng
+- Chi phí biên AI: ~120đ/bài chấm (Gemini 2.5 Flash)
+- Chiến lược: lấy số lượng bù giá thấp — COGS không phải rào cản

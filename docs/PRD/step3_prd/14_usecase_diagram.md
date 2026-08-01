@@ -353,3 +353,144 @@ graph TB
 ---
 
 > **Tham chiếu:** [03_user_personas_roles](03_user_personas_roles.md) | [04_user_stories](04_user_stories.md) | [05_functional_requirements](05_functional_requirements.md)
+
+---
+
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# Use Case Diagram
+## Dự án Langy
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+
+---
+
+## 1. Use Case Diagram tổng quan
+
+```mermaid
+graph LR
+    subgraph Actors
+        GV["🧑‍🏫 Instructor"]
+        HS["🧑‍🎓 Learner (classroom)"]
+        HSS["🧑‍💻 Learner (self-study)"]
+        AI["🤖 LLM API"]
+        SYS["⚙️ System"]
+    end
+
+    subgraph UC_AUTH["Authentication"]
+        UC01["UC-01: Đăng ký"]
+        UC02["UC-02: Đăng nhập"]
+        UC03["UC-03: Quên mật khẩu"]
+        UC04["UC-04: Xóa tài khoản"]
+    end
+
+    subgraph UC_CLASS["Classroom"]
+        UC10["UC-10: Tạo lớp"]
+        UC11["UC-11: Mời HS"]
+        UC12["UC-12: Tham gia lớp"]
+        UC13["UC-13: Giao bài"]
+        UC14["UC-14: Đổi chế độ Writing"]
+    end
+
+    subgraph UC_WRIT["Writing"]
+        UC20["UC-20: Viết bài + auto-save"]
+        UC21["UC-21: Nộp bài Writing"]
+        UC22["UC-22: AI chấm bài"]
+        UC23["UC-23: Xem feedback"]
+        UC24["UC-24: Review + chốt điểm"]
+        UC25["UC-25: Xem lịch sử Writing"]
+    end
+
+    subgraph UC_READ["Reading"]
+        UC30["UC-30: Làm bài Reading"]
+        UC31["UC-31: Xem kết quả + giải thích"]
+        UC32["UC-32: Xem lịch sử Reading"]
+    end
+
+    subgraph UC_IMPORT["Import"]
+        UC40["UC-40: Import Writing prompt"]
+        UC41["UC-41: Import Reading passage"]
+    end
+
+    subgraph UC_DASH["Dashboard"]
+        UC50["UC-50: Xem dashboard lớp"]
+        UC51["UC-51: Xem tiến độ HS"]
+        UC52["UC-52: Xem dashboard cá nhân"]
+    end
+
+    GV --> UC01 & UC02 & UC03 & UC04
+    HS --> UC01 & UC02 & UC03 & UC04
+    HSS --> UC01 & UC02 & UC03 & UC04
+
+    GV --> UC10 & UC11 & UC13 & UC14
+    HS --> UC12
+
+    GV --> UC24
+    HS --> UC20 & UC21 & UC23 & UC25
+    HSS --> UC20 & UC21 & UC23 & UC25
+
+    HS --> UC30 & UC31 & UC32
+    HSS --> UC30 & UC31 & UC32
+
+    GV --> UC40 & UC41
+
+    GV --> UC50 & UC51
+    HS --> UC52
+    HSS --> UC52
+
+    UC21 --> AI
+    AI --> UC22
+    UC22 --> SYS
+```
+
+---
+
+## 2. Use Case Descriptions
+
+### UC-21: Nộp bài Writing (trung tâm hệ thống)
+
+| Thuộc tính | Chi tiết |
+|------------|----------|
+| **Actor** | Learner (classroom hoặc self-study) |
+| **Precondition** | Đã đăng nhập; đã mở đề Writing |
+| **Trigger** | Bấm nút "Nộp bài" |
+| **Main flow** | 1. HS viết bài trong editor (đếm từ real-time, auto-save 30s) → 2. Bấm "Nộp" → 3. Dialog xác nhận → 4. Hệ thống tạo submission (state=submitted) → 5. Enqueue job chấm AI → 6. Trả HTTP 202 → 7. HS thấy "đang chờ chấm" |
+| **Alternative flow A** | Lớp chế độ instant / tự học: khi AI chấm xong → state=released_ai → HS thấy feedback + nhãn "ước lượng" |
+| **Alternative flow B** | Lớp chế độ review_first: khi AI chấm xong → state=pending_review → HS thấy "đang chờ giáo viên" → GV review → finalized → HS thấy feedback |
+| **Exception flow** | AI lỗi sau 3 retry → state=ai_failed → GV thấy nút "chấm lại"; HS thấy "đang chờ chấm" |
+| **Postcondition** | Submission tồn tại trong DB với state phù hợp; job đã enqueue hoặc đã xử lý |
+
+### UC-24: Review + chốt điểm
+
+| Thuộc tính | Chi tiết |
+|------------|----------|
+| **Actor** | Instructor |
+| **Precondition** | Có ≥1 submission ở state released_ai, pending_review, hoặc ai_failed |
+| **Trigger** | Mở review queue |
+| **Main flow** | 1. GV mở review queue → 2. Lọc theo lớp/trạng thái → 3. Click vào bài → 4. Thấy essay + feedback AI + band từng tiêu chí → 5. Giữ nguyên hoặc sửa band → 6. Thêm nhận xét (tùy chọn) → 7. Bấm "Chốt" → state=finalized |
+| **Postcondition** | Cặp (scores AI, instructor_scores) được lưu; HS thấy bản chốt |
+
+### UC-22: AI chấm bài (system use case)
+
+| Thuộc tính | Chi tiết |
+|------------|----------|
+| **Actor** | System (BullMQ Worker) + LLM API |
+| **Precondition** | Job trong queue với submission_id |
+| **Main flow** | 1. Worker lấy job → 2. Đọc submission (đề + essay) → 3. Xây prompt (rubric + few-shot anchors + đề + essay, KHÔNG có PII) → 4. Gọi LLM API (structured output, temperature 0, timeout 60s) → 5. Validate schema output → 6. Lưu scores + feedback + metadata (tokens, model, prompt_version) → 7. Resolve writing_mode → set state (released_ai hoặc pending_review) |
+| **Exception** | Timeout/error → retry (max 3, exponential backoff) → vẫn lỗi → state=ai_failed |
+
+### UC-41: Import Reading passage
+
+| Thuộc tính | Chi tiết |
+|------------|----------|
+| **Actor** | Instructor |
+| **Precondition** | Có file docx chứa đề Reading |
+| **Main flow** | 1. GV upload docx → 2. Hệ thống parse: bóc passage + câu hỏi + đáp án → 3. Hiển thị preview → 4. GV sửa từng câu nếu cần → 5. Tick checkbox bản quyền → 6. Bấm "Publish" → Passage + Questions được tạo trong DB |
+| **Alternative** | Parse sai → GV sửa tay trên preview; nếu quá sai → GV hủy và tạo manual |
+| **Postcondition** | Passage mới thuộc sở hữu GV, sẵn sàng giao bài |

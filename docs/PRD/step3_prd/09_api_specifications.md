@@ -1317,3 +1317,154 @@ Khi tạo hoặc cập nhật lesson, body hỗ trợ thêm 2 fields mới:
 ---
 
 > **Tham chiếu:** [openapi.yaml](openapi.yaml) | [05_functional_requirements](05_functional_requirements.md) | [08_data_requirements](08_data_requirements.md)
+
+---
+
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# API Specifications
+## Dự án Langy — Pre-pilot MVP
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+> **Base URL:** `{API_BASE}/api/v1`
+> **Auth:** JWT Bearer token (trừ endpoints đánh dấu 🔓 Public)
+
+---
+
+## 1. Conventions
+
+- **Response format:** `{ data, message?, statusCode }`
+- **Error format:** `{ statusCode, message, error }`
+- **Pagination:** `?page=1&limit=20` → response: `{ data, meta: { total, page, limit, totalPages } }`
+- **Timestamps:** ISO 8601 UTC
+
+---
+
+## 2. Auth Module
+
+| Method | Endpoint | Access | Description | Status |
+|--------|----------|--------|-------------|--------|
+| POST | `/auth/register` | 🔓 Public | Đăng ký (email, password, display_name, birth_year) | ✅ Có |
+| POST | `/auth/login` | 🔓 Public | Đăng nhập → { accessToken, refreshToken, user } | ✅ Có |
+| POST | `/auth/refresh` | 🔓 Public | Refresh access token | ✅ Có |
+| POST | `/auth/forgot-password` | 🔓 Public | Gửi email reset password | ⚠️ Cần verify |
+| POST | `/auth/reset-password` | 🔓 Public | Đặt lại password từ token | ⚠️ Cần verify |
+| GET | `/auth/profile` | All roles | Lấy thông tin user hiện tại | ✅ Có |
+| PATCH | `/auth/profile` | All roles | Cập nhật profile (display_name, language, theme) | ✅ Có |
+| DELETE | `/auth/account` | All roles | Xóa tài khoản (xóa mềm 7 ngày) | 🆕 Cần xây |
+
+---
+
+## 3. Classroom Module
+
+| Method | Endpoint | Access | Description | Status |
+|--------|----------|--------|-------------|--------|
+| POST | `/classrooms` | Instructor | Tạo lớp (name, description?, writing_mode) | ✅ Có (thêm writing_mode) |
+| GET | `/classrooms` | Instructor | Danh sách lớp của GV | ✅ Có |
+| GET | `/classrooms/:id` | Instructor, Members | Chi tiết lớp + danh sách thành viên | ✅ Có |
+| PATCH | `/classrooms/:id` | Instructor (owner) | Cập nhật lớp (name, description, writing_mode) | ✅ Có (thêm writing_mode) |
+| POST | `/classrooms/join` | Learner | Tham gia lớp bằng invite_code | ✅ Có |
+| GET | `/classrooms/:id/members` | Instructor | Danh sách thành viên | ✅ Có |
+
+---
+
+## 4. Lesson Module (giao bài)
+
+| Method | Endpoint | Access | Description | Status |
+|--------|----------|--------|-------------|--------|
+| POST | `/lessons` | Instructor | Tạo bài giao (topic_id, content_type, linked_entity_id, due_at?) | ✅ Có (thêm due_at) |
+| GET | `/lessons?topic_id=` | Members | Danh sách bài theo topic | ✅ Có |
+| GET | `/lessons/my-assignments` | Learner | "Bài tập của tôi" — bài được giao trong các lớp | 🆕 Cần xây |
+| GET | `/lessons/:id` | Members | Chi tiết bài giao | ✅ Có |
+
+---
+
+## 5. Writing Module
+
+| Method | Endpoint | Access | Description | Status |
+|--------|----------|--------|-------------|--------|
+| POST | `/writing/submissions` | Learner | Nộp bài Writing (prompt_id, content, lesson_id?) → 202 + enqueue | ✅ Có (thêm lesson_id, state) |
+| PATCH | `/writing/submissions/:id/draft` | Learner (owner) | Auto-save draft (content, word_count) | 🆕 Cần xây |
+| GET | `/writing/submissions/:id` | Owner, Instructor (lớp) | Chi tiết submission + feedback (lọc theo state/role) | ✅ Có (cần logic che) |
+| GET | `/writing/history` | Learner | Lịch sử bài Writing đã nộp | ✅ Có |
+| GET | `/writing/prompts` | All roles | Danh sách đề Writing (kho) | ✅ Có |
+| GET | `/writing/prompts/:id` | All roles | Chi tiết đề | ✅ Có |
+| POST | `/writing/prompts` | Instructor, Admin | Tạo đề Writing | ✅ Có |
+
+### 5.1 Instructor Review Endpoints (🆕)
+
+| Method | Endpoint | Access | Description | Status |
+|--------|----------|--------|-------------|--------|
+| GET | `/instructor/review-queue` | Instructor | Danh sách submission cần review (lọc classroom, state) | 🆕 Cần xây |
+| POST | `/writing/submissions/:id/finalize` | Instructor | Chốt điểm (instructor_scores?, instructor_comment?) | 🆕 Cần xây |
+| POST | `/writing/submissions/:id/retry` | Instructor | Chấm lại bài ai_failed | 🆕 Cần xây |
+
+### 5.2 Response: GET /writing/submissions/:id (logic che theo role + state)
+
+| State | HS (owner) thấy | GV thấy |
+|-------|-----------------|---------|
+| draft | content, word_count | — |
+| submitted | "đang chờ chấm" | "đang chờ chấm" |
+| released_ai | content + scores + feedback + nhãn "ước lượng" | content + scores + feedback |
+| pending_review | "đã nộp — đang chờ giáo viên" (CHE scores/feedback) | content + scores + feedback |
+| ai_failed | "đang chờ chấm" | content + nút "chấm lại" |
+| finalized | content + instructor_scores + instructor_comment + feedback | Toàn bộ |
+
+---
+
+## 6. Reading Module
+
+| Method | Endpoint | Access | Description | Status |
+|--------|----------|--------|-------------|--------|
+| GET | `/reading/passages` | All roles | Danh sách passage (lọc level, collection) | ✅ Có |
+| GET | `/reading/passages/:id` | All roles | Chi tiết passage + questions | ✅ Có |
+| POST | `/reading/submissions` | Learner | Nộp bài Reading (passage_id, answers) → chấm ngay | ✅ Có |
+| GET | `/reading/attempts/:id` | Owner, Instructor (lớp) | Chi tiết attempt đã làm | 🆕 Cần xây |
+| GET | `/reading/history` | Learner | Lịch sử bài Reading | ✅ Có |
+
+---
+
+## 7. Import Module
+
+| Method | Endpoint | Access | Description | Status |
+|--------|----------|--------|-------------|--------|
+| POST | `/upload/document` | Instructor, Admin | Upload docx → tạo SourceDocument + trigger ImportJob | ✅ Có |
+| GET | `/upload/jobs/:id` | Instructor (owner) | Trạng thái import job + parsed data preview | ✅ Có |
+| POST | `/upload/jobs/:id/confirm` | Instructor (owner) | Xác nhận publish sau preview | 🆕 Cần xây |
+
+---
+
+## 8. Dashboard Module
+
+| Method | Endpoint | Access | Description | Status |
+|--------|----------|--------|-------------|--------|
+| GET | `/dashboard/instructor` | Instructor | Thống kê lớp: review queue count, bài nộp/tuần, tỷ lệ hoàn thành | ⚠️ Có (cần thêm review-queue) |
+| GET | `/dashboard/instructor/review-queue?limit=6` | Instructor | 6 bài gần nhất cần review | 🆕 Cần xây |
+| GET | `/dashboard/learner` | Learner | Thống kê cá nhân: trends, band theo thời gian | ✅ Có |
+| GET | `/dashboard/learner/:id` | Instructor | Xem tiến độ 1 HS trong lớp | 🆕 Cần xây |
+| GET | `/dashboard/admin-stats` | Admin | Thống kê toàn hệ thống (mock trong pilot) | ⚠️ Mock |
+
+---
+
+## 9. Tổng hợp endpoints cần xây mới / sửa cho M1–M5
+
+| Priority | Endpoint | Module | Milestone |
+|----------|----------|--------|-----------|
+| P0 | `PATCH /writing/submissions/:id/draft` | WRIT | M1 |
+| P0 | `GET /instructor/review-queue` | WRIT | M2 |
+| P0 | `POST /writing/submissions/:id/finalize` | WRIT | M2 |
+| P0 | `POST /writing/submissions/:id/retry` | WRIT | M2 |
+| P0 | `GET /lessons/my-assignments` | LESSON | M2 |
+| P0 | `GET /reading/attempts/:id` | READ | M3 |
+| P0 | `DELETE /auth/account` | AUTH | M5 |
+| P1 | `POST /upload/jobs/:id/confirm` | IMPORT | M4 |
+| P1 | `GET /dashboard/instructor/review-queue` | DASH | M5 |
+| P1 | `GET /dashboard/learner/:id` | DASH | M5 |
+
+**Sửa logic endpoints hiện có:** `POST /writing/submissions` (thêm lesson_id, state), `GET /writing/submissions/:id` (logic che theo state + role), `POST /classrooms` (thêm writing_mode), `PATCH /classrooms/:id` (thêm writing_mode), `POST /lessons` (thêm due_at)

@@ -314,3 +314,223 @@ sequenceDiagram
 ---
 
 > **Tham chiếu:** [05_functional_requirements](05_functional_requirements.md) | [09_api_specifications](09_api_specifications.md) | [11_business_rules](11_business_rules.md)
+
+---
+
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# Sequence Diagrams
+## Dự án Langy
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+
+---
+
+## 1. Writing Submission — Chế độ A (instant)
+
+```mermaid
+sequenceDiagram
+    actor HS as Học sinh
+    participant FE as Frontend
+    participant API as NestJS API
+    participant DB as PostgreSQL
+    participant Q as Redis/BullMQ
+    participant W as Worker
+    participant LLM as Gemini API
+
+    HS->>FE: Viết bài (editor)
+    loop Mỗi 30 giây
+        FE->>API: PATCH /submissions/:id/draft
+        API->>DB: Update content + updated_at
+    end
+
+    HS->>FE: Bấm "Nộp bài"
+    FE->>FE: Dialog xác nhận
+    HS->>FE: Xác nhận
+    FE->>API: POST /writing/submissions
+    API->>DB: Create submission (state=submitted)
+    API->>Q: Enqueue job (id=submission_id)
+    API-->>FE: 202 Accepted
+    FE-->>HS: "Đang chờ chấm..."
+
+    Q->>W: Deliver job
+    W->>DB: Read submission (đề + essay)
+    W->>LLM: Prompt (rubric + essay, NO PII)
+    Note over W,LLM: timeout 60s, temperature 0
+    LLM-->>W: JSON structured response
+    W->>W: Validate schema
+    W->>DB: Save scores + feedback + metadata
+    W->>DB: Resolve writing_mode → instant
+    W->>DB: Update state → released_ai
+
+    FE->>API: Poll GET /submissions/:id
+    API->>DB: Read (state=released_ai)
+    API-->>FE: scores + feedback
+    FE-->>HS: Feedback AI + nhãn "ước lượng"
+```
+
+---
+
+## 2. Writing Submission — Chế độ B (review_first)
+
+```mermaid
+sequenceDiagram
+    actor HS as Học sinh
+    actor GV as Giáo viên
+    participant FE as Frontend
+    participant API as NestJS API
+    participant DB as PostgreSQL
+    participant W as Worker
+    participant LLM as Gemini API
+
+    HS->>FE: Nộp bài
+    FE->>API: POST /writing/submissions
+    API->>DB: Create (state=submitted)
+    API-->>FE: 202
+
+    W->>LLM: Chấm AI
+    LLM-->>W: Kết quả
+    W->>DB: Save scores, state → pending_review
+
+    HS->>API: GET /submissions/:id
+    API-->>HS: "Đã nộp — đang chờ giáo viên"
+    Note over API,HS: scores/feedback bị CHE (server-side)
+
+    GV->>API: GET /instructor/review-queue
+    API-->>GV: Danh sách bài cần review
+    GV->>API: GET /submissions/:id
+    API-->>GV: Essay + AI feedback + band (đầy đủ)
+
+    GV->>GV: Review, sửa band nếu cần
+    GV->>API: POST /submissions/:id/finalize
+    API->>DB: Save instructor_scores, state → finalized
+    Note over DB: Lưu cặp (scores, instructor_scores)
+
+    HS->>API: GET /submissions/:id
+    API-->>HS: Bản chốt GV + highlight thay đổi
+```
+
+---
+
+## 3. AI Scoring — Error Flow
+
+```mermaid
+sequenceDiagram
+    participant Q as Redis Queue
+    participant W as Worker
+    participant LLM as LLM API
+    participant DB as PostgreSQL
+    actor GV as Giáo viên
+
+    Q->>W: Job (attempt 1)
+    W->>LLM: Call (timeout 60s)
+    LLM--xW: Timeout/Error
+
+    Q->>W: Job (attempt 2, backoff 5s)
+    W->>LLM: Call
+    LLM--xW: Error
+
+    Q->>W: Job (attempt 3, backoff 25s)
+    W->>LLM: Call
+    LLM--xW: Error
+
+    W->>DB: state → ai_failed
+    Note over DB: error_message logged
+
+    GV->>DB: Thấy trong review queue
+    alt Chấm lại
+        GV->>W: POST /submissions/:id/retry
+        W->>DB: state → submitted
+        W->>Q: Re-enqueue
+    else Chấm tay
+        GV->>DB: POST /submissions/:id/finalize
+        Note over DB: state → finalized (skip AI)
+    end
+```
+
+---
+
+## 4. Classroom — Tạo lớp + HS tham gia
+
+```mermaid
+sequenceDiagram
+    actor GV as Giáo viên
+    actor HS as Học sinh
+    participant API as NestJS API
+    participant DB as PostgreSQL
+
+    GV->>API: POST /classrooms {name, writing_mode}
+    API->>DB: Create Classroom + generate invite_code
+    API-->>GV: { id, invite_code: "ABC123", writing_mode: "instant" }
+
+    GV->>HS: Chia sẻ mã "ABC123" (qua Zalo/lớp)
+
+    HS->>API: POST /classrooms/join {invite_code: "ABC123"}
+    API->>DB: Check code → Create ClassroomMember
+    API-->>HS: { classroom: {...}, role: "student" }
+```
+
+---
+
+## 5. Import Reading từ docx
+
+```mermaid
+sequenceDiagram
+    actor GV as Giáo viên
+    participant FE as Frontend
+    participant API as NestJS API
+    participant Parser as Docx Parser
+    participant DB as PostgreSQL
+
+    GV->>FE: Upload file .docx
+    FE->>API: POST /upload/document (multipart)
+    API->>DB: Create SourceDocument (status=pending)
+    API->>Parser: Parse docx
+    Parser-->>API: { passage, questions[], answers[] }
+    API->>DB: Create ImportJob (parsed_raw_data)
+    API-->>FE: { job_id, preview_data }
+
+    FE-->>GV: Màn hình Preview
+
+    GV->>FE: Sửa câu hỏi nếu cần
+    GV->>FE: Tick checkbox bản quyền
+    GV->>FE: Bấm "Publish"
+    FE->>API: POST /upload/jobs/:id/confirm
+    API->>DB: Create Passage + Questions
+    API-->>FE: { passage_id }
+    FE-->>GV: "Đã import thành công"
+```
+
+---
+
+## 6. Đăng ký — HS dưới 16 tuổi
+
+```mermaid
+sequenceDiagram
+    actor HS as Học sinh
+    participant FE as Frontend
+    participant API as NestJS API
+    participant DB as PostgreSQL
+
+    HS->>FE: Điền form (email, password, birth_year)
+    FE->>FE: Tính tuổi từ birth_year
+    alt Tuổi >= 16
+        FE->>FE: Checkbox Điều khoản + Privacy Policy
+        HS->>FE: Tick đồng ý
+        FE->>API: POST /auth/register
+        API->>DB: Create User
+        API-->>FE: Success
+    else Tuổi < 16
+        FE->>FE: Hiện thêm: checkbox xác nhận phụ huynh + email phụ huynh
+        HS->>FE: Tick + nhập email PH
+        FE->>API: POST /auth/register {parent_consent: true, parent_email}
+        API->>DB: Create User (flagged minor)
+        API-->>FE: Success
+    end
+```

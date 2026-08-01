@@ -301,3 +301,104 @@
 ---
 
 > **Tham chiếu:** [12_technical_constraints](12_technical_constraints.md) | [13_dependencies_risks](13_dependencies_risks.md)
+
+---
+
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# Non-Functional Requirements
+## Dự án Langy — Pre-pilot MVP
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+
+---
+
+## 1. Performance
+
+| ID | Requirement | Metric | Ghi chú |
+|----|-------------|--------|---------|
+| NFR-PERF-001 | Trang làm bài tải nhanh trên mạng 4G | ≤ 3 giây (Time to Interactive) | Luồng HS — mobile |
+| NFR-PERF-002 | Chấm Reading tức thì sau nộp | ≤ 500ms | Server-side so đáp án |
+| NFR-PERF-003 | Chấm Writing AI hoàn thành | p95 ≤ 3 phút (từ submitted → ai_scored) | Phụ thuộc LLM API |
+| NFR-PERF-004 | Auto-save draft Writing | Mỗi 30 giây, ≤ 200ms/request | Không block UI |
+| NFR-PERF-005 | Dashboard GV load | ≤ 2 giây cho lớp ≤ 30 HS | Query tối ưu |
+
+## 2. Scalability (pilot scope)
+
+| ID | Requirement | Metric |
+|----|-------------|--------|
+| NFR-SCALE-001 | Đồng thời tối thiểu | 50 users (5 GV × ~10 HS/lớp) |
+| NFR-SCALE-002 | Throughput chấm AI | 20 bài/phút (BullMQ concurrency) |
+| NFR-SCALE-003 | Database connections | 10 (Prisma default) — đủ cho pilot |
+
+## 3. Security
+
+| ID | Requirement | Chi tiết |
+|----|-------------|----------|
+| NFR-SEC-001 | HTTPS only | SSL/TLS bắt buộc mọi endpoint |
+| NFR-SEC-002 | Password hashing | bcrypt (salt rounds ≥ 10) |
+| NFR-SEC-003 | JWT token security | Access token 15 phút, refresh 7 ngày; HttpOnly cookie cho refresh |
+| NFR-SEC-004 | Input validation | Class-validator trên mọi DTO; sanitize HTML input |
+| NFR-SEC-005 | SQL injection prevention | Prisma ORM — parameterized queries mặc định |
+| NFR-SEC-006 | Rate limiting | Global API rate limit + 10 bài Writing/ngày/HS (Redis) |
+| NFR-SEC-007 | CORS | Whitelist frontend domain; không wildcard |
+| NFR-SEC-008 | Prompt injection mitigation | Schema validator kiểm tra output AI; band score phải trong range 0–9; reject nếu ngoài |
+| NFR-SEC-009 | API key management | LLM API keys trong environment variables; không hardcode; không commit vào repo |
+
+## 4. Privacy & Data Protection
+
+| ID | Requirement | Chi tiết | Tham chiếu |
+|----|-------------|----------|------------|
+| NFR-PRIV-001 | Data minimization | Prompt chấm AI chỉ chứa đề + essay; không gửi PII (tên, email, ID) | Luật 91/2025, D10 |
+| NFR-PRIV-002 | Paid tier API | Không dùng free tier LLM API (provider có thể dùng dữ liệu để train) | BA Mục 13 |
+| NFR-PRIV-003 | Privacy policy | Tiếng Việt dễ hiểu; nêu rõ dữ liệu nào thu, gửi tới AI nào, mục đích, thời gian lưu | US-601 |
+| NFR-PRIV-004 | Consent phụ huynh | HS dưới 16: xác nhận của phụ huynh/người giám hộ | US-601 |
+| NFR-PRIV-005 | Quyền xóa | Người dùng xóa được tài khoản + toàn bộ dữ liệu bài làm | US-602 |
+| NFR-PRIV-006 | Thông báo rò rỉ | Nghĩa vụ thông báo cho người dùng nếu xảy ra data breach | Luật 91/2025 |
+| NFR-PRIV-007 | Xuyên biên giới | Essay gửi tới Google/OpenAI (server ngoài VN) — ghi rõ trong privacy policy | BA Mục 13 |
+
+## 5. Reliability
+
+| ID | Requirement | Chi tiết |
+|----|-------------|----------|
+| NFR-REL-001 | Submission không bao giờ mất | Mọi trạng thái lỗi đều nhìn thấy được (ai_failed) và có đường thoát (chấm lại/chấm tay) |
+| NFR-REL-002 | LLM fallback | Primary (Gemini) down → tự động chuyển sang fallback (OpenAI) |
+| NFR-REL-003 | Retry với backoff | BullMQ: 3 attempts, exponential backoff 5s base |
+| NFR-REL-004 | Idempotency | Job ID = Submission ID → nộp trùng không tạo hai lần chấm |
+| NFR-REL-005 | Database backup | Tự động hàng ngày (managed service) |
+| NFR-REL-006 | Graceful degradation | Nếu AI scoring queue đầy → HS vẫn nộp được, bài xếp hàng; UI hiển thị "đang chờ chấm" |
+
+## 6. Usability
+
+| ID | Requirement | Chi tiết |
+|----|-------------|----------|
+| NFR-UX-001 | Responsive cho HS | Luồng làm bài + xem feedback dùng tốt ở viewport 375px (iPhone SE) |
+| NFR-UX-002 | GV desktop-first | Luồng GV tối ưu cho desktop; không cam kết mobile GV trong pre-pilot |
+| NFR-UX-003 | Bilingual | Giao diện hỗ trợ tiếng Việt + English; mọi i18n key phải có cả hai |
+| NFR-UX-004 | Onboarding GV | GV không biết code phải tự tạo lớp + giao bài lần đầu mà không cần founder hướng dẫn |
+| NFR-UX-005 | Error messages | Thông báo lỗi rõ ràng, bằng tiếng Việt, hướng dẫn hành động tiếp |
+
+## 7. Cost
+
+| ID | Requirement | Metric |
+|----|-------------|--------|
+| NFR-COST-001 | Chi phí AI chấm | ≤ 200đ/bài ở p95 (đã gồm retry) |
+| NFR-COST-002 | Cảnh báo chi phí | Alert nếu chi tiêu API ngày vượt ngưỡng đặt trước |
+| NFR-COST-003 | Token usage logging | Mỗi lượt chấm log tokens_input + tokens_output → tính chi phí thực |
+| NFR-COST-004 | Context caching | Rubric prompt (tĩnh) dùng context caching Gemini → giảm ~90% input cost lặp |
+
+## 8. Maintainability
+
+| ID | Requirement | Chi tiết |
+|----|-------------|----------|
+| NFR-MAINT-001 | TypeScript strict mode | Backend + frontend; no `any` without justification |
+| NFR-MAINT-002 | Prisma migration-based | Mọi thay đổi schema qua migration file, commit vào repo |
+| NFR-MAINT-003 | Swagger auto-gen | API docs tự động từ NestJS decorators; luôn up-to-date |
+| NFR-MAINT-004 | Calibration data | Cặp (band AI, band GV chốt) lưu tự động → tài sản dài hạn để cải thiện prompt |
+| NFR-MAINT-005 | Prompt version tracking | `prompt_version` trong submission → không trộn calibration data giữa các version |

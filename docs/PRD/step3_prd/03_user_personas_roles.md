@@ -215,3 +215,140 @@ Chỉ Admin có quyền thay đổi role qua PATCH /admin/users/{id}/role
 ---
 
 > **Tham chiếu:** [04_user_stories](04_user_stories.md) | [05_functional_requirements](05_functional_requirements.md) | [11_business_rules](11_business_rules.md)
+
+---
+
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# User Personas & Roles
+## Dự án Langy
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+
+---
+
+## 1. Personas
+
+### 1.1 Persona 1: Giáo viên IELTS tự do (Instructor)
+
+| Thuộc tính | Chi tiết |
+|------------|----------|
+| **Tên đại diện** | Cô Linh |
+| **Tuổi** | 28–40 |
+| **Nghề nghiệp** | Gia sư IELTS tự do, dạy lớp 10–15 HS |
+| **Thu nhập từ dạy** | 1.5–3 triệu/HS/khóa |
+| **Trình độ công nghệ** | Quen Zalo, Google Docs, Google Classroom; không biết code |
+| **Thiết bị chính** | Laptop |
+| **Workflow hiện tại** | Giao đề qua Zalo/Docs → HS làm bài trên Docs → chấm tay hoặc copy-paste từng bài vào ChatGPT → báo điểm qua tin nhắn → nhập Excel |
+| **Nỗi đau lớn nhất** | "Vòng lặp copy-paste" — mỗi bài Writing phải copy từ Docs, dán vào ChatGPT, chờ kết quả, copy ngược lại |
+| **Rào cản chuyển đổi** | Mất công nhập lại kho đề; ngại công nghệ mới, quen Zalo |
+| **Giá trị Langy mang lại** | Tiết kiệm hàng giờ chấm bài mỗi tuần; dashboard tổng hợp cả lớp; kho đề tập trung |
+| **Quyền quyết định** | Tự quyết mọi công cụ — không cần duyệt qua trung tâm |
+
+**Job-to-be-done:**
+> "Khi học sinh nộp bài Writing, tôi muốn AI chấm ngay theo chuẩn IELTS để tôi chỉ cần review và bổ sung, thay vì chấm tay hoặc copy-paste từng bài."
+
+---
+
+### 1.2 Persona 2: Học sinh trong lớp (Learner — classroom)
+
+| Thuộc tính | Chi tiết |
+|------------|----------|
+| **Tên đại diện** | Minh |
+| **Tuổi** | 15–22 (phần lớn dưới 18 — lưu ý pháp lý) |
+| **Mục tiêu** | Đạt band IELTS theo yêu cầu (xét tuyển ĐH, du học, chuẩn đầu ra) |
+| **Trình độ công nghệ** | Native mobile; quen dùng app |
+| **Thiết bị chính** | Điện thoại khi làm bài tập, laptop khi làm đề dài |
+| **Cách vào Langy** | Không tự chọn — dùng vì giáo viên yêu cầu |
+| **Nỗi đau** | Tài liệu phân tán; không biết mình tiến bộ hay thụt lùi; chờ feedback GV lâu |
+| **Giá trị Langy mang lại** | Feedback Writing trong vài phút (chế độ A); biểu đồ tiến bộ band; giải thích đáp án Reading |
+| **Ai trả tiền** | Phụ huynh hoặc tự trả (tùy độ tuổi) |
+| **Lưu ý đặc biệt** | Phần lớn dưới 18 → consent phụ huynh bắt buộc theo Luật 91/2025/QH15 |
+
+**Job-to-be-done:**
+> "Sau khi nộp bài, tôi muốn biết ngay mình được bao nhiêu và sai ở đâu, thay vì chờ cô chấm 3 ngày."
+
+---
+
+### 1.3 Persona 3: Học sinh tự ôn (Learner — self-study)
+
+| Thuộc tính | Chi tiết |
+|------------|----------|
+| **Tên đại diện** | Hà |
+| **Tuổi** | 18–30 |
+| **Nghề nghiệp** | Sinh viên hoặc người đi làm; tự ôn không qua GV/trung tâm |
+| **Trình độ công nghệ** | Cao hơn trung bình; đã quen dùng ChatGPT, Study4 |
+| **Thiết bị** | Cả điện thoại lẫn laptop |
+| **Cách vào Langy** | Tự tìm thấy (search, group Facebook, chia sẻ link) |
+| **Nỗi đau** | Paste bài vào ChatGPT → không lưu lịch sử, rubric không nhất quán, mỗi lần chấm mỗi kiểu |
+| **Giá trị Langy mang lại** | Chấm nhất quán theo rubric chuẩn; lịch sử band theo thời gian; kho đề có giải thích |
+| **Sẵn sàng trả tiền** | Chưa validate — giả định A3; giá trị phải đủ lớn so với ChatGPT free |
+
+**Job-to-be-done:**
+> "Tôi muốn một chỗ chấm Writing theo đúng chuẩn IELTS và cho tôi thấy mình tiến bộ qua từng tuần, thay vì paste vào ChatGPT rồi quên."
+
+---
+
+## 2. RBAC Matrix (Role-Based Access Control)
+
+| Chức năng | Admin | Instructor | Learner (classroom) | Learner (self-study) |
+|-----------|:-----:|:----------:|:-------------------:|:--------------------:|
+| Quản lý users | ✅ | ❌ | ❌ | ❌ |
+| Tạo/quản lý classroom | ❌ | ✅ | ❌ | ❌ |
+| Mời HS vào lớp | ❌ | ✅ | ❌ | ❌ |
+| Tham gia lớp bằng mã mời | ❌ | ❌ | ✅ | ❌ |
+| Giao bài (lesson) | ❌ | ✅ | ❌ | ❌ |
+| Cấu hình chế độ Writing A/B | ❌ | ✅ | ❌ | ❌ |
+| Tạo/import đề (Passage, Prompt) | ✅ | ✅ | ❌ | ❌ |
+| Làm bài Reading | ❌ | ❌ | ✅ | ✅ |
+| Nộp bài Writing | ❌ | ❌ | ✅ | ✅ |
+| Xem feedback AI (tùy chế độ lớp) | ❌ | ✅ | ✅* | ✅ |
+| Review + chốt điểm Writing | ❌ | ✅ | ❌ | ❌ |
+| Xem dashboard lớp | ❌ | ✅ | ❌ | ❌ |
+| Xem tiến bộ cá nhân | ❌ | ❌ | ✅ | ✅ |
+| Xóa tài khoản + dữ liệu | ✅ | ✅ | ✅ | ✅ |
+
+*HS classroom chế độ B: chỉ thấy sau GV duyệt
+
+---
+
+## 3. Phân biệt hai loại Learner trong hệ thống
+
+| Tiêu chí | Learner (classroom) | Learner (self-study) |
+|----------|:-------------------:|:--------------------:|
+| Có `classroom_id` | ✅ (thuộc ≥1 lớp) | ❌ (không thuộc lớp nào) |
+| Writing state machine | Nhánh A hoặc B tùy lớp | Luôn nhánh A (released_ai là điểm cuối) |
+| Có GV review | ✅ → có trạng thái `finalized` | ❌ → dừng ở `released_ai` |
+| Band AI nhãn | "Ước lượng — chờ GV xác nhận" | "Ước lượng bởi AI" |
+| Nhận bài giao | ✅ (qua Lesson) | ❌ (tự chọn từ kho) |
+| Dashboard | Xem trong ngữ cảnh lớp | Dashboard cá nhân |
+| GTM | GV kéo vào (teacher-led) | Tự đến (organic) |
+
+---
+
+## 4. Stakeholder map
+
+```
+                    ┌─────────────────────┐
+                    │     Founder         │
+                    │  (Dev + GV + Admin) │
+                    └──────────┬──────────┘
+                               │ builds & operates
+               ┌───────────────┼───────────────┐
+               ▼                               ▼
+    ┌──────────────────┐            ┌──────────────────┐
+    │   Instructor     │            │  Learner         │
+    │   (buyer/wedge)  │──assigns──▶│  (end user)      │
+    └──────────────────┘            └────────┬─────────┘
+                                             │
+                                    ┌────────▼─────────┐
+                                    │   Phụ huynh      │
+                                    │   (payer/approver)│
+                                    └──────────────────┘
+```

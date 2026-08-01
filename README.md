@@ -215,8 +215,8 @@ npm run dev                     # → http://localhost:3000
 | Tài liệu | Mô tả |
 |-----------|--------|
 | [`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) | Hướng dẫn cài đặt chi tiết cho người mới |
-| [`docs/step3_prd/`](docs/step3_prd/) | PRD đầy đủ (17 files): user stories, data model, API spec |
-| [`docs/step4_implementation_plan/`](docs/step4_implementation_plan/) | Sprint plan, testing guide, CLI commands |
+| [`docs/PRD/step3_prd/`](docs/PRD/step3_prd/) | PRD đầy đủ (18 files): user stories, data model, API spec |
+| [`docs/PRD/step4_implementation_plan/`](docs/PRD/step4_implementation_plan/) | Sprint plan, testing guide, CLI commands, M1 schema migration spec |
 
 ---
 

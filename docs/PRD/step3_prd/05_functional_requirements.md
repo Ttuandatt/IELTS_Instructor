@@ -1299,3 +1299,103 @@ Instructor có đầy đủ chức năng CRUD passages và prompts như Admin, n
 - v1.2 (2026-04-14): FR-601 → hybrid parser (Mammoth primary + IELTS post-processor; Gemini fallback cho PDF/complex DOCX). Unified output schema với `parser_used`, `confidence`, `warnings`, paragraph structure, blank_refs. Thêm non-functional targets (latency, cache, rate limit).
 - v1.1 (2026-04-13): Fix FR-101 (bỏ role khỏi input); thêm FR-105 (Admin Role Promotion). Đổi section 7 từ "NotebookLM Import" → "DOCX/PDF Auto-Import". Rewrite FR-601 với real file-based flow qua Gemini multimodal. Rewrite FR-602 thành Source Document Management.
 
+
+---
+
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# Functional Requirements
+## Dự án Langy — Pre-pilot MVP
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+> **Quy ước ID:** FR-[MODULE]-[###]
+
+---
+
+## Module: AUTH — Authentication & Account
+
+| ID | Requirement | Priority | US |
+|----|-------------|----------|----|
+| FR-AUTH-001 | Hệ thống cho phép đăng ký bằng email + password + năm sinh | P0 | US-5B1 |
+| FR-AUTH-002 | Hệ thống cho phép đăng ký không cần mã lớp (HS tự ôn) | P0 | US-5B1 |
+| FR-AUTH-003 | Hệ thống cho phép đăng nhập bằng email + password, trả JWT access + refresh token | P0 | — |
+| FR-AUTH-004 | Hệ thống tự động refresh access token khi hết hạn (15 phút) | P0 | — |
+| FR-AUTH-005 | Hệ thống cho phép quên mật khẩu qua email | P0 | US-604 |
+| FR-AUTH-006 | Hệ thống hiển thị Điều khoản + Chính sách quyền riêng tư khi đăng ký, yêu cầu chấp thuận | P0 | US-601 |
+| FR-AUTH-007 | Hệ thống phát hiện HS dưới 16 tuổi (từ năm sinh) và yêu cầu xác nhận phụ huynh | P0 | US-601 |
+| FR-AUTH-008 | Hệ thống cho phép người dùng xóa tài khoản: xóa mềm 7 ngày → xóa cứng toàn bộ dữ liệu | P0 | US-602 |
+| FR-AUTH-009 | Hệ thống phân quyền theo role: admin, instructor, learner | P0 | — |
+
+## Module: CLASS — Classroom Management
+
+| ID | Requirement | Priority | US |
+|----|-------------|----------|----|
+| FR-CLASS-001 | GV tạo lớp mới với: tên (bắt buộc), chế độ Writing A/B (mặc định A), mô tả (tùy chọn) | P0 | US-101 |
+| FR-CLASS-002 | Hệ thống sinh mã mời 6 ký tự duy nhất khi tạo lớp | P0 | US-101 |
+| FR-CLASS-003 | HS nhập mã mời → vào lớp (mặc định không cần GV duyệt) | P0 | US-101 |
+| FR-CLASS-004 | GV xem danh sách thành viên lớp | P0 | US-101 |
+| FR-CLASS-005 | GV giao bài bằng cách chọn đề (Passage/Prompt) từ kho + đặt deadline (tùy chọn) | P0 | US-102 |
+| FR-CLASS-006 | Bài giao hiển thị trong "Bài tập của tôi" của mọi HS trong lớp | P0 | US-102 |
+| FR-CLASS-007 | Bài nộp sau deadline gắn nhãn "trễ" nhưng vẫn được chấm | P0 | US-102 |
+| FR-CLASS-008 | GV đổi chế độ Writing (instant/review_first) bất kỳ lúc nào; thay đổi chỉ áp dụng cho submission mới | P0 | US-103 |
+
+## Module: WRIT — Writing
+
+| ID | Requirement | Priority | US |
+|----|-------------|----------|----|
+| FR-WRIT-001 | HS viết bài Writing trong editor có đếm từ real-time | P0 | US-201 |
+| FR-WRIT-002 | Hệ thống auto-save draft mỗi 30 giây | P0 | US-201 |
+| FR-WRIT-003 | HS bấm nộp → hệ thống hiện dialog xác nhận trước khi nộp chính thức | P0 | US-201 |
+| FR-WRIT-004 | Khi nộp, hệ thống enqueue job chấm AI; trả HTTP 202 ngay cho client | P0 | US-202 |
+| FR-WRIT-005 | Worker chấm AI theo 4 tiêu chí IELTS (TR, CC, LR, GRA) + band tổng + feedback chi tiết | P0 | US-202 |
+| FR-WRIT-006 | Prompt gửi LLM chỉ chứa đề + essay; KHÔNG chứa tên, email, ID học sinh | P0 | US-202 |
+| FR-WRIT-007 | Output LLM parse bằng structured output mode; validate schema trước khi lưu | P0 | US-202 |
+| FR-WRIT-008 | Nếu LLM lỗi sau 3 retry → trạng thái `ai_failed`; GV thấy nút "chấm lại" | P0 | US-202 |
+| FR-WRIT-009 | Mỗi lượt chấm lưu: prompt_version, tokens_input, tokens_output, model_name, turnaround_ms | P0 | US-202 |
+| FR-WRIT-010 | Lớp chế độ A (instant): HS thấy feedback AI ngay khi chấm xong, nhãn "Band ước lượng bởi AI — giáo viên sẽ xác nhận" | P0 | US-203 |
+| FR-WRIT-011 | Lớp chế độ B (review_first): HS chỉ thấy "đã nộp — đang chờ giáo viên"; feedback AI chỉ GV thấy | P0 | US-203 |
+| FR-WRIT-012 | HS tự ôn (không thuộc lớp): luôn chế độ A; nhãn "Band ước lượng bởi AI" | P0 | US-5B2 |
+| FR-WRIT-013 | Sau FINALIZED: HS thấy bản chốt GV; highlight nếu band thay đổi so với ước lượng AI | P0 | US-203 |
+| FR-WRIT-014 | GV mở review queue: danh sách submission lọc theo lớp + trạng thái | P0 | US-204 |
+| FR-WRIT-015 | GV xem chi tiết: essay gốc + feedback AI + band từng tiêu chí có thể sửa + ô nhận xét | P0 | US-204 |
+| FR-WRIT-016 | GV chốt bài: ≤ 3 click nếu đồng ý; cặp (band AI, band GV chốt) lưu tự động | P0 | US-204 |
+| FR-WRIT-017 | Rate limit: 10 bài Writing/ngày/HS; từ chối với thông báo khi vượt | P0 | US-603 |
+| FR-WRIT-018 | HS xem lại bài Writing đã làm từ lịch sử (render từ DB, không phụ thuộc session) | P0 | US-203 |
+
+## Module: READ — Reading
+
+| ID | Requirement | Priority | US |
+|----|-------------|----------|----|
+| FR-READ-001 | Hiển thị danh sách đề Reading từ kho (lọc theo level, collection) | P0 | US-301 |
+| FR-READ-002 | Test player: hiển thị passage + câu hỏi (MCQ, short answer) | P0 | US-301 |
+| FR-READ-003 | Desktop: layout 2 cột (passage trái, câu hỏi phải); Mobile: dọc/tab | P0 | US-301 |
+| FR-READ-004 | Chấm tự động khi nộp + hiển thị điểm + giải thích từng câu | P0 | US-301 |
+| FR-READ-005 | Điểm hiển thị dạng "X/Y (Z%)" — KHÔNG quy đổi band | P0 | US-303 |
+| FR-READ-006 | HS xem lại bài Reading đã làm từ lịch sử (endpoint `GET /reading/attempts/:id`) | P0 | US-302 |
+| FR-READ-007 | HS chỉ xem attempt của mình; GV xem attempt của HS trong lớp mình | P0 | US-302 |
+
+## Module: IMPORT — Import đề
+
+| ID | Requirement | Priority | US |
+|----|-------------|----------|----|
+| FR-IMPORT-001 | GV upload file docx hoặc paste text → hệ thống extract Writing prompt | P0 | US-401 |
+| FR-IMPORT-002 | GV chọn Task 1/Task 2 + level → lưu vào kho đề riêng | P0 | US-401 |
+| FR-IMPORT-003 | GV upload docx Reading → hệ thống bóc passage + câu hỏi MCQ/short answer + đáp án | P1 | US-402 |
+| FR-IMPORT-004 | Màn hình preview bắt buộc: GV sửa từng câu trước khi publish (không auto-publish) | P0 | US-402 |
+| FR-IMPORT-005 | Checkbox "Tôi có quyền sử dụng nội dung này" bắt buộc trước khi publish | P0 | US-402 |
+
+## Module: DASH — Dashboard
+
+| ID | Requirement | Priority | US |
+|----|-------------|----------|----|
+| FR-DASH-001 | Dashboard GV hiển thị dữ liệu thật: review queue, bài nộp/tuần, tỷ lệ hoàn thành | P1 | US-501 |
+| FR-DASH-002 | Ô chưa có data hiển thị "—" thay vì số giả; banner "Demo data" gỡ hoàn toàn | P1 | US-501 |
+| FR-DASH-003 | GV click vào HS → danh sách bài đã nộp + biểu đồ band Writing / % Reading theo thời gian | P1 | US-502 |
+| FR-DASH-004 | Dashboard cá nhân cho HS tự ôn: biểu đồ tiến bộ tương tự FR-DASH-003 | P1 | US-5B3 |
+| FR-DASH-005 | Landing page tĩnh: mô tả giá trị, nút đăng ký, SEO-friendly title + meta | P1 | US-5B4 |

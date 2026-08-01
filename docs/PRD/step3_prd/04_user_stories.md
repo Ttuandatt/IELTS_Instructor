@@ -1179,3 +1179,232 @@ Mỗi User Story theo format:
 - **Admin:** Dashboard, Classrooms, Passages, Prompts, Users, Settings.
 - **Instructor:** Dashboard, Classrooms, Passages, Prompts, Learners, Submissions, Settings.
 - **Learner:** Dashboard, Reading, Writing, Classrooms, Settings.
+
+---
+
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# User Stories
+## Dự án Langy — Pre-pilot MVP
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+> **Format:** As a [role], I want [goal], so that [benefit]
+
+---
+
+## Tổng quan
+
+| Epic | Stories | Priority |
+|------|---------|----------|
+| Epic 1 — Classroom & giao bài | US-101 → US-103 | P0 |
+| Epic 2 — Writing flow (killer feature) | US-201 → US-204 | P0 |
+| Epic 3 — Reading flow | US-301 → US-303 | P0 |
+| Epic 4 — Import đề từ docx | US-401 → US-402 | P0–P1 |
+| Epic 5 — Dashboard & tiến độ | US-501 → US-502 | P1 |
+| Epic 5b — Luồng HS tự ôn | US-5B1 → US-5B4 | P0 |
+| Epic 6 — Trust & Compliance | US-601 → US-604 | P0 |
+
+---
+
+## Epic 1 — Classroom & giao bài
+
+### US-101: Tạo lớp và mời học sinh
+**As a** giáo viên, **I want** tạo lớp học và nhận mã mời, **so that** học sinh có thể tham gia lớp tôi chỉ với một mã code.
+
+**Acceptance Criteria:**
+- Given GV đã đăng nhập, when tạo lớp mới, then chỉ cần điền: tên lớp (bắt buộc), chế độ Writing A/B (mặc định A), mô tả (tùy chọn)
+- Given lớp được tạo, when hệ thống xử lý, then sinh mã mời 6 ký tự duy nhất
+- Given HS đã đăng ký, when nhập mã mời, then vào thẳng lớp không cần GV duyệt tay (mặc định; cài đặt lớp có thể bật "cần duyệt")
+
+### US-102: Giao bài cho lớp
+**As a** giáo viên, **I want** giao đề Reading hoặc Writing prompt cho lớp với deadline, **so that** học sinh biết phải làm bài gì và khi nào.
+
+**Acceptance Criteria:**
+- Given GV ở trong lớp, when giao bài, then chọn từ kho đề hoặc đề đã import, đặt deadline (tùy chọn)
+- Given bài được giao, when HS đăng nhập, then thấy bài trong danh sách "Bài tập của tôi"
+- Given HS nộp sau deadline, when hệ thống xử lý, then bài gắn nhãn "trễ" nhưng vẫn được chấm (không khóa)
+
+### US-103: Đổi chế độ Writing per-lớp
+**As a** giáo viên, **I want** đổi chế độ Writing (A: HS thấy ngay / B: GV duyệt trước) bất kỳ lúc nào, **so that** tôi linh hoạt theo từng giai đoạn học.
+
+**Acceptance Criteria:**
+- Given GV ở cài đặt lớp, when đổi chế độ, then thay đổi chỉ áp dụng cho submission MỚI, không hồi tố
+- Given GV chưa hiểu hai chế độ, when hover/tap icon, then tooltip giải thích mỗi chế độ bằng một câu
+
+---
+
+## Epic 2 — Writing flow (killer feature)
+
+### US-201: Viết bài và nộp
+**As a** học sinh, **I want** viết bài Writing trong editor có đếm từ và tự động lưu nháp, **so that** tôi không mất bài nếu tắt tab.
+
+**Acceptance Criteria:**
+- Given HS mở bài Writing, when viết, then đếm từ real-time hiển thị liên tục
+- Given HS đang viết, when mỗi 30s trôi qua, then auto-save draft (không cần bấm lưu)
+- Given HS bấm nộp, when hệ thống xử lý, then hiện xác nhận trước khi nộp chính thức
+- Given HS dùng điện thoại, when viết bài, then layout không vỡ, nhập liệu hoạt động bình thường
+
+### US-202: AI chấm bài trong nền
+**As a** hệ thống, **I want** chấm bài Writing theo 4 tiêu chí IELTS trong nền, **so that** người dùng không phải chờ loading.
+
+**Acceptance Criteria:**
+- Given bài được nộp, when enqueue, then p95 thời gian từ nộp → AI_SCORED ≤ 3 phút
+- Given call LLM, when gửi prompt, then prompt chỉ chứa đề + essay, KHÔNG chứa định danh HS (data minimization)
+- Given call LLM, when API trả về, then parse bằng structured output mode (không regex), validate schema
+- Given LLM lỗi, when retry 3 lần đều thất bại, then chuyển trạng thái `ai_failed`, GV thấy nút "chấm lại"
+- Given mỗi lượt chấm, when hoàn thành, then lưu `prompt_version`, `tokens_input`, `tokens_output`, `model_name`, `turnaround_ms`
+
+### US-203: Xem feedback theo chế độ lớp
+**As a** học sinh, **I want** xem feedback AI khi bài được chấm xong (hoặc khi GV duyệt), **so that** tôi biết mình sai ở đâu.
+
+**Acceptance Criteria:**
+- Given lớp chế độ A, when AI chấm xong, then HS thấy ngay: band từng tiêu chí + tổng, nhãn "Band ước lượng bởi AI — giáo viên sẽ xác nhận", điểm mạnh, cần cải thiện
+- Given lớp chế độ B, when AI chấm xong, then HS chỉ thấy "đã nộp — đang chờ giáo viên"
+- Given bài đã FINALIZED, when HS mở lại, then thấy bản chốt của GV, highlight nếu band thay đổi so với ước lượng (chế độ A)
+- Given HS tự ôn (không thuộc lớp), when AI chấm xong, then luôn thấy feedback ngay (luôn chế độ A), nhãn "Band ước lượng bởi AI"
+
+### US-204: GV review hàng đợi bài đã chấm AI
+**As a** giáo viên, **I want** xem hàng đợi bài AI đã chấm, sửa band từng tiêu chí nếu cần, và chốt điểm, **so that** tôi kiểm soát chất lượng mà không mất thời gian chấm từ đầu.
+
+**Acceptance Criteria:**
+- Given GV mở review queue, when danh sách hiện, then lọc theo lớp và trạng thái (released_ai, pending_review, ai_failed)
+- Given GV mở một bài, when xem chi tiết, then thấy: essay gốc, feedback AI đầy đủ, band từng tiêu chí có thể sửa từng ô, ô nhận xét thêm
+- Given GV đồng ý với AI, when bấm "Chốt", then chuyển FINALIZED trong ≤ 3 click
+- Given GV sửa band, when chốt, then cặp (band AI, band GV chốt) được lưu tự động (calibration data)
+
+---
+
+## Epic 3 — Reading flow
+
+### US-301: Làm bài Reading responsive
+**As a** học sinh, **I want** làm bài Reading trên cả điện thoại lẫn laptop, **so that** tôi học ở đâu cũng được.
+
+**Acceptance Criteria:**
+- Given HS dùng laptop, when làm bài, then layout 2 cột (passage trái, câu hỏi phải)
+- Given HS dùng điện thoại, when làm bài, then passage và câu hỏi chuyển dạng dọc/tab
+- Given HS nộp bài, when hệ thống chấm, then chấm tự động, hiển thị điểm + giải thích từng câu ngay
+
+### US-302: Xem lại bài Reading đã làm
+**As a** học sinh, **I want** xem lại chi tiết bài Reading đã làm từ lịch sử, **so that** tôi ôn lại được sau khi đóng tab.
+
+**Acceptance Criteria:**
+- Given HS đã làm bài trước đó, when mở lịch sử, then thấy danh sách bài + điểm + ngày
+- Given HS click vào bài cũ, when trang load, then render đầy đủ từ DB (không phụ thuộc sessionStorage)
+- Given HS mở bài, when xem, then chỉ xem được attempt của mình; GV xem được attempt của HS trong lớp mình
+
+### US-303: Hiển thị điểm Reading
+**As a** hệ thống, **I want** hiển thị điểm Reading dạng % thay vì band, **so that** không gây kỳ vọng sai khi chưa có bảng quy đổi chuẩn.
+
+**Acceptance Criteria:**
+- Given bài Reading được chấm, when hiển thị điểm, then show dạng "X/Y câu đúng (Z%)"
+- Given bất kỳ trang nào, when hiển thị điểm Reading, then KHÔNG hiển thị công thức pct/9
+
+---
+
+## Epic 4 — Import đề từ docx
+
+### US-401: Import Writing prompt (Phase 1)
+**As a** giáo viên, **I want** import đề Writing từ file docx hoặc dán text, **so that** tôi không phải gõ lại đề vào hệ thống.
+
+**Acceptance Criteria:**
+- Given GV ở trang import, when upload docx hoặc dán text, then hệ thống extract nội dung
+- Given nội dung extracted, when preview hiện, then GV chọn Task 1/Task 2 + level → lưu vào kho đề riêng
+- Given đề được lưu, when GV mở kho đề, then đề mới xuất hiện và sẵn sàng giao bài
+
+### US-402: Import Reading passage + câu hỏi (Phase 2)
+**As a** giáo viên, **I want** import đề Reading (passage + câu hỏi + đáp án) từ docx, **so that** tôi mang được kho đề sẵn có vào hệ thống.
+
+**Acceptance Criteria:**
+- Given GV upload docx, when hệ thống parse, then bóc passage, câu hỏi MCQ/short answer, đáp án
+- Given parse xong, when preview hiện, then GV sửa từng câu trước khi publish (không auto-publish)
+- Given GV publish, when lưu, then checkbox "Tôi có quyền sử dụng nội dung này" bắt buộc tick
+- Mục tiêu: ≥70% câu hỏi nhận diện đúng không cần sửa tay (đo trên đề thật của 5 GV pilot)
+
+---
+
+## Epic 5 — Dashboard & tiến độ
+
+### US-501: Dashboard GV dữ liệu thật
+**As a** giáo viên, **I want** mở dashboard và thấy dữ liệu thật của lớp mình, **so that** tôi biết lớp đang ở đâu mà không cần hỏi từng em.
+
+**Acceptance Criteria:**
+- Given GV mở dashboard, when API trả dữ liệu, then hiển thị: review queue, số bài nộp/tuần, tỷ lệ HS hoàn thành
+- Given ô chưa có backend, when render, then hiển thị "—" thay vì số giả
+- Given bất kỳ trang GV nào, when hiển thị, then banner "Demo data" đã bị gỡ hoàn toàn
+
+### US-502: GV xem tiến độ từng HS
+**As a** giáo viên, **I want** xem tiến độ từng HS (band Writing + % Reading theo thời gian), **so that** tôi biết ai cần hỗ trợ thêm.
+
+**Acceptance Criteria:**
+- Given GV click vào 1 HS, when trang load, then hiển thị danh sách bài đã nộp + biểu đồ đơn giản theo dữ liệu submission
+
+---
+
+## Epic 5b — Luồng HS tự ôn (D8)
+
+### US-5B1: Đăng ký tự do
+**As a** học sinh tự ôn, **I want** đăng ký tài khoản mà không cần mã lớp, **so that** tôi dùng Langy ngay mà không cần giáo viên.
+
+**Acceptance Criteria:**
+- Given người dùng mới, when đăng ký, then chỉ cần email + mật khẩu + năm sinh (+ consent)
+- Given đăng ký xong, when đăng nhập, then trang chủ hiển thị: kho đề Reading/Writing, bài đã làm, tiến độ
+- Given người dùng, when không thuộc lớp nào, then không hỏi mã lớp, không ép vào classroom
+
+### US-5B2: AI chấm cho HS tự ôn
+**As a** học sinh tự ôn, **I want** nộp Writing và thấy feedback AI ngay, **so that** tôi không phải chờ ai review.
+
+**Acceptance Criteria:**
+- Given HS tự ôn nộp bài, when AI chấm xong, then luôn hiển thị feedback ngay (chế độ A cố định)
+- Given feedback hiện, when HS đọc, then nhãn "Band ước lượng bởi AI" hiển thị rõ ràng
+- Given cuối feedback, when HS scroll xuống, then gợi ý: "Để được giáo viên review, hãy tham gia lớp học trên Langy"
+
+### US-5B3: Dashboard cá nhân
+**As a** học sinh tự ôn, **I want** xem tiến bộ band Writing + % Reading theo thời gian, **so that** tôi biết mình đang ở đâu.
+
+**Acceptance Criteria:**
+- Given HS tự ôn mở dashboard, when dữ liệu load, then biểu đồ tương tự US-502 nhưng nguồn dữ liệu là self
+
+### US-5B4: Landing page
+**As a** học sinh tìm kiếm công cụ ôn IELTS, **I want** thấy trang giới thiệu Langy, **so that** tôi hiểu giá trị và đăng ký.
+
+**Acceptance Criteria:**
+- Given người dùng truy cập trang chủ chưa đăng nhập, when trang load, then hiển thị: mô tả giá trị, nút đăng ký, screenshot/demo
+- Given trang, when kiểm tra, then có title + meta SEO-friendly
+
+---
+
+## Epic 6 — Trust & Compliance
+
+### US-601: Consent khi đăng ký
+**As a** người dùng mới, **I want** biết dữ liệu của tôi được dùng thế nào trước khi đăng ký, **so that** tôi yên tâm sử dụng.
+
+**Acceptance Criteria:**
+- Given đăng ký, when form hiện, then checkbox chấp thuận Điều khoản + Chính sách quyền riêng tư (2 văn bản tiếng Việt)
+- Given HS dưới 16, when đăng ký, then hiện checkbox "Phụ huynh/người giám hộ đã đồng ý" + email phụ huynh
+- Given HS trong lớp dưới 16, when GV onboard, then GV thu xác nhận từ phụ huynh
+
+### US-602: Xóa tài khoản
+**As a** người dùng, **I want** xóa tài khoản và toàn bộ dữ liệu bài làm, **so that** quyền của tôi được tôn trọng.
+
+**Acceptance Criteria:**
+- Given người dùng vào Settings, when bấm "Xóa tài khoản", then xác nhận → xóa mềm 7 ngày → xóa cứng
+- Given xóa cứng hoàn thành, when kiểm tra DB, then không còn dữ liệu cá nhân liên quan
+
+### US-603: Rate limit chống spam
+**As a** hệ thống, **I want** giới hạn số bài Writing mỗi HS nộp mỗi ngày, **so that** chi phí AI không bị lạm dụng.
+
+**Acceptance Criteria:**
+- Given HS đã nộp 10 bài trong ngày, when nộp bài thứ 11, then từ chối với thông báo "Đã đạt giới hạn hôm nay"
+- Given mỗi lượt chấm, when hoàn thành, then log token usage + chi phí ước tính
+
+### US-604: Sửa nợ kỹ thuật chặn niềm tin
+**As a** founder, **I want** sửa các lỗi kỹ thuật ảnh hưởng đến niềm tin trước pilot, **so that** GV không mất ấn tượng đầu tiên.
+
+**Acceptance Criteria:**
+- Given code hiện tại, when audit, then sửa: bug hai tier Gemini trùng nhau; chuyển API key sang paid tier; chuyển SDK `@google/generative-ai` (EOL) sang `@google/genai`

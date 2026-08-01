@@ -1,3 +1,87 @@
+# Business Rules
+## Dự án Langy — IELTS Domain-specific Rules
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+> **Quy ước ID:** BR-[###]
+
+---
+
+## 1. IELTS Writing Scoring Rules
+
+| ID | Rule | Enforcement |
+|----|------|-------------|
+| BR-001 | Writing được chấm theo 4 tiêu chí: Task Response (TR), Coherence & Cohesion (CC), Lexical Resource (LR), Grammatical Range & Accuracy (GRA) | AI prompt + schema validator |
+| BR-002 | Mỗi tiêu chí cho band từ 0 đến 9, bước nhảy 0.5 (0, 0.5, 1.0, ..., 8.5, 9.0) | Schema validator: reject nếu ngoài range hoặc không chia hết cho 0.5 |
+| BR-003 | Band tổng = trung bình cộng 4 tiêu chí, làm tròn đến 0.5 gần nhất | Tính server-side, không để AI tự tính (giảm sai số) |
+| BR-004 | Band AI luôn hiển thị nhãn "ước lượng" — KHÔNG BAO GIỜ hiển thị như điểm chính thức | UI enforced (D3) |
+| BR-005 | Điểm GV chốt (finalized) là điểm cuối cùng — ghi đè band AI trong mọi báo cáo/dashboard | Backend logic |
+| BR-006 | Task 2: tối thiểu 250 từ; Task 1: tối thiểu 150 từ. Dưới ngưỡng → cảnh báo (không chặn nộp) | Client-side warning + AI nhận diện trong feedback |
+| BR-007 | Essay dưới 50 từ không được gửi chấm AI (quá ngắn để đánh giá) | Server-side reject |
+
+## 2. Writing Submission State Rules
+
+| ID | Rule | Enforcement |
+|----|------|-------------|
+| BR-010 | State machine chuyển trạng thái theo đúng bảng spec M1 Mục 4 — không có đường tắt | Service layer + unit tests |
+| BR-011 | `finalized` là trạng thái hút — không thoát ra; bài đã chốt không sửa lại | Backend guard |
+| BR-012 | Bài tự học (lesson_id = null) không bao giờ vào `pending_review` hoặc `finalized` | Backend invariant + test |
+| BR-013 | Đổi writing_mode của lớp không hồi tố — chỉ áp dụng cho submission mới | Timestamp-based, không batch update cũ |
+| BR-014 | Mỗi lần GV điều chỉnh band → hệ thống lưu cặp (scores AI, instructor_scores) tự động | Auto-save on finalize |
+
+## 3. Reading Scoring Rules
+
+| ID | Rule | Enforcement |
+|----|------|-------------|
+| BR-020 | Điểm Reading = số câu đúng / tổng câu, hiển thị dạng phần trăm | Server-side |
+| BR-021 | KHÔNG quy đổi % sang band IELTS (chưa có bảng lookup 40 câu chuẩn) | UI + backend: không có field band Reading |
+| BR-022 | Short answer: chấp nhận đáp án case-insensitive, trim whitespace | Backend comparison logic |
+| BR-023 | MCQ: đúng hoặc sai, không có điểm thành phần | Binary scoring |
+
+## 4. Classroom & Assignment Rules
+
+| ID | Rule | Enforcement |
+|----|------|-------------|
+| BR-030 | Mã mời lớp: 6 ký tự, unique, alphanumeric uppercase | Generator + unique constraint |
+| BR-031 | Mặc định khi tạo lớp: writing_mode = instant (chế độ A) | Database default |
+| BR-032 | Bài nộp sau deadline: chấp nhận + gắn nhãn "trễ"; KHÔNG khóa nộp bài | Tầng đọc so sánh submitted_at vs due_at |
+| BR-033 | Một HS có thể thuộc nhiều lớp (nhiều GV khác nhau) | Schema: ClassroomMember many-to-many |
+| BR-034 | GV chỉ xem được submission của HS trong lớp mình | Authorization check per-request |
+
+## 5. Import Rules
+
+| ID | Rule | Enforcement |
+|----|------|-------------|
+| BR-040 | Đề import thuộc sở hữu GV import — không tự động chia sẻ | created_by = GV, visibility = private mặc định |
+| BR-041 | GV phải tick checkbox bản quyền trước khi publish | UI mandatory + backend check |
+| BR-042 | Import Reading: bắt buộc preview → sửa → publish; không auto-publish | UX flow |
+| BR-043 | Đề Cambridge (hoặc nguồn có bản quyền rõ) KHÔNG được seed vào kho đề production | Quy trình review content |
+
+## 6. Privacy & Consent Rules
+
+| ID | Rule | Enforcement |
+|----|------|-------------|
+| BR-050 | HS dưới 16 tuổi: bắt buộc xác nhận phụ huynh trước khi sử dụng | Age-gate dựa trên năm sinh |
+| BR-051 | Essay gửi qua API: KHÔNG chứa bất kỳ thông tin định danh HS | Prompt construction logic |
+| BR-052 | Xóa tài khoản: xóa mềm 7 ngày (có thể hủy) → xóa cứng vĩnh viễn | Cron job hoặc scheduled task |
+| BR-053 | Chỉ dùng paid tier LLM API cho dữ liệu HS thật | Environment config + startup check |
+
+## 7. Cost Control Rules
+
+| ID | Rule | Enforcement |
+|----|------|-------------|
+| BR-060 | Tối đa 10 bài Writing/ngày/HS | Redis rate limit per user |
+| BR-061 | Context caching cho rubric prompt (phần tĩnh) | LLM client config |
+| BR-062 | Log token usage mỗi lượt chấm → tính chi phí thực | WritingSubmission.tokens_input/output |
+| BR-063 | Cảnh báo khi chi tiêu API ngày vượt ngưỡng | Threshold config + log alert |
+
+---
+
+# ══════════════════════════════════════════════════════
+# NỘI DUNG GỐC TỪ PRD BAN ĐẦU (02/2025)
+# Giữ lại để tham chiếu. Khi mâu thuẫn, phần trên ưu tiên.
+# ══════════════════════════════════════════════════════
+
 # 📏 Business Rules — IELTS Helper (MVP)
 
 > **Mã tài liệu:** PRD-11  

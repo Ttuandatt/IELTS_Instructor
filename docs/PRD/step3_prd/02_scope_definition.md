@@ -213,3 +213,161 @@ Trước khi bắt đầu implementation, scope cần được lock với các �
 
 ## Changelog
 - v1.1 (2026-04-13): Bỏ NotebookLM Import, thay bằng DOCX/PDF Import + Source Document Tracking. Fix registration role (không chọn khi đăng ký). Cập nhật assumption A-01.
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# Scope Definition
+## Dự án Langy — Pre-pilot MVP
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+
+---
+
+## 1. System boundaries
+
+```
+┌──────────────────────────────────────────────────────────────────────┐
+│                          LANGY SYSTEM                                │
+├──────────────────────────────────────────────────────────────────────┤
+│                                                                      │
+│  ┌───────────────────────┐          ┌───────────────────────────┐   │
+│  │  Instructor Dashboard │◄────────►│     Backend API           │   │
+│  │  (Next.js — desktop)  │          │     (NestJS + Prisma)     │   │
+│  └───────────────────────┘          └──────────┬────────────────┘   │
+│                                                 │                    │
+│  ┌───────────────────────┐          ┌──────────▼────────────────┐   │
+│  │  Learner Interface    │◄────────►│     PostgreSQL            │   │
+│  │  (Next.js — mobile    │          └──────────┬────────────────┘   │
+│  │   responsive)         │                     │                    │
+│  └───────────────────────┘          ┌──────────▼────────────────┐   │
+│                                     │     Redis (BullMQ queue)  │   │
+│                                     └──────────┬────────────────┘   │
+│                                                 │                    │
+│                                     ┌──────────▼────────────────┐   │
+│                                     │     LLM APIs              │   │
+│                                     │  (Gemini 2.5 / OpenAI)    │   │
+│                                     └───────────────────────────┘   │
+└──────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 2. In Scope (MVP pre-pilot)
+
+### 2.1 Module: Authentication (AUTH)
+
+| ID | Feature | Priority |
+|----|---------|----------|
+| AUTH-001 | Đăng ký (email + password + năm sinh) | P0 |
+| AUTH-002 | Đăng nhập (JWT access + refresh token) | P0 |
+| AUTH-003 | Quên mật khẩu | P0 |
+| AUTH-004 | Đăng ký tự do (không cần mã lớp) cho HS tự ôn | P0 |
+| AUTH-005 | Consent flow: chấp thuận ToS + Privacy Policy | P0 |
+| AUTH-006 | HS dưới 16: xác nhận phụ huynh | P0 |
+| AUTH-007 | Xóa tài khoản + dữ liệu | P0 |
+
+### 2.2 Module: Classroom Management (CLASS)
+
+| ID | Feature | Priority |
+|----|---------|----------|
+| CLASS-001 | GV tạo lớp (tên, chế độ Writing A/B, mô tả) | P0 |
+| CLASS-002 | Sinh mã mời 6 ký tự | P0 |
+| CLASS-003 | HS tham gia lớp bằng mã mời | P0 |
+| CLASS-004 | GV đổi chế độ Writing per-lớp | P0 |
+| CLASS-005 | GV giao bài (chọn đề + deadline) | P0 |
+| CLASS-006 | Danh sách thành viên lớp | P0 |
+
+### 2.3 Module: Writing (WRIT)
+
+| ID | Feature | Priority |
+|----|---------|----------|
+| WRIT-001 | Editor viết bài có đếm từ real-time | P0 |
+| WRIT-002 | Auto-save draft mỗi 30s | P0 |
+| WRIT-003 | Nộp bài → enqueue chấm AI | P0 |
+| WRIT-004 | AI chấm 4 tiêu chí + feedback (Gemini 2.5 Flash) | P0 |
+| WRIT-005 | State machine 6 trạng thái (draft → finalized) | P0 |
+| WRIT-006 | Chế độ A: HS thấy feedback AI ngay (nhãn "ước lượng") | P0 |
+| WRIT-007 | Chế độ B: GV duyệt trước, HS chờ | P0 |
+| WRIT-008 | GV review: sửa band từng tiêu chí, thêm nhận xét, chốt | P0 |
+| WRIT-009 | Lưu cặp (band AI, band GV chốt) cho calibration | P0 |
+| WRIT-010 | Xem lại bài Writing đã làm từ lịch sử | P0 |
+| WRIT-011 | Rate limit 10 bài/ngày/HS (chống spam chi phí) | P0 |
+
+### 2.4 Module: Reading (READ)
+
+| ID | Feature | Priority |
+|----|---------|----------|
+| READ-001 | Danh sách đề Reading từ kho | P0 |
+| READ-002 | Test player (passage + câu hỏi MCQ/short answer) | P0 |
+| READ-003 | Chấm tự động khi nộp + giải thích từng câu | P0 |
+| READ-004 | Điểm hiển thị dạng % (không quy đổi band) | P0 |
+| READ-005 | Xem lại bài đã làm từ lịch sử (`GET /reading/attempts/:id`) | P0 |
+| READ-006 | Responsive mobile cho passage + câu hỏi | P0 |
+
+### 2.5 Module: Import (IMPORT)
+
+| ID | Feature | Priority |
+|----|---------|----------|
+| IMPORT-001 | Import Writing prompt từ docx/paste text | P0 |
+| IMPORT-002 | Import Reading passage + câu hỏi từ docx | P1 |
+| IMPORT-003 | Màn hình preview bắt buộc trước khi publish | P0 |
+| IMPORT-004 | Checkbox xác nhận bản quyền nội dung | P0 |
+
+### 2.6 Module: Dashboard (DASH)
+
+| ID | Feature | Priority |
+|----|---------|----------|
+| DASH-001 | Dashboard GV: review queue + thống kê lớp (dữ liệu thật) | P1 |
+| DASH-002 | GV xem tiến độ từng HS (band Writing + % Reading theo thời gian) | P1 |
+| DASH-003 | Dashboard HS cá nhân (tiến bộ band, lịch sử bài) | P1 |
+| DASH-004 | Landing page cho HS tự ôn (trang tĩnh, SEO-friendly) | P1 |
+
+---
+
+## 3. Out of Scope (đã chốt — Decision log D5, D7, D8)
+
+| Feature | Lý do cắt | Xét lại khi |
+|---------|-----------|-------------|
+| Listening | Nguồn lực 1 người, không đủ 6 tháng | Sau pilot nếu GO |
+| Speaking (STT + pronunciation) | Complexity cao, chưa rõ demand | Sau pilot |
+| Word lookup trên màn hình | Nice-to-have, không phải pain chính | Sau pilot |
+| Mobile app native | Responsive web đủ cho pilot | Organic trigger đạt |
+| Gamification (streak, leaderboard) | Vitamin trên vitamin | Retention data cho thấy cần |
+| Migrate Spring Boot | Quyết định học tập, không phải business | Không bao giờ (cho Langy) |
+| Đa ngôn ngữ ngoài Việt/Anh | Thị trường VN trước | Mở rộng quốc tế |
+| Admin panel hoàn chỉnh | Không cần cho pilot 5 GV | Scale lên 50+ GV |
+| Marketplace đề | Cần content base trước | Post-launch |
+| Thu phí / billing | Pilot miễn phí 8 tuần | Decision gate |
+| Notifications (email/push) | Nice-to-have | M6+ |
+
+---
+
+## 4. Assumptions
+
+| # | Giả định | Cách validate |
+|---|----------|---------------|
+| A1 | GV không biết code chịu đổi workflow Zalo/Docs sang Langy | 5 GV onboard không cần founder ngồi cạnh quá buổi đầu |
+| A2 | HS cảm nhận giá trị riêng (không chỉ "bị thầy bắt dùng") | Tỷ lệ HS mở feedback AI, tự làm bài ngoài giờ giao |
+| A3 | HS/phụ huynh chịu trả 50k/tháng | Khảo sát tuần 6–8 + conversion thật |
+| A4 | AI chấm đủ sát điểm GV | Độ lệch trung bình band AI vs band GV ≤ 0.5 |
+| A5 | Import docx hoạt động với đề thật (định dạng lộn xộn) | Tỷ lệ import thành công ≥70% không cần sửa tay |
+| A6 | Network 5 GV đủ làm bàn đạp | ≥1 GV chủ động giới thiệu GV khác |
+| A7 | HS tự ôn tìm đến organic đủ tín hiệu | ≥30 đăng ký organic trong 8 tuần, ≥20% retention tuần 2 |
+| A8 | HS tự ôn chấp nhận band AI là "điểm cuối" | Khảo sát trust tuần 6 |
+
+---
+
+## 5. Descope order (khi trễ tiến độ)
+
+Thứ tự cắt, đã thống nhất:
+1. IMPORT-002 Import Reading → lùi sau pilot (giữ IMPORT-001 Writing)
+2. WRIT-007 Chế độ B → ẩn UI, mọi lớp chạy chế độ A mặc định
+3. DASH-004 Landing page → rút gọn thành trang đăng ký đơn giản
+4. DASH-002 Biểu đồ tiến độ → rút gọn thành bảng danh sách bài + điểm
+
+Không được descope: WRIT-001→009 (killer feature), AUTH-005→007 (compliance), READ-006 (responsive)

@@ -670,3 +670,304 @@ VALUES (
 
 ## Changelog
 - v1.1 (2026-04-13): Rename Migration 3 heading từ "Sources & Snippets" → "Source Documents & Import Jobs" cho khớp schema thực tế. (ERD và entity definitions đã đúng từ trước.)
+# ══════════════════════════════════════════════════════
+# BỔ SUNG TỪ BUSINESS ANALYSIS & REDESIGN (07/2026)
+# Các mục dưới đây bổ sung từ BA 6 vòng elicitation,
+# phân tích đối thủ, và thiết kế state machine mới.
+# Khi có mâu thuẫn với nội dung trên, phần này được ưu tiên.
+# ══════════════════════════════════════════════════════
+
+# Data Requirements
+## Dự án Langy
+
+> **Phiên bản:** 1.0
+> **Ngày tạo:** 06/07/2026
+
+---
+
+## 1. Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    User ||--o{ Classroom : "owns"
+    User ||--o{ ClassroomMember : "joins"
+    User ||--o{ ReadingSubmission : "submits"
+    User ||--o{ WritingSubmission : "submits"
+    User ||--o{ WritingSubmission : "reviews (instructor)"
+    User ||--o{ Passage : "creates"
+    User ||--o{ Prompt : "creates"
+    User ||--o{ SourceDocument : "uploads"
+    User ||--o{ Notification : "receives"
+
+    Classroom ||--o{ ClassroomMember : "has"
+    Classroom ||--o{ Topic : "contains"
+
+    Topic ||--o{ Lesson : "contains"
+
+    Lesson ||--o{ LessonSubmission : "has"
+    Lesson ||--o{ WritingSubmission : "assigned via"
+
+    Passage ||--o{ Question : "has"
+    Passage ||--o{ ReadingSubmission : "tested in"
+    Passage }o--o| Collection : "belongs to"
+    Passage }o--o| SourceDocument : "imported from"
+
+    Prompt ||--o{ WritingSubmission : "tested in"
+    Prompt }o--o| Collection : "belongs to"
+
+    SourceDocument ||--o{ ImportJob : "processed by"
+
+    User {
+        uuid id PK
+        string email UK
+        string password_hash
+        string display_name
+        enum role "learner|instructor|admin"
+        string language "default vi"
+        string theme "default light"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Classroom {
+        uuid id PK
+        string name
+        string description
+        string invite_code UK
+        uuid owner_id FK
+        enum status "active|archived"
+        enum writing_mode "instant|review_first (M1 NEW)"
+        int max_members "default 50"
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ClassroomMember {
+        uuid id PK
+        uuid classroom_id FK
+        uuid user_id FK
+        enum role "teacher|student"
+        timestamp joined_at
+    }
+
+    Topic {
+        uuid id PK
+        uuid classroom_id FK
+        string title
+        string description
+        int order_index
+        enum status "draft|published"
+        timestamp created_at
+    }
+
+    Lesson {
+        uuid id PK
+        uuid topic_id FK
+        string title
+        string content
+        enum content_type "text|video|passage|prompt"
+        uuid linked_entity_id "nullable - Passage or Prompt"
+        string attachment_url
+        int order_index
+        boolean allow_submit
+        boolean allow_checkscore
+        timestamp due_at "M1 NEW - nullable"
+        timestamp created_at
+    }
+
+    Passage {
+        uuid id PK
+        string title
+        text body
+        enum level "A2|B1|B2|C1"
+        uuid collection_id FK
+        uuid source_document_id FK
+        enum status "draft|published"
+        uuid created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Question {
+        uuid id PK
+        uuid passage_id FK
+        enum type "mcq|short|tfng|matching_headings|..."
+        text prompt
+        json options "nullable - MCQ choices"
+        json answer_key
+        text explanation
+        int order_index
+    }
+
+    Prompt {
+        uuid id PK
+        enum task_type "task1|task2"
+        string title
+        text prompt_text
+        enum level "A2|B1|B2|C1"
+        uuid collection_id FK
+        enum status "draft|published"
+        int min_words "default 250"
+        uuid created_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ReadingSubmission {
+        uuid id PK
+        uuid user_id FK
+        uuid passage_id FK
+        json answers
+        float score_pct
+        int correct_count
+        int total_questions
+        int duration_sec
+        boolean timed_out
+        string test_mode "default practice"
+        timestamp completed_at
+    }
+
+    WritingSubmission {
+        uuid id PK
+        uuid user_id FK
+        uuid prompt_id FK
+        uuid lesson_id "M1 NEW - nullable (null = self-study)"
+        text content
+        int word_count
+        json scores "nullable - TR CC LR GRA overall"
+        json feedback "nullable - summary strengths improvements"
+        enum model_tier "cheap|premium"
+        string model_name
+        string prompt_version "M1 NEW - default v1"
+        int tokens_input "M1 NEW"
+        int tokens_output "M1 NEW"
+        int turnaround_ms
+        enum processing_status "pending|done|failed"
+        enum state "M1 NEW - draft|submitted|ai_scored|released_ai|pending_review|ai_failed|finalized"
+        string error_message
+        timestamp created_at
+        timestamp updated_at "M1 NEW"
+        timestamp scored_at
+        float instructor_override_score "DEPRECATED by instructor_scores"
+        json instructor_scores "M1 NEW - TR CC LR GRA overall"
+        text instructor_comment
+        uuid reviewed_by FK
+        timestamp reviewed_at
+    }
+
+    SourceDocument {
+        uuid id PK
+        string file_name
+        string file_url
+        uuid uploaded_by FK
+        enum status "pending|done|failed"
+        timestamp created_at
+    }
+
+    ImportJob {
+        uuid id PK
+        uuid user_id FK
+        uuid document_id FK
+        enum status "pending|done|failed"
+        json parsed_raw_data
+        text error_message
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Collection {
+        uuid id PK
+        string name UK
+        string description
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    Notification {
+        uuid id PK
+        uuid user_id FK
+        string type
+        string title
+        text message
+        string link
+        boolean is_read
+        json metadata
+        timestamp created_at
+    }
+```
+
+---
+
+## 2. Enums hiện có + mới (M1)
+
+| Enum | Values | Ghi chú |
+|------|--------|---------|
+| UserRole | learner, instructor, admin | Không đổi |
+| CefrLevel | A2, B1, B2, C1 | Không đổi |
+| ContentStatus | draft, published | Không đổi |
+| QuestionType | mcq, short, matching_headings, true_false_notgiven, yes_no_notgiven, matching_information, matching_features, matching_sentence_endings, sentence_completion, summary_completion, table_completion, flowchart_completion, diagram_label_completion | Không đổi — 13 loại |
+| TaskType | task1, task2 | Không đổi |
+| ModelTier | cheap, premium | Không đổi |
+| ProcessingStatus | pending, done, failed | Giữ cho worker AI, legacy |
+| ClassroomStatus | active, archived | Không đổi |
+| ClassroomRole | teacher, student | Không đổi |
+| LessonContentType | text, video, passage, prompt | Không đổi |
+| **SubmissionState** | draft, submitted, ai_scored, released_ai, pending_review, ai_failed, finalized | **M1 MỚI** |
+| **WritingMode** | instant, review_first | **M1 MỚI** |
+
+---
+
+## 3. Schema migration M1 — Summary
+
+### 3.1 Cột mới
+
+| Model | Cột | Type | Default | Lý do |
+|-------|-----|------|---------|-------|
+| Classroom | writing_mode | WritingMode | instant | Chế độ A/B per-lớp (D5) |
+| Lesson | due_at | DateTime? | null | Deadline giao bài (US-102) |
+| WritingSubmission | state | SubmissionState | submitted | State machine hiển thị (Mục 4 PRD) |
+| WritingSubmission | lesson_id | String? | null | Gắn bài vào lesson; null = tự học |
+| WritingSubmission | instructor_scores | Json? | null | GV sửa từng tiêu chí (US-204) |
+| WritingSubmission | prompt_version | String | "v1" | Không trộn calibration data (D10) |
+| WritingSubmission | tokens_input | Int? | null | Log chi phí (US-603) |
+| WritingSubmission | tokens_output | Int? | null | Log chi phí (US-603) |
+| WritingSubmission | updated_at | DateTime | @updatedAt | Auto-save draft (US-201) |
+
+### 3.2 Index mới
+
+| Model | Index | Lý do |
+|-------|-------|-------|
+| WritingSubmission | [lesson_id, state] | Review queue GV theo bài giao |
+| WritingSubmission | [user_id, state] | Danh sách bài HS theo trạng thái |
+
+### 3.3 Quan hệ mới
+- WritingSubmission → Lesson (optional, qua lesson_id)
+- Lesson → WritingSubmission[] (quan hệ ngược)
+
+### 3.4 Deprecation
+- `instructor_override_score` → thay bằng `instructor_scores.overall`; backfill script copy giá trị cũ sang; giữ cột cũ read-only
+
+---
+
+## 4. Backfill strategy (dữ liệu cũ)
+
+| Điều kiện | state gán |
+|-----------|-----------|
+| processing_status = pending | submitted |
+| processing_status = failed | ai_failed |
+| processing_status = done AND reviewed_at IS NOT NULL | finalized |
+| processing_status = done AND chưa review | released_ai |
+
+Tất cả dữ liệu cũ: lesson_id = null (đều là tự học). Script idempotent, chạy 2 lần cho kết quả như 1 lần.
+
+---
+
+## 5. Data retention & privacy
+
+| Dữ liệu | Retention | Lý do |
+|----------|-----------|-------|
+| Essay content | Xóa theo yêu cầu (US-602) | Quyền xóa theo Luật 91/2025 |
+| AI feedback | Xóa cùng submission | Không giữ riêng |
+| Calibration data (band AI vs GV) | Anonymize sau 12 tháng | Cải thiện model |
+| Token usage logs | Giữ vĩnh viễn (không PII) | Phân tích chi phí |
+| Account data | Xóa mềm 7 ngày → xóa cứng | US-602 |
