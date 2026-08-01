@@ -18,9 +18,8 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "migration:run": "npx prisma migrate deploy",
-    "migration:dev": "npx prisma migrate dev",
-    "migration:reset": "npx prisma migrate reset",
+    "db:ddl": "for f in ../database/ddl/*.sql; do psql \"$DATABASE_URL\" -f \"$f\"; done",
+    "db:dml": "for f in ../database/dml/*.sql; do psql \"$DATABASE_URL\" -f \"$f\"; done",
     "prisma:generate": "npx prisma generate",
     "prisma:studio": "npx prisma studio",
     "seed": "npx ts-node src/seeds/seed.ts"
