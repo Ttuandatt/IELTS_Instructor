@@ -52,13 +52,33 @@ Monorepo: NestJS backend + Next.js 14 frontend (App Router, Turbopack).
 ## Git Workflow
 
 **Branches:**
-- `main` — stable, deployable. Never commit directly.
-- `development` — integration branch. Every `feat/*`/`fix/*` branch PRs into `development` first; `development` PRs into `main` once stable.
-- `feat/<short-kebab-name>` — new feature work, e.g. `feat/m1-schema-migration`
-- `fix/<short-kebab-name>` — bug fixes
-- `backup/<description>` — ad hoc snapshot before a risky batch of changes (rare)
 
-**Commit message title** — Conventional Commits, already the convention throughout this repo's history:
+| Prefix | Purpose | Branch from | PR into | Example |
+|---|---|---|---|---|
+| `main` | Production-ready, protected | — | — | — |
+| `development` | Integration branch | `main` | `main` (via `release/`) | — |
+| `feat/` | New feature | `development` | `development` | `feat/auth-jwt` |
+| `fix/` | Bug fix | `development` | `development` | `fix/login-redirect` |
+| `chore/` | Non-functional (deps, CI, docs, refactor) | `development` | `development` | `chore/upgrade-spring-boot` |
+| `hotfix/` | Critical production fix | `main` | `main` + `development` | `hotfix/sql-injection` |
+| `release/` | Release prep (version bump, changelog) | `development` | `main` + `development` | `release/1.0.0` |
+
+**Rules:**
+- Never commit directly to `main` or `development` — always via PR
+- Branch naming: `<type>/<short-kebab-description>` — max 4 words
+- One concern per branch — don't mix a feature with an unrelated fix
+- Delete branch after merge
+- Rebase or squash merge into `development`; merge commit from `development` → `main`
+
+**Hotfix flow:** `main` → `hotfix/xxx` → PR into `main` → cherry-pick or merge back into `development`
+
+**Release flow:** `development` → `release/x.y.z` → final QA/fixes → PR into `main` (tag `vx.y.z`) + PR back into `development`
+
+**Protection rules** (when team joins):
+- `main`: require PR review, no force push, require CI pass
+- `development`: require PR review, no force push
+
+**Commit message title** — Conventional Commits:
 
 ```
 <type>(<scope>): <imperative, lowercase summary>
@@ -66,14 +86,12 @@ Monorepo: NestJS backend + Next.js 14 frontend (App Router, Turbopack).
 
 - `type`: `feat` | `fix` | `docs` | `style` | `refactor` | `chore` | `test` | `wip`
 - `scope`: optional — the module/feature touched (`reading`, `writing`, `dashboard`, `auth`, `lesson`, `scoring`, `prd`, `classroom`...). Omit for repo-wide changes.
-- Examples from history: `feat(reading): split result into /reading/attempts/[id]`, `refactor(reading): strategy pattern grading for 13 IELTS question types`, `docs: merge PRD refresh into staged docs/PRD structure`
+- Examples: `feat(auth): add JWT refresh token rotation`, `fix(reading): null check on empty passage body`
 
 **Commit message body:**
 - One or two sentences on *why*, not *what* — the diff already shows what changed
 - Call out anything a reviewer must know that isn't obvious from the diff: schema/migration changes, files moved/renamed, breaking API changes
-- **Never add a `Co-Authored-By: Claude` trailer** — explicitly opted out for this repo, don't reintroduce it
-
-**PR flow:** `feat/*`/`fix/*` → PR into `development` → review → PR `development` → `main` when stable. No fixed cadence — merge to `main` at milestone boundaries, not per-commit.
+- **Never add a `Co-Authored-By: Claude` trailer** — explicitly opted out for this repo
 
 ## Dev environment quirks
 

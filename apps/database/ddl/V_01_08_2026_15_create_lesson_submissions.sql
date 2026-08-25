@@ -1,8 +1,8 @@
 -- CreateTable
 CREATE TABLE "lesson_submissions" (
-    "id" TEXT NOT NULL,
-    "lesson_id" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "lesson_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
     "content" TEXT NOT NULL,
     "word_count" INTEGER NOT NULL,
     "status" VARCHAR(20) NOT NULL DEFAULT 'submitted',

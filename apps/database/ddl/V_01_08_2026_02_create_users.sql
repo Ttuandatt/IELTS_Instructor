@@ -1,10 +1,10 @@
 -- CreateTable
 CREATE TABLE "users" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "email" VARCHAR(255) NOT NULL,
     "password_hash" VARCHAR(255) NOT NULL,
     "display_name" VARCHAR(100) NOT NULL,
-    "role" "UserRole" NOT NULL DEFAULT 'learner',
+    "role" "UserRole" NOT NULL DEFAULT 'LEARNER',
     "language" VARCHAR(5) NOT NULL DEFAULT 'vi',
     "theme" VARCHAR(10) NOT NULL DEFAULT 'light',
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

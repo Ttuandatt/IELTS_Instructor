@@ -1,14 +1,14 @@
 -- CreateTable
 CREATE TABLE "classrooms" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" VARCHAR(100) NOT NULL,
     "description" TEXT,
     "cover_image_url" TEXT,
     "invite_code" VARCHAR(8) NOT NULL,
-    "owner_id" TEXT NOT NULL,
-    "status" "ClassroomStatus" NOT NULL DEFAULT 'active',
+    "owner_id" UUID NOT NULL,
+    "status" "ClassroomStatus" NOT NULL DEFAULT 'ACTIVE',
     "max_members" INTEGER NOT NULL DEFAULT 50,
-    "writing_mode" "WritingMode" NOT NULL DEFAULT 'instant',
+    "writing_mode" "WritingMode" NOT NULL DEFAULT 'INSTANT',
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
 

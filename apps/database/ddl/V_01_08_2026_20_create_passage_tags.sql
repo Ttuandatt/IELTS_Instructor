@@ -1,16 +1,16 @@
 -- CreateTable
-CREATE TABLE "_PassageTags" (
-    "A" TEXT NOT NULL,
-    "B" TEXT NOT NULL,
+CREATE TABLE "passage_tags" (
+    "passage_id" UUID NOT NULL,
+    "tag_id" UUID NOT NULL,
 
-    CONSTRAINT "_PassageTags_AB_pkey" PRIMARY KEY ("A","B")
+    CONSTRAINT "passage_tags_pkey" PRIMARY KEY ("passage_id","tag_id")
 );
 
 -- CreateIndex
-CREATE INDEX "_PassageTags_B_index" ON "_PassageTags"("B");
+CREATE INDEX "passage_tags_tag_id_idx" ON "passage_tags"("tag_id");
 
 -- AddForeignKey
-ALTER TABLE "_PassageTags" ADD CONSTRAINT "_PassageTags_A_fkey" FOREIGN KEY ("A") REFERENCES "passages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "passage_tags" ADD CONSTRAINT "passage_tags_passage_id_fkey" FOREIGN KEY ("passage_id") REFERENCES "passages"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_PassageTags" ADD CONSTRAINT "_PassageTags_B_fkey" FOREIGN KEY ("B") REFERENCES "topic_tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "passage_tags" ADD CONSTRAINT "passage_tags_tag_id_fkey" FOREIGN KEY ("tag_id") REFERENCES "topic_tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;

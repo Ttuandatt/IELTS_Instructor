@@ -1,8 +1,8 @@
 -- CreateTable
 CREATE TABLE "submissions_reading" (
-    "id" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
-    "passage_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL,
+    "passage_id" UUID NOT NULL,
     "answers" JSONB NOT NULL,
     "score_pct" DOUBLE PRECISION NOT NULL,
     "correct_count" INTEGER NOT NULL,
@@ -11,7 +11,7 @@ CREATE TABLE "submissions_reading" (
     "timed_out" BOOLEAN NOT NULL DEFAULT false,
     "test_mode" VARCHAR(20) NOT NULL DEFAULT 'practice',
     "completed_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "lesson_id" TEXT,
+    "lesson_id" UUID,
 
     CONSTRAINT "submissions_reading_pkey" PRIMARY KEY ("id")
 );

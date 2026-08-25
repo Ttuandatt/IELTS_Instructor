@@ -1,6 +1,6 @@
 -- CreateTable
 CREATE TABLE "topic_tags" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" VARCHAR(50) NOT NULL,
 
     CONSTRAINT "topic_tags_pkey" PRIMARY KEY ("id")

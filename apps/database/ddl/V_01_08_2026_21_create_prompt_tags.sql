@@ -1,16 +1,16 @@
 -- CreateTable
-CREATE TABLE "_PromptTags" (
-    "A" TEXT NOT NULL,
-    "B" TEXT NOT NULL,
+CREATE TABLE "prompt_tags" (
+    "prompt_id" UUID NOT NULL,
+    "tag_id" UUID NOT NULL,
 
-    CONSTRAINT "_PromptTags_AB_pkey" PRIMARY KEY ("A","B")
+    CONSTRAINT "prompt_tags_pkey" PRIMARY KEY ("prompt_id","tag_id")
 );
 
 -- CreateIndex
-CREATE INDEX "_PromptTags_B_index" ON "_PromptTags"("B");
+CREATE INDEX "prompt_tags_tag_id_idx" ON "prompt_tags"("tag_id");
 
 -- AddForeignKey
-ALTER TABLE "_PromptTags" ADD CONSTRAINT "_PromptTags_A_fkey" FOREIGN KEY ("A") REFERENCES "prompts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "prompt_tags" ADD CONSTRAINT "prompt_tags_prompt_id_fkey" FOREIGN KEY ("prompt_id") REFERENCES "prompts"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "_PromptTags" ADD CONSTRAINT "_PromptTags_B_fkey" FOREIGN KEY ("B") REFERENCES "topic_tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+ALTER TABLE "prompt_tags" ADD CONSTRAINT "prompt_tags_tag_id_fkey" FOREIGN KEY ("tag_id") REFERENCES "topic_tags"("id") ON DELETE CASCADE ON UPDATE CASCADE;

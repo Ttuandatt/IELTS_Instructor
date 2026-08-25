@@ -1,14 +1,14 @@
 -- CreateTable
 CREATE TABLE "prompts" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "task_type" "TaskType" NOT NULL,
     "title" VARCHAR(200) NOT NULL,
     "prompt_text" TEXT NOT NULL,
     "level" "CefrLevel" NOT NULL,
-    "collection_id" TEXT,
-    "status" "ContentStatus" NOT NULL DEFAULT 'draft',
+    "collection_id" UUID,
+    "status" "ContentStatus" NOT NULL DEFAULT 'DRAFT',
     "min_words" INTEGER NOT NULL DEFAULT 250,
-    "created_by" TEXT NOT NULL,
+    "created_by" UUID NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
 

@@ -7,6 +7,6 @@ VALUES (
   'Lớp luyện thi IELTS buổi sáng — band mục tiêu 6.5+',
   'DEMO0001',
   'fdc761e3-8a84-4110-b41c-d87d27f71a2b',
-  'active', 50, 'instant', now(), now()
+  'ACTIVE', 50, 'INSTANT', now(), now()
 )
 ON CONFLICT (id) DO NOTHING;

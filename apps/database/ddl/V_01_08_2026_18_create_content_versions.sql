@@ -1,10 +1,10 @@
 -- CreateTable
 CREATE TABLE "content_versions" (
-    "id" TEXT NOT NULL,
-    "entity_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "entity_id" UUID NOT NULL,
     "entity_type" VARCHAR(20) NOT NULL,
     "action" VARCHAR(20) NOT NULL,
-    "editor_id" TEXT NOT NULL,
+    "editor_id" UUID NOT NULL,
     "version" INTEGER NOT NULL,
     "changes" JSONB,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

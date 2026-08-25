@@ -1,7 +1,7 @@
 -- CreateTable
 CREATE TABLE "questions" (
-    "id" TEXT NOT NULL,
-    "passage_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "passage_id" UUID NOT NULL,
     "type" "QuestionType" NOT NULL,
     "prompt" TEXT NOT NULL,
     "options" JSONB,

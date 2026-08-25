@@ -1,8 +1,8 @@
 -- CreateTable
 CREATE TABLE "announcements" (
-    "id" TEXT NOT NULL,
-    "classroom_id" TEXT NOT NULL,
-    "author_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "classroom_id" UUID NOT NULL,
+    "author_id" UUID NOT NULL,
     "message" TEXT NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

@@ -1,25 +1,26 @@
+name: teachy
 services:
   postgres:
-    image: postgres:15-alpine
-    container_name: ielts-postgres
+    image: postgres:16-alpine
+    container_name: teachy-postgres
     restart: unless-stopped
     ports:
       - '5434:5432'
     environment:
-      POSTGRES_DB: ielts_helper
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: teachy
+      POSTGRES_USER: teachy
+      POSTGRES_PASSWORD: teachy_dev
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      test: ['CMD-SHELL', 'pg_isready -U teachy']
       interval: 10s
       timeout: 5s
       retries: 5
 
   redis:
     image: redis:7-alpine
-    container_name: ielts-redis
+    container_name: teachy-redis
     restart: unless-stopped
     ports:
       - '6380:6379'

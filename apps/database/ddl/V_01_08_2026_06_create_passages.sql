@@ -1,13 +1,13 @@
 -- CreateTable
 CREATE TABLE "passages" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "title" VARCHAR(200) NOT NULL,
     "body" TEXT NOT NULL,
     "level" "CefrLevel" NOT NULL,
-    "collection_id" TEXT,
-    "source_document_id" TEXT,
-    "status" "ContentStatus" NOT NULL DEFAULT 'draft',
-    "created_by" TEXT NOT NULL,
+    "collection_id" UUID,
+    "source_document_id" UUID,
+    "status" "ContentStatus" NOT NULL DEFAULT 'DRAFT',
+    "created_by" UUID NOT NULL,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMPTZ NOT NULL,
 

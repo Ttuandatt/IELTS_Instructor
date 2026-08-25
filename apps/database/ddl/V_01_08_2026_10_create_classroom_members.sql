@@ -1,9 +1,9 @@
 -- CreateTable
 CREATE TABLE "classroom_members" (
-    "id" TEXT NOT NULL,
-    "classroom_id" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
-    "role" "ClassroomRole" NOT NULL DEFAULT 'student',
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "classroom_id" UUID NOT NULL,
+    "user_id" UUID NOT NULL,
+    "role" "ClassroomRole" NOT NULL DEFAULT 'STUDENT',
     "joined_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "classroom_members_pkey" PRIMARY KEY ("id")

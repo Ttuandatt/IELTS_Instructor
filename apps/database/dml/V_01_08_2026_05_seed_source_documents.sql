@@ -6,7 +6,7 @@ VALUES (
   'cam18_reading_test_1.docx',
   '/uploads/cam18_reading_test_1.docx',
   'fdc761e3-8a84-4110-b41c-d87d27f71a2b', -- instructor
-  'done',
+  'DONE',
   now()
 )
 ON CONFLICT (id) DO NOTHING;

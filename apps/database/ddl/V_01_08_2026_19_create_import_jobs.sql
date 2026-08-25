@@ -1,9 +1,9 @@
 -- CreateTable
 CREATE TABLE "import_jobs" (
-    "id" TEXT NOT NULL,
-    "user_id" TEXT NOT NULL,
-    "document_id" TEXT NOT NULL,
-    "status" "ProcessingStatus" NOT NULL DEFAULT 'pending',
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "user_id" UUID NOT NULL,
+    "document_id" UUID NOT NULL,
+    "status" "ProcessingStatus" NOT NULL DEFAULT 'PENDING',
     "parsed_raw_data" JSONB,
     "error_message" TEXT,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,

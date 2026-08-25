@@ -1,10 +1,10 @@
 -- CreateTable
 CREATE TABLE "source_documents" (
-    "id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "file_name" VARCHAR(255) NOT NULL,
     "file_url" TEXT NOT NULL,
-    "uploaded_by" TEXT NOT NULL,
-    "status" "ProcessingStatus" NOT NULL DEFAULT 'pending',
+    "uploaded_by" UUID NOT NULL,
+    "status" "ProcessingStatus" NOT NULL DEFAULT 'PENDING',
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "source_documents_pkey" PRIMARY KEY ("id")

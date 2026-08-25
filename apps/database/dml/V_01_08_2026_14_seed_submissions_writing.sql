@@ -13,7 +13,7 @@ VALUES (
   262,
   '{"TR": 6.0, "CC": 6.5, "LR": 6.0, "GRA": 6.5, "overall": 6.0}',
   '{"summary": "Solid attempt with clear position.", "strengths": ["Clear thesis", "Good paragraph structure"], "improvements": ["Broaden vocabulary range", "Vary sentence structure"]}',
-  'cheap', 'gemini-2.5-flash', 4200, 'done', now(), now(), '394d721e-557c-45f3-9846-f910f22ceb8e',
-  'released_ai', NULL, now(), 'v1', 850, 320
+  'CHEAP', 'gemini-2.5-flash', 4200, 'DONE', now(), now(), '394d721e-557c-45f3-9846-f910f22ceb8e',
+  'RELEASED_AI', NULL, now(), 'v1', 850, 320
 )
 ON CONFLICT (id) DO NOTHING;

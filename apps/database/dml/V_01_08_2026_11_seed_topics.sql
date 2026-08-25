@@ -6,6 +6,6 @@ VALUES (
   '23213a89-4c00-43b9-b682-10bcc501fe43',
   'Week 1 — Reading & Writing Basics',
   'Bài tập tuần đầu tiên',
-  0, 'published', now()
+  0, 'PUBLISHED', now()
 )
 ON CONFLICT (id) DO NOTHING;

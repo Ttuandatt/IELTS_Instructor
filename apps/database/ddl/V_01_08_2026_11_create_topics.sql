@@ -1,11 +1,11 @@
 -- CreateTable
 CREATE TABLE "topics" (
-    "id" TEXT NOT NULL,
-    "classroom_id" TEXT NOT NULL,
+    "id" UUID NOT NULL DEFAULT gen_random_uuid(),
+    "classroom_id" UUID NOT NULL,
     "title" VARCHAR(200) NOT NULL,
     "description" TEXT,
     "order_index" INTEGER NOT NULL DEFAULT 0,
-    "status" "ContentStatus" NOT NULL DEFAULT 'draft',
+    "status" "ContentStatus" NOT NULL DEFAULT 'DRAFT',
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "topics_pkey" PRIMARY KEY ("id")
