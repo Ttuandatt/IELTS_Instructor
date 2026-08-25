@@ -1,0 +1,6 @@
+@echo off
+echo Dropping database teachy...
+docker exec -i teachy-postgres psql -U teachy -d postgres -c "DROP DATABASE IF EXISTS teachy;"
+echo Creating database teachy...
+docker exec -i teachy-postgres psql -U teachy -d postgres -c "CREATE DATABASE teachy;"
+echo Database reset complete.
