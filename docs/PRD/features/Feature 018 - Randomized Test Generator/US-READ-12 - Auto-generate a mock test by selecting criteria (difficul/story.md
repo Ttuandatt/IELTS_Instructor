@@ -9,11 +9,11 @@
 
 ## Acceptance Criteria
 
-- UI: "Tạo đề thi ngẫu nhiên" button on instructor's passage management page. Opens configuration modal/page
-- Configuration options:
-- Generation logic: server-side query selects matching published passages, randomized with `ORDER BY RANDOM()`. If fewer matching passages than requested → show warning "Chỉ tìm thấy {n} bài phù hợp (cần {requested})" with option to proceed with fewer or adjust criteria
-- Preview: generated test shown in read-only preview mode (same layout as learner would see). Instructor can:
-- Deterministic seed: each generation uses a random seed stored with the test. Same seed + same passage bank = same test (for reproducibility if needed)
-- Generated test saved as `reading_tests` record with `{ passages: [id1, id2, id3], criteria, seed, created_by, created_at }`
-- Edge case: DB has fewer published passages than needed → clear message before generation starts. Minimum: 1 published passage with at least 1 question
-- Depends on: F-READ-05 (passage must be published), F-CLASS-04 (lesson assignment)
+- AC1: UI: "Tạo đề thi ngẫu nhiên" button on instructor's passage management page. Opens configuration modal/page
+- AC2: Configuration options:
+- AC3: Generation logic: server-side query selects matching published passages, randomized with `ORDER BY RANDOM()`. If fewer matching passages than requested → show warning "Chỉ tìm thấy {n} bài phù hợp (cần {requested})" with option to proceed with fewer or adjust criteria
+- AC4: Preview: generated test shown in read-only preview mode (same layout as learner would see). Instructor can:
+- AC5: Deterministic seed: each generation uses a random seed stored with the test. Same seed + same passage bank = same test (for reproducibility if needed)
+- AC6: Generated test saved as `reading_tests` record with `{ passages: [id1, id2, id3], criteria, seed, created_by, created_at }`
+- AC7: Edge case: DB has fewer published passages than needed → clear message before generation starts. Minimum: 1 published passage with at least 1 question
+- AC8: Depends on: F-READ-05 (passage must be published), F-CLASS-04 (lesson assignment)

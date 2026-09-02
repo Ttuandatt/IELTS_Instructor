@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Engagement & Gamification |
-| **Status** | Future |
+| **NestJS** | Future |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Study Reminders
 
 ## User Stories
 
-- [US-ENGAGE-04 — Set daily study reminders](US-ENGAGE-04 - Set daily study reminders/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-ENGAGE-04 | Set daily study reminders | [story](US-ENGAGE-04%20-%20Set%20daily%20study%20reminders/story.md) |

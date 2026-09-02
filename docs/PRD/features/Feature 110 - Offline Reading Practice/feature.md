@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Mobile & PWA |
-| **Status** | Planned |
+| **NestJS** | Planned |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Offline Reading Practice
 
 ## User Stories
 
-- [US-MOBILE-03 — Download passages for offline practice](US-MOBILE-03 - Download passages for offline practice/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-MOBILE-03 | Download passages for offline practice | [story](US-MOBILE-03%20-%20Download%20passages%20for%20offline%20practice/story.md) |

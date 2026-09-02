@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Content Import & Parsing |
-| **Status** | Built |
+| **NestJS** | Built |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Manual Question Editor
 
 ## User Stories
 
-- [US-IMPORT-03 — Manually create questions without uploading a file](US-IMPORT-03 - Manually create questions without uploading a file/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-IMPORT-03 | Manually create questions without uploading a file | [story](US-IMPORT-03%20-%20Manually%20create%20questions%20without%20uploading%20a%20file/story.md) |

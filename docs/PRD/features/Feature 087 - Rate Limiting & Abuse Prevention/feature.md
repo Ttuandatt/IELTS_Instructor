@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Compliance & Security |
-| **Status** | Planned |
+| **NestJS** | Planned |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Rate Limiting & Abuse Prevention
 
 ## User Stories
 
-- [US-COMP-05 — Rate-limit API endpoints](US-COMP-05 - Rate-limit API endpoints/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-COMP-05 | Rate-limit API endpoints | [story](US-COMP-05%20-%20Rate-limit%20API%20endpoints/story.md) |

@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Engagement & Gamification |
-| **Status** | Future |
+| **NestJS** | Future |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Classroom Leaderboard
 
 ## User Stories
 
-- [US-ENGAGE-03 — See a leaderboard for my classroom](US-ENGAGE-03 - See a leaderboard for my classroom/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-ENGAGE-03 | See a leaderboard for my classroom | [story](US-ENGAGE-03%20-%20See%20a%20leaderboard%20for%20my%20classroom/story.md) |

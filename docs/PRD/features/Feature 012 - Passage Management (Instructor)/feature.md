@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Reading |
-| **Status** | Built |
+| **NestJS** | Built |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,5 +12,7 @@ Passage Management (Instructor)
 
 ## User Stories
 
-- [US-READ-05 — Create, edit, and delete reading passages](US-READ-05 - Create, edit, and delete reading passages/story.md)
-- [US-READ-06 — Add, edit, and reorder questions on a passage](US-READ-06 - Add, edit, and reorder questions on a passage/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-READ-05 | Create, edit, and delete reading passages | [story](US-READ-05%20-%20Create%2C%20edit%2C%20and%20delete%20reading%20passages/story.md) |
+| US-READ-06 | Add, edit, and reorder questions on a passage | [story](US-READ-06%20-%20Add%2C%20edit%2C%20and%20reorder%20questions%20on%20a%20passage/story.md) |

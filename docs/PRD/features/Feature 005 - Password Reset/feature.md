@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Auth & Account |
-| **Status** | Planned |
+| **NestJS** | Planned |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Password Reset
 
 ## User Stories
 
-- [US-AUTH-07 — Reset password via email](US-AUTH-07 - Reset password via email/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-AUTH-07 | Reset password via email | [story](US-AUTH-07%20-%20Reset%20password%20via%20email/story.md) |

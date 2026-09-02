@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Mobile & PWA |
-| **Status** | Partial |
+| **NestJS** | Partial |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Responsive Design
 
 ## User Stories
 
-- [US-MOBILE-01 — Use Langy on my phone](US-MOBILE-01 - Use Langy on my phone/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-MOBILE-01 | Use Langy on my phone | [story](US-MOBILE-01%20-%20Use%20Langy%20on%20my%20phone/story.md) |

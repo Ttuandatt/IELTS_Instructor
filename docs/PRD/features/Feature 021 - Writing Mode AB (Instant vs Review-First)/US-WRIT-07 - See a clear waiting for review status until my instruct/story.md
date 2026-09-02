@@ -9,8 +9,8 @@
 
 ## Acceptance Criteria
 
-- Submission detail page in `pending_review` state shows:
-- Writing history page: `pending_review` submissions show orange clock icon + "Chờ duyệt" text instead of score
-- When instructor releases (→ `finalized`): in-app notification sent to learner: "Giáo viên đã duyệt bài viết '{prompt_title}'" with link to submission detail. Email notification if email notifications enabled (see F-NOTIF-02)
-- Finalized submission shows: AI scores + AI feedback + instructor scores (if overridden) + instructor comments. Clear labeling: "Điểm AI (ước lượng)" vs "Điểm giáo viên" sections
-- Security: API endpoint `GET /api/writing/submissions/{id}` checks: if `state=pending_review` AND requester is learner → strip `ai_scores`, `ai_feedback` from response. Only instructor/admin see scores in pending state
+- AC1: Submission detail page in `pending_review` state shows:
+- AC2: Writing history page: `pending_review` submissions show orange clock icon + "Chờ duyệt" text instead of score
+- AC3: When instructor releases (→ `finalized`): in-app notification sent to learner: "Giáo viên đã duyệt bài viết '{prompt_title}'" with link to submission detail. Email notification if email notifications enabled (see F-NOTIF-02)
+- AC4: Finalized submission shows: AI scores + AI feedback + instructor scores (if overridden) + instructor comments. Clear labeling: "Điểm AI (ước lượng)" vs "Điểm giáo viên" sections
+- AC5: Security: API endpoint `GET /api/writing/submissions/{id}` checks: if `state=pending_review` AND requester is learner → strip `ai_scores`, `ai_feedback` from response. Only instructor/admin see scores in pending state

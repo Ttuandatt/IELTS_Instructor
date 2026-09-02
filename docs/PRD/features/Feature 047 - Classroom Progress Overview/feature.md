@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Classroom |
-| **Status** | Partial |
+| **NestJS** | Partial |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Classroom Progress Overview
 
 ## User Stories
 
-- [US-CLASS-10 — See class-wide progress (submission rates, average scores...](US-CLASS-10 - See class-wide progress (submission rates, average scores/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-CLASS-10 | See class-wide progress (submission rates, average scores | [story](US-CLASS-10%20-%20See%20class-wide%20progress%20%28submission%20rates%2C%20average%20scores/story.md) |

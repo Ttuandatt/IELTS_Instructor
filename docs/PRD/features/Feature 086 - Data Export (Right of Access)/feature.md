@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Compliance & Security |
-| **Status** | Planned |
+| **NestJS** | Planned |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Data Export (Right of Access)
 
 ## User Stories
 
-- [US-COMP-04 — Download all my data](US-COMP-04 - Download all my data/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-COMP-04 | Download all my data | [story](US-COMP-04%20-%20Download%20all%20my%20data/story.md) |

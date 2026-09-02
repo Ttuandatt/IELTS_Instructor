@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Auth & Account |
-| **Status** | Built |
+| **NestJS** | Built |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ JWT Token Refresh
 
 ## User Stories
 
-- [US-AUTH-03 — Auto-refresh session](US-AUTH-03 - Auto-refresh session/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-AUTH-03 | Auto-refresh session | [story](US-AUTH-03%20-%20Auto-refresh%20session/story.md) |

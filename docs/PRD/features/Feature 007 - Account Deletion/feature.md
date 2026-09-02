@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Auth & Account |
-| **Status** | Planned |
+| **NestJS** | Planned |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Account Deletion
 
 ## User Stories
 
-- [US-AUTH-09 — Delete account and data](US-AUTH-09 - Delete account and data/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-AUTH-09 | Delete account and data | [story](US-AUTH-09%20-%20Delete%20account%20and%20data/story.md) |

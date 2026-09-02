@@ -9,10 +9,10 @@
 
 ## Acceptance Criteria
 
-- Export button on classroom progress page (F-CLASS-07): dropdown "Xuất PDF" / "Xuất CSV"
-- CSV export:
-- PDF export:
-- Download delivered as browser download (Content-Disposition: attachment). No file stored on server — generated on-demand
-- Rate limit: max 5 exports per instructor per hour (prevent CPU abuse from PDF generation)
-- Empty classroom (no students): export contains header only with "Không có dữ liệu" message
-- Depends on: F-CLASS-07 (progress data source)
+- AC1: Export button on classroom progress page (F-CLASS-07): dropdown "Xuất PDF" / "Xuất CSV"
+- AC2: CSV export:
+- AC3: PDF export:
+- AC4: Download delivered as browser download (Content-Disposition: attachment). No file stored on server — generated on-demand
+- AC5: Rate limit: max 5 exports per instructor per hour (prevent CPU abuse from PDF generation)
+- AC6: Empty classroom (no students): export contains header only with "Không có dữ liệu" message
+- AC7: Depends on: F-CLASS-07 (progress data source)

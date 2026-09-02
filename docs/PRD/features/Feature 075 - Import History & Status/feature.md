@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Content Import & Parsing |
-| **Status** | Partial |
+| **NestJS** | Partial |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Import History & Status
 
 ## User Stories
 
-- [US-IMPORT-04 — See my past file imports and their status](US-IMPORT-04 - See my past file imports and their status/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-IMPORT-04 | See my past file imports and their status | [story](US-IMPORT-04%20-%20See%20my%20past%20file%20imports%20and%20their%20status/story.md) |

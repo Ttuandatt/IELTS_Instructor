@@ -9,13 +9,13 @@
 
 ## Acceptance Criteria
 
-- Mobile writing page: detected via viewport width (< 768px) or user preference toggle "Chế độ di động"
-- **Full-screen editor mode:**
-- **Word count:** always visible sticky footer bar. Shows: "{current} từ" with color indicator:
-- **Prompt display:**
-- **Auto-save indicator:** visible in sticky footer next to word count. States:
-- **Text editing enhancements (mobile):**
-- **Submission flow (mobile):**
-- **Portrait/landscape:** both supported. Landscape: textarea wider, useful for typing. No layout breakage. Prompt collapsed by default in landscape (maximize typing area)
-- **Performance:** mobile textarea handles 500+ word essays without lag. No rich-text editor overhead (plain `<textarea>` element)
-- Depends on: F-WRIT-01 (writing prompts), F-WRIT-02 (auto-save), F-WRIT-03 (submission flow)
+- AC1: Mobile writing page: detected via viewport width (< 768px) or user preference toggle "Chế độ di động"
+- AC2: **Full-screen editor mode:**
+- AC3: **Word count:** always visible sticky footer bar. Shows: "{current} từ" with color indicator:
+- AC4: **Prompt display:**
+- AC5: **Auto-save indicator:** visible in sticky footer next to word count. States:
+- AC6: **Text editing enhancements (mobile):**
+- AC7: **Submission flow (mobile):**
+- AC8: **Portrait/landscape:** both supported. Landscape: textarea wider, useful for typing. No layout breakage. Prompt collapsed by default in landscape (maximize typing area)
+- AC9: **Performance:** mobile textarea handles 500+ word essays without lag. No rich-text editor overhead (plain `<textarea>` element)
+- AC10: Depends on: F-WRIT-01 (writing prompts), F-WRIT-02 (auto-save), F-WRIT-03 (submission flow)

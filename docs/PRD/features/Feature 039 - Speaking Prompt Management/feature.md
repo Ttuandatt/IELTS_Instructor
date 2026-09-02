@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Speaking |
-| **Status** | Future |
+| **NestJS** | Future |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Speaking Prompt Management
 
 ## User Stories
 
-- [US-SPEAK-03 — Create speaking prompts (Part 1/2/3)](US-SPEAK-03 - Create speaking prompts (Part 123)/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-SPEAK-03 | Create speaking prompts (Part 123) | [story](US-SPEAK-03%20-%20Create%20speaking%20prompts%20%28Part%20123%29/story.md) |

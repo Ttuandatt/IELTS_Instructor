@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Writing |
-| **Status** | Partial |
+| **NestJS** | Partial |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Writing State Machine Enforcement
 
 ## User Stories
 
-- [US-WRIT-13 — Enforce valid state transitions on writing submissions](US-WRIT-13 - Enforce valid state transitions on writing submissions/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-WRIT-13 | Enforce valid state transitions on writing submissions | [story](US-WRIT-13%20-%20Enforce%20valid%20state%20transitions%20on%20writing%20submissions/story.md) |

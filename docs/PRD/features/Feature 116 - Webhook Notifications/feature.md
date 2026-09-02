@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Integration |
-| **Status** | Future |
+| **NestJS** | Future |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Webhook Notifications
 
 ## User Stories
 
-- [US-INT-03 — Receive webhook events for key actions (submission scored...](US-INT-03 - Receive webhook events for key actions (submission scored/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-INT-03 | Receive webhook events for key actions (submission scored | [story](US-INT-03%20-%20Receive%20webhook%20events%20for%20key%20actions%20%28submission%20scored/story.md) |

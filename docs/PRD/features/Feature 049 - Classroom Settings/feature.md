@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Classroom |
-| **Status** | Partial |
+| **NestJS** | Partial |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Classroom Settings
 
 ## User Stories
 
-- [US-CLASS-12 — Configure classroom settings (name, description, writing ...](US-CLASS-12 - Configure classroom settings (name, description, writing/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-CLASS-12 | Configure classroom settings (name, description, writing | [story](US-CLASS-12%20-%20Configure%20classroom%20settings%20%28name%2C%20description%2C%20writing/story.md) |

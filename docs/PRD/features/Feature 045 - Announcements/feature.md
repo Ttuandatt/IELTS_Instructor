@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Classroom |
-| **Status** | Built |
+| **NestJS** | Built |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Announcements
 
 ## User Stories
 
-- [US-CLASS-08 — Post announcements to my classroom](US-CLASS-08 - Post announcements to my classroom/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-CLASS-08 | Post announcements to my classroom | [story](US-CLASS-08%20-%20Post%20announcements%20to%20my%20classroom/story.md) |

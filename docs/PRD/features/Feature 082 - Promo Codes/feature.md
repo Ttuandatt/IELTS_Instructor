@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Billing & Subscription |
-| **Status** | Future |
+| **NestJS** | Future |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Promo Codes
 
 ## User Stories
 
-- [US-BILL-05 — Create promo codes for discounts](US-BILL-05 - Create promo codes for discounts/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-BILL-05 | Create promo codes for discounts | [story](US-BILL-05%20-%20Create%20promo%20codes%20for%20discounts/story.md) |

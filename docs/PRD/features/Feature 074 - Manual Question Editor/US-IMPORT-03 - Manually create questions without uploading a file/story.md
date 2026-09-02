@@ -9,11 +9,11 @@
 
 ## Acceptance Criteria
 
-- Question editor: accessible from passage edit page → "Thêm câu hỏi" button, and from standalone create page
-- Type selector: dropdown with all 13 IELTS question types, labeled in Vietnamese:
-- Type-specific form fields:
-- Group instruction: if multiple questions share a common instruction (e.g., "Choose the correct letter A, B, C or D"), enter it in `group_instruction` field. Displayed as a header above the question group for learners
-- Inline preview: "Xem trước" toggle shows questions as learners see them (read-only inputs, formatted). Live updates as instructor types
-- Validation on save: `stem` required, `correct_answer` required, type-specific validation (MCQ has options with correct marked, matching has valid pairs). Violations shown inline with red borders and messages
-- Drag-to-reorder: drag handle on each question card to change order. Updates `display_order` field
-- Batch save: "Lưu tất cả" button saves all changes in single transaction. No auto-save for question editor (explicit save required)
+- AC1: Question editor: accessible from passage edit page → "Thêm câu hỏi" button, and from standalone create page
+- AC2: Type selector: dropdown with all 13 IELTS question types, labeled in Vietnamese:
+- AC3: Type-specific form fields:
+- AC4: Group instruction: if multiple questions share a common instruction (e.g., "Choose the correct letter A, B, C or D"), enter it in `group_instruction` field. Displayed as a header above the question group for learners
+- AC5: Inline preview: "Xem trước" toggle shows questions as learners see them (read-only inputs, formatted). Live updates as instructor types
+- AC6: Validation on save: `stem` required, `correct_answer` required, type-specific validation (MCQ has options with correct marked, matching has valid pairs). Violations shown inline with red borders and messages
+- AC7: Drag-to-reorder: drag handle on each question card to change order. Updates `display_order` field
+- AC8: Batch save: "Lưu tất cả" button saves all changes in single transaction. No auto-save for question editor (explicit save required)

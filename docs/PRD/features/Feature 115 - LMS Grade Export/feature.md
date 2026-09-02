@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Integration |
-| **Status** | Future |
+| **NestJS** | Future |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ LMS Grade Export
 
 ## User Stories
 
-- [US-INT-02 — Export Langy scores to my LMS (Moodle/Canvas)](US-INT-02 - Export Langy scores to my LMS (MoodleCanvas)/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-INT-02 | Export Langy scores to my LMS (MoodleCanvas) | [story](US-INT-02%20-%20Export%20Langy%20scores%20to%20my%20LMS%20%28MoodleCanvas%29/story.md) |

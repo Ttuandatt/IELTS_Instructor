@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Engagement & Gamification |
-| **Status** | Future |
+| **NestJS** | Future |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Badges & Achievements
 
 ## User Stories
 
-- [US-ENGAGE-02 — Earn badges for milestones](US-ENGAGE-02 - Earn badges for milestones/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-ENGAGE-02 | Earn badges for milestones | [story](US-ENGAGE-02%20-%20Earn%20badges%20for%20milestones/story.md) |

@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Reading |
-| **Status** | Planned |
+| **NestJS** | Planned |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Question-Type Targeted Practice
 
 ## User Stories
 
-- [US-READ-10 — Practice specific question types (e.g., only T/F/NG, only...](US-READ-10 - Practice specific question types (e.g., only TFNG, only/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-READ-10 | Practice specific question types (e.g., only TFNG, only | [story](US-READ-10%20-%20Practice%20specific%20question%20types%20%28e.g.%2C%20only%20TFNG%2C%20only/story.md) |

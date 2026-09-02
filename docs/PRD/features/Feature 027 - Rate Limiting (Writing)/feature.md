@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Writing |
-| **Status** | Planned |
+| **NestJS** | Planned |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Rate Limiting (Writing)
 
 ## User Stories
 
-- [US-WRIT-14 — Limit AI scoring to 10 essays/day per learner](US-WRIT-14 - Limit AI scoring to 10 essaysday per learner/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-WRIT-14 | Limit AI scoring to 10 essaysday per learner | [story](US-WRIT-14%20-%20Limit%20AI%20scoring%20to%2010%20essaysday%20per%20learner/story.md) |

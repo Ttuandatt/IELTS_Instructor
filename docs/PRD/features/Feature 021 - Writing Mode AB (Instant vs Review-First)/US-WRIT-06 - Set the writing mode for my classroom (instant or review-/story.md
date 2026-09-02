@@ -9,10 +9,10 @@
 
 ## Acceptance Criteria
 
-- Setting location: classroom settings page `/instructor/classrooms/{id}/settings`, section "Chế độ chấm bài viết"
-- Two radio buttons with descriptions:
-- Default for new classrooms: `instant` (lower friction for pilot adoption)
-- Saving mode change: `PATCH /api/classrooms/{id}` with `{ writing_mode }`. Confirmation modal: "Thay đổi chế độ chỉ áp dụng cho bài nộp MỚI. Các bài đã nộp giữ nguyên trạng thái hiện tại." (enforces invariant #2)
-- **Invariant #2 enforcement:** when mode changes from instant→review-first, existing `released_ai` submissions stay `released_ai` (NOT retroactively moved to `pending_review`). When mode changes from review-first→instant, existing `pending_review` submissions stay `pending_review` (instructor must still release them manually)
-- UI shows current mode as badge on classroom card: "⚡ Chấm tức thì" or "👁 Duyệt trước"
-- Only classroom owner or co-teacher can change writing_mode. Learners cannot see this setting
+- AC1: Setting location: classroom settings page `/instructor/classrooms/{id}/settings`, section "Chế độ chấm bài viết"
+- AC2: Two radio buttons with descriptions:
+- AC3: Default for new classrooms: `instant` (lower friction for pilot adoption)
+- AC4: Saving mode change: `PATCH /api/classrooms/{id}` with `{ writing_mode }`. Confirmation modal: "Thay đổi chế độ chỉ áp dụng cho bài nộp MỚI. Các bài đã nộp giữ nguyên trạng thái hiện tại." (enforces invariant #2)
+- AC5: **Invariant #2 enforcement:** when mode changes from instant→review-first, existing `released_ai` submissions stay `released_ai` (NOT retroactively moved to `pending_review`). When mode changes from review-first→instant, existing `pending_review` submissions stay `pending_review` (instructor must still release them manually)
+- AC6: UI shows current mode as badge on classroom card: "⚡ Chấm tức thì" or "👁 Duyệt trước"
+- AC7: Only classroom owner or co-teacher can change writing_mode. Learners cannot see this setting

@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Auth & Account |
-| **Status** | Partial |
+| **NestJS** | Partial |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,5 +12,7 @@ Profile & Settings
 
 ## User Stories
 
-- [US-AUTH-04 — Update display name and avatar](US-AUTH-04 - Update display name and avatar/story.md)
-- [US-AUTH-05 — Change password](US-AUTH-05 - Change password/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-AUTH-04 | Update display name and avatar | [story](US-AUTH-04%20-%20Update%20display%20name%20and%20avatar/story.md) |
+| US-AUTH-05 | Change password | [story](US-AUTH-05%20-%20Change%20password/story.md) |

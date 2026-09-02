@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Reading |
-| **Status** | Built |
+| **NestJS** | Built |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Reading Test — Practice Mode
 
 ## User Stories
 
-- [US-READ-01 — Practice a reading passage without time pressure](US-READ-01 - Practice a reading passage without time pressure/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-READ-01 | Practice a reading passage without time pressure | [story](US-READ-01%20-%20Practice%20a%20reading%20passage%20without%20time%20pressure/story.md) |

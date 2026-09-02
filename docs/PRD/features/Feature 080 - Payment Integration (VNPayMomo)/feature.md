@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Billing & Subscription |
-| **Status** | Future |
+| **NestJS** | Future |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Payment Integration (VNPay/Momo)
 
 ## User Stories
 
-- [US-BILL-03 — Pay via VNPay or Momo (local payment methods)](US-BILL-03 - Pay via VNPay or Momo (local payment methods)/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-BILL-03 | Pay via VNPay or Momo (local payment methods) | [story](US-BILL-03%20-%20Pay%20via%20VNPay%20or%20Momo%20%28local%20payment%20methods%29/story.md) |

@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Listening |
-| **Status** | Planned |
+| **NestJS** | Planned |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Listening Content Upload
 
 ## User Stories
 
-- [US-LIST-03 — Upload audio files with corresponding questions](US-LIST-03 - Upload audio files with corresponding questions/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-LIST-03 | Upload audio files with corresponding questions | [story](US-LIST-03%20-%20Upload%20audio%20files%20with%20corresponding%20questions/story.md) |

@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Speaking |
-| **Status** | Future |
+| **NestJS** | Future |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Instructor Speaking Review
 
 ## User Stories
 
-- [US-SPEAK-04 — Listen to student recordings and provide feedback](US-SPEAK-04 - Listen to student recordings and provide feedback/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-SPEAK-04 | Listen to student recordings and provide feedback | [story](US-SPEAK-04%20-%20Listen%20to%20student%20recordings%20and%20provide%20feedback/story.md) |

@@ -3,7 +3,8 @@
 | Field | Value |
 |-------|-------|
 | **Domain** | Admin |
-| **Status** | Planned |
+| **NestJS** | Planned |
+| **Spring Boot** | Not Started |
 
 ## Description
 
@@ -11,4 +12,6 @@ Usage Analytics
 
 ## User Stories
 
-- [US-ADMIN-05 — See platform-wide analytics (DAU, submissions/day, LLM to...](US-ADMIN-05 - See platform-wide analytics (DAU, submissionsday, LLM to/story.md)
+| US ID | Name | Link |
+|-------|------|------|
+| US-ADMIN-05 | See platform-wide analytics (DAU, submissionsday, LLM to | [story](US-ADMIN-05%20-%20See%20platform-wide%20analytics%20%28DAU%2C%20submissionsday%2C%20LLM%20to/story.md) |
